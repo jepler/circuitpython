@@ -124,7 +124,11 @@ STATIC size_t read_uint(mp_reader_t *reader) {
 
 STATIC qstr load_qstr(mp_reader_t *reader) {
     size_t len = read_uint(reader);
+#ifdef __GNUC__
     char str[len];
+#else
+    char *str = alloca(len);
+#endif
     read_bytes(reader, (byte*)str, len);
     qstr qst = qstr_from_strn(str, len);
     return qst;
