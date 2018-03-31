@@ -55,6 +55,7 @@ struct _nlr_buf_t {
 #elif defined(__xtensa__)
     void *regs[10];
 #else
+    #undef MICROPY_NLR_SETJMP
     #define MICROPY_NLR_SETJMP (1)
     //#warning "No native NLR support for this arch, using setjmp implementation"
 #endif
