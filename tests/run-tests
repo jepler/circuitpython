@@ -390,6 +390,8 @@ def run_tests(pyb, tests, args, base_path="."):
             e = {"PYTHONPATH": os.getcwd(),
                  "PATH": os.environ["PATH"],
                  "LANG": "en_US.UTF-8"}
+            if 'SYSTEMROOT' in os.environ:
+                e['SYSTEMROOT'] = os.environ['SYSTEMROOT']
             p = subprocess.Popen([CPYTHON3, '-B', test_file], env=e, stdout=subprocess.PIPE)
             output_expected = b''
             while p.poll() is None:
