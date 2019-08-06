@@ -411,8 +411,10 @@ void common_hal_audioio_audioout_play(audioio_audioout_obj_t* self,
     }
     #endif
     if (result != AUDIO_DMA_OK) {
+        mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
         audio_dma_stop(&self->left_dma);
         #ifdef SAMD51
+        mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
         audio_dma_stop(&self->right_dma);
         #endif
         if (result == AUDIO_DMA_DMA_BUSY) {
@@ -457,8 +459,10 @@ bool common_hal_audioio_audioout_get_paused(audioio_audioout_obj_t* self) {
 void common_hal_audioio_audioout_stop(audioio_audioout_obj_t* self) {
     Tc* timer = tc_insts[self->tc_index];
     timer->COUNT16.CTRLBSET.reg = TC_CTRLBSET_CMD_STOP;
+    mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
     audio_dma_stop(&self->left_dma);
     #ifdef SAMD51
+    mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
     audio_dma_stop(&self->right_dma);
     #endif
     // Ramp the DAC to default. The start is ignored when the current value can be readback.

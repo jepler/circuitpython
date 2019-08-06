@@ -39,15 +39,41 @@ static audio_dma_t* audio_dma_state[AUDIO_DMA_CHANNEL_COUNT];
 
 // This cannot be in audio_dma_state because it's volatile.
 static volatile bool audio_dma_pending[AUDIO_DMA_CHANNEL_COUNT];
+static bool audio_dma_shadow_enable[AUDIO_DMA_CHANNEL_COUNT];
 
 uint8_t find_free_audio_dma_channel(void) {
     uint8_t channel;
     for (channel = 0; channel < AUDIO_DMA_CHANNEL_COUNT; channel++) {
-        if (!dma_channel_enabled(channel)) {
+        if (!dma_channel_enabled(channel) && !audio_dma_shadow_enable[channel]) {
+            mp_printf(&mp_plat_print, "find_free_audio_dma_channel() -> %d\n", channel);
             return channel;
         }
     }
-    return channel;
+    return AUDIO_DMA_CHANNEL_COUNT;
+}
+
+void audio_dma_enable_channel(uint8_t channel) {
+    mp_printf(&mp_plat_print, "audio_dma_enable_channel(%d)\n", channel);
+    if(channel >= AUDIO_DMA_CHANNEL_COUNT)
+        mp_raise_msg_varg(&mp_type_MemoryError, translate("Internal error: enable invalid channel %d"), channel);
+    bool real_enable = dma_channel_enabled(channel);
+    if(audio_dma_shadow_enable[channel] != real_enable)
+        mp_printf(&mp_plat_print, "audio_dma_shadow mismatch: channel %d: %d vs %d\n", channel, audio_dma_shadow_enable[channel], real_enable);
+    dma_enable_channel(channel);
+    audio_dma_shadow_enable[channel] = true;
+    if(!dma_channel_enabled(channel))
+        mp_raise_msg_varg(&mp_type_MemoryError, translate("Internal error: channel %d not active after enable"), channel);
+}
+
+void audio_dma_disable_channel(uint8_t channel) {
+    mp_printf(&mp_plat_print, "audio_dma_disable_channel(%d)\n", channel);
+    if(channel >= AUDIO_DMA_CHANNEL_COUNT)
+        mp_raise_msg_varg(&mp_type_MemoryError, translate("Internal error: disable invalid channel %d"), channel);
+    bool real_enable = dma_channel_enabled(channel);
+    if(audio_dma_shadow_enable[channel] != real_enable)
+        mp_printf(&mp_plat_print, "audio_dma_shadow mismatch: channel %d: %d vs %d\n", channel, audio_dma_shadow_enable[channel], real_enable);
+    audio_dma_shadow_enable[channel] = false;
+    dma_disable_channel(channel);
 }
 
 void audio_dma_convert_signed(audio_dma_t* dma, uint8_t* buffer, uint32_t buffer_length,
@@ -106,6 +132,7 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
     dma->first_descriptor_free = !dma->first_descriptor_free;
 
     if (get_buffer_result == GET_BUFFER_ERROR) {
+        mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
         audio_dma_stop(dma);
         return;
     }
@@ -153,6 +180,7 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
                               bool output_signed,
                               uint32_t output_register_address,
                               uint8_t dma_trigger_source) {
+    mp_printf(&mp_plat_print, "%s:%d:\n", __FILE__, __LINE__);
     uint8_t dma_channel = find_free_audio_dma_channel();
     if (dma_channel >= AUDIO_DMA_CHANNEL_COUNT) {
         return AUDIO_DMA_DMA_BUSY;
@@ -252,16 +280,19 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
     }
 
     dma_configure(dma_channel, dma_trigger_source, true);
-    dma_enable_channel(dma_channel);
+    audio_dma_enable_channel(dma_channel);
 
     return AUDIO_DMA_OK;
 }
 
 void audio_dma_stop(audio_dma_t* dma) {
-    dma_disable_channel(dma->dma_channel);
-    disable_event_channel(dma->event_channel);
+    mp_printf(&mp_plat_print, "%s:%d: audio_dma_stop(%d)\n", __FILE__, __LINE__, dma->dma_channel);
+    if(dma->dma_channel < AUDIO_DMA_CHANNEL_COUNT)
+    {
+        audio_dma_disable_channel(dma->dma_channel);
+        disable_event_channel(dma->event_channel);
+    }
     MP_STATE_PORT(playing_audio)[dma->dma_channel] = NULL;
-
     dma->dma_channel = AUDIO_DMA_CHANNEL_COUNT;
 }
 
@@ -290,7 +321,8 @@ void audio_dma_reset(void) {
     for (uint8_t i = 0; i < AUDIO_DMA_CHANNEL_COUNT; i++) {
         audio_dma_state[i] = NULL;
         audio_dma_pending[i] = false;
-        dma_disable_channel(i);
+        mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
+        audio_dma_disable_channel(i);
         dma_descriptor(i)->BTCTRL.bit.VALID = false;
         MP_STATE_PORT(playing_audio)[i] = NULL;
     }
@@ -302,6 +334,7 @@ bool audio_dma_get_playing(audio_dma_t* dma) {
     }
     uint32_t status = dma_transfer_status(dma->dma_channel);
     if ((status & DMAC_CHINTFLAG_TCMPL) != 0 || (status & DMAC_CHINTFLAG_TERR) != 0) {
+        mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
         audio_dma_stop(dma);
     }
 

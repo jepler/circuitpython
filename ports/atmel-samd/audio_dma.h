@@ -89,6 +89,9 @@ void audio_dma_pause(audio_dma_t* dma);
 void audio_dma_resume(audio_dma_t* dma);
 bool audio_dma_get_paused(audio_dma_t* dma);
 
+void audio_dma_enable_channel(uint8_t);
+void audio_dma_disable_channel(uint8_t);
+
 void audio_dma_background(void);
 
 #endif  // MICROPY_INCLUDED_ATMEL_SAMD_AUDIO_DMA_H

@@ -355,7 +355,11 @@ static uint16_t filter_sample(uint32_t pdm_samples[4]) {
 // output_buffer_length is the number of slots, not the number of bytes.
 uint32_t common_hal_audiobusio_pdmin_record_to_buffer(audiobusio_pdmin_obj_t* self,
         uint16_t* output_buffer, uint32_t output_buffer_length) {
+    mp_printf(&mp_plat_print, "%s:%d:\n", __FILE__, __LINE__);
     uint8_t dma_channel = find_free_audio_dma_channel();
+    if (dma_channel >= AUDIO_DMA_CHANNEL_COUNT) {
+        mp_raise_RuntimeError(translate("No DMA channel found"));
+    }
     uint8_t event_channel = find_sync_event_channel();
     if (event_channel >= EVSYS_SYNCH_NUM) {
         mp_raise_RuntimeError(translate("All sync event channels in use"));
@@ -385,7 +389,7 @@ uint32_t common_hal_audiobusio_pdmin_record_to_buffer(audiobusio_pdmin_obj_t* se
     init_event_channel_interrupt(event_channel, CORE_GCLK, EVSYS_ID_GEN_DMAC_CH_0 + dma_channel);
     // Turn on serializer now to get it in sync with DMA.
     i2s_set_serializer_enable(self->serializer, true);
-    dma_enable_channel(dma_channel);
+    audio_dma_enable_channel(dma_channel);
 
     // Record
     uint32_t buffers_processed = 0;
@@ -466,7 +470,8 @@ uint32_t common_hal_audiobusio_pdmin_record_to_buffer(audiobusio_pdmin_obj_t* se
     }
 
     disable_event_channel(event_channel);
-    dma_disable_channel(dma_channel);
+    mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
+    audio_dma_disable_channel(dma_channel);
     // Turn off serializer, but leave clock on, to avoid mic startup delay.
     i2s_set_serializer_enable(self->serializer, false);
 
