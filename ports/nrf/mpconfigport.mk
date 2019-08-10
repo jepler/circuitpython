@@ -34,3 +34,5 @@ CIRCUITPY_FREQUENCYIO = 0
 # See https://github.com/adafruit/circuitpython/issues/1300
 # Defined here because system_nrf52840.c doesn't #include any of our own include files.
 CFLAGS += -DCONFIG_NFCT_PINS_AS_GPIOS
+
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_HID
