@@ -16,8 +16,14 @@ for po_filename in po_filenames:
     po_file = polib.pofile(po_filename)
     po_ids = set([x.msgid for x in po_file])
 
-    if all_ids - po_ids:
-        print("Missing message id. Please run `make translate`")
+    missing = all_ids - po_ids
+    max_print = 10
+    if missing:
+        print("Missing message id(s). Please run `make translate`")
+        for i, m in zip(range(max_print), missing):
+            print("Missing: %r" % m)
+        if len(missing) > max_print:
+            print("And %d more" % (len(missing) - max_print))
         sys.exit(-1)
     else:
         print("ok")
