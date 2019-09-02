@@ -198,7 +198,7 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
         #endif
         #ifdef SAMD51
         DAC->EVCTRL.reg |= DAC_EVCTRL_STARTEI0;
-        DAC->DACCTRL[0].reg = DAC_DACCTRL_CCTRL_CC1M |
+        DAC->DACCTRL[0].reg = DAC_DACCTRL_CCTRL_CC12M |
                               DAC_DACCTRL_ENABLE |
                               DAC_DACCTRL_LEFTADJ;
         DAC->CTRLB.reg = DAC_CTRLB_REFSEL_VREFPU;
@@ -207,7 +207,7 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
     #ifdef SAMD51
     if (channel1_enabled) {
         DAC->EVCTRL.reg |= DAC_EVCTRL_STARTEI1;
-        DAC->DACCTRL[1].reg = DAC_DACCTRL_CCTRL_CC1M |
+        DAC->DACCTRL[1].reg = DAC_DACCTRL_CCTRL_CC12M |
                               DAC_DACCTRL_ENABLE |
                               DAC_DACCTRL_LEFTADJ;
         DAC->CTRLB.reg = DAC_CTRLB_REFSEL_VREFPU;
