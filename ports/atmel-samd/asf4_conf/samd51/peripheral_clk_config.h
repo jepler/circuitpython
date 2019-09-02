@@ -73,7 +73,7 @@
 // <id> dac_gclk_selection
 // <i> Select the clock source for DAC.
 #ifndef CONF_GCLK_DAC_SRC
-#define CONF_GCLK_DAC_SRC GCLK_PCHCTRL_GEN_GCLK5_Val
+#define CONF_GCLK_DAC_SRC GCLK_PCHCTRL_GEN_GCLK4_Val
 #endif
 
 /**
@@ -81,7 +81,7 @@
  * \brief DAC's Clock frequency
  */
 #ifndef CONF_GCLK_DAC_FREQUENCY
-#define CONF_GCLK_DAC_FREQUENCY 2000000
+#define CONF_GCLK_DAC_FREQUENCY 12000000
 #endif
 
 // <y> EVSYS Channel 0 Clock Source
