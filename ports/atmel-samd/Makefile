@@ -99,11 +99,7 @@ endif
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
-  # You may want to disable -flto if it interferes with debugging.
-  CFLAGS += -flto -flto-partition=none
-  # You may want to enable these flags to make setting breakpoints easier.
-  # CFLAGS += -fno-inline -fno-ipa-sra
+  CFLAGS += -ggdb -Og
   ifeq ($(CHIP_FAMILY), samd21)
     CFLAGS += -DENABLE_MICRO_TRACE_BUFFER
   endif
