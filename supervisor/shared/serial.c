@@ -35,19 +35,40 @@
 
 #include "tusb.h"
 
+static serial_hook_t *serial_hook;
+
+serial_hook_t *serial_hook_get(void) {
+    return serial_hook;
+}
+
+void serial_hook_set(serial_hook_t *hook) {
+    if(serial_hook)
+        serial_hook->unhook(serial_hook->data);
+    serial_hook = hook;
+}
+
 void serial_init(void) {
     usb_init();
 }
 
 bool serial_connected(void) {
+    if (serial_hook && serial_hook->connected(serial_hook->data)) {
+        return true;
+    }
     return tud_cdc_connected();
 }
 
 char serial_read(void) {
+    if (serial_hook && serial_hook->bytes_available(serial_hook->data)) {
+        return serial_hook->read(serial_hook->data);
+    }
     return (char) tud_cdc_read_char();
 }
 
 bool serial_bytes_available(void) {
+    if (serial_hook && serial_hook->bytes_available(serial_hook->data)) {
+        return true;
+    }
     return tud_cdc_available() > 0;
 }
 
@@ -56,6 +77,10 @@ void serial_write_substring(const char* text, uint32_t length) {
     int errcode;
     common_hal_terminalio_terminal_write(&supervisor_terminal, (const uint8_t*) text, length, &errcode);
 #endif
+
+    if (serial_hook) {
+        serial_hook->write(serial_hook->data, text, length);
+    }
 
     uint32_t count = 0;
     while (count < length && tud_cdc_connected()) {

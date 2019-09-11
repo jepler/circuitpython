@@ -46,4 +46,16 @@ char serial_read(void);
 bool serial_bytes_available(void);
 bool serial_connected(void);
 
+typedef struct {
+    void *data;
+    bool (*connected)(void *data);
+    bool (*bytes_available)(void *data);
+    void (*write)(void *data, const char* text, uint32_t length);
+    char (*read)(void *data);
+    void (*unhook)(void *data);
+} serial_hook_t;
+
+serial_hook_t *serial_hook_get(void);
+void serial_hook_set(serial_hook_t *hook);
+
 #endif  // MICROPY_INCLUDED_SUPERVISOR_SERIAL_H
