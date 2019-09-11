@@ -182,6 +182,10 @@ typedef struct _mp_state_vm_t {
     mp_obj_t dupterm_arr_obj;
     #endif
 
+    #if CIRCUITPY_BUSIO
+    mp_obj_t *serial_mirror_obj;
+    #endif
+
     #if MICROPY_PY_LWIP_SLIP
     mp_obj_t lwip_slip_stream;
     #endif

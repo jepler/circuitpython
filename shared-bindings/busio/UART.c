@@ -38,6 +38,47 @@
 #include "py/runtime.h"
 #include "py/stream.h"
 #include "supervisor/shared/translate.h"
+#include "supervisor/serial.h"
+
+STATIC busio_uart_obj_t busio_uart_console_obj;
+
+STATIC bool busio_uart_hook_connected(void *data) {
+    busio_uart_obj_t *uart = (busio_uart_obj_t *)data;
+    return common_hal_busio_uart_ready_to_tx(uart);
+}
+
+STATIC bool busio_uart_hook_bytes_available(void *data) {
+    busio_uart_obj_t *uart = (busio_uart_obj_t*)data;
+    return common_hal_busio_uart_rx_characters_available(uart);
+}
+
+STATIC void busio_uart_hook_write(void *data, const char* text, uint32_t length) {
+    busio_uart_obj_t *uart = (busio_uart_obj_t*)data;
+    int errcode;
+    common_hal_busio_uart_write(uart, (const uint8_t*) text, length, &errcode);
+}
+
+STATIC char busio_uart_hook_read(void *data) {
+    busio_uart_obj_t *uart = (busio_uart_obj_t*)data;
+    uint8_t ch;
+    int errcode;
+    common_hal_busio_uart_read(uart, &ch, 1, &errcode);
+    return (char)ch;
+}
+
+STATIC void busio_uart_hook_unhook(void *data) {
+    if (!common_hal_busio_uart_deinited(&busio_uart_console_obj)) {
+        common_hal_busio_uart_deinit(&busio_uart_console_obj);
+    }
+}
+
+STATIC serial_hook_t busio_uart_serial_hook = {
+    .connected = &busio_uart_hook_connected,
+    .bytes_available = &busio_uart_hook_bytes_available,
+    .write = &busio_uart_hook_write,
+    .read = &busio_uart_hook_read,
+    .unhook = &busio_uart_hook_unhook,
+};
 
 
 //| .. currentmodule:: busio
@@ -69,12 +110,7 @@ typedef struct {
 extern const busio_uart_parity_obj_t busio_uart_parity_even_obj;
 extern const busio_uart_parity_obj_t busio_uart_parity_odd_obj;
 
-STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    // Always initially allocate the UART object within the long-lived heap.
-    // This is needed to avoid crashes with certain UART implementations which
-    // cannot accomodate being moved after creation. (See
-    // https://github.com/adafruit/circuitpython/issues/1056)
-    busio_uart_obj_t *self = m_new_ll_obj(busio_uart_obj_t);
+STATIC mp_obj_t busio_uart_construct_common(busio_uart_obj_t *self, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     self->base.type = &busio_uart_type;
     enum { ARG_tx, ARG_rx, ARG_baudrate, ARG_bits, ARG_parity, ARG_stop, ARG_timeout, ARG_receiver_buffer_size};
     static const mp_arg_t allowed_args[] = {
@@ -126,16 +162,44 @@ STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, co
     return (mp_obj_t)self;
 }
 
-//|   .. method:: deinit()
-//|
-//|      Deinitialises the UART and releases any hardware resources for reuse.
-//|
+STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    // Always initially allocate the UART object within the long-lived heap.
+    // This is needed to avoid crashes with certain UART implementations which
+    // cannot accomodate being moved after creation. (See
+    // https://github.com/adafruit/circuitpython/issues/1056)
+    busio_uart_obj_t *self = m_new_ll_obj(busio_uart_obj_t);
+    return busio_uart_construct_common(self, n_args, pos_args, kw_args);
+}
+
 STATIC mp_obj_t busio_uart_obj_deinit(mp_obj_t self_in) {
     busio_uart_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    serial_hook_t *hook = serial_hook_get();
+    if (hook && hook->data == self) {
+        serial_hook_set(NULL);
+        MP_STATE_VM(serial_mirror_obj) = NULL;
+    }
     common_hal_busio_uart_deinit(self);
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(busio_uart_deinit_obj, busio_uart_obj_deinit);
+
+//|   .. classmethod:: make_console(tx, rx, *, baudrate=9600, bits=8, parity=None, stop=1, timeout=1, receiver_buffer_size=64)
+//|
+//|      Creates a UART instance and makes it a secondary console.
+//|
+STATIC mp_obj_t busio_uart_make_console(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    serial_hook_set(NULL);
+    if (!common_hal_busio_uart_deinited(&busio_uart_console_obj)) {
+        common_hal_busio_uart_deinit(&busio_uart_console_obj);
+    }
+    busio_uart_construct_common(&busio_uart_console_obj, n_args-1, pos_args+1, kw_args);
+    common_hal_busio_uart_never_reset(&busio_uart_console_obj);
+    busio_uart_serial_hook.data = &busio_uart_console_obj;
+    serial_hook_set(&busio_uart_serial_hook);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(busio_uart_make_console_fun_obj, 3, busio_uart_make_console);
+MP_DEFINE_CONST_CLASSMETHOD_OBJ(busio_uart_make_console_obj, MP_ROM_PTR(&busio_uart_make_console_fun_obj));
 
 STATIC void check_for_deinit(busio_uart_obj_t *self) {
     if (common_hal_busio_uart_deinited(self)) {
@@ -286,6 +350,46 @@ const mp_obj_property_t busio_uart_in_waiting_obj = {
               (mp_obj_t)&mp_const_none_obj},
 };
 
+//|   .. attribute:: mirror_console
+//|
+//|     True to mirror the USB serial console to this UART, False otherwise.
+//|     At most one object can enable this mirror at a time.
+//|
+STATIC mp_obj_t busio_uart_obj_get_mirror_console(mp_obj_t self_in) {
+    busio_uart_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    check_for_deinit(self);
+    serial_hook_t *hook = serial_hook_get();
+    return mp_obj_new_bool(hook && hook->data == self);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(busio_uart_get_mirror_console_obj, busio_uart_obj_get_mirror_console);
+
+STATIC mp_obj_t busio_uart_obj_set_mirror_console(mp_obj_t self_in, mp_obj_t new_mirror) {
+    busio_uart_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    check_for_deinit(self);
+    bool mirror = mp_obj_is_true(new_mirror);
+    if (mirror) {
+        busio_uart_serial_hook.data = self;
+        serial_hook_set(&busio_uart_serial_hook);
+        MP_STATE_VM(serial_mirror_obj) = (mp_obj_t)self;
+    } else {
+        serial_hook_t *hook = serial_hook_get();
+        if (hook && hook->data == self) {
+            serial_hook_set(NULL);
+            MP_STATE_VM(serial_mirror_obj) = NULL;
+        }
+    }
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(busio_uart_set_mirror_console_obj, busio_uart_obj_set_mirror_console);
+
+const mp_obj_property_t busio_uart_mirror_console_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&busio_uart_get_mirror_console_obj,
+              (mp_obj_t)&busio_uart_set_mirror_console_obj,
+              (mp_obj_t)&mp_const_none_obj},
+};
+
+
 //|   .. method:: reset_input_buffer()
 //|
 //|     Discard any unread characters in the input buffer.
@@ -357,9 +461,13 @@ STATIC const mp_rom_map_elem_t busio_uart_locals_dict_table[] = {
     // Properties
     { MP_ROM_QSTR(MP_QSTR_baudrate), MP_ROM_PTR(&busio_uart_baudrate_obj) },
     { MP_ROM_QSTR(MP_QSTR_in_waiting), MP_ROM_PTR(&busio_uart_in_waiting_obj) },
+    { MP_ROM_QSTR(MP_QSTR_mirror_console), MP_ROM_PTR(&busio_uart_mirror_console_obj) },
 
     // Nested Enum-like Classes.
     { MP_ROM_QSTR(MP_QSTR_Parity),       MP_ROM_PTR(&busio_uart_parity_type) },
+
+    // Class methods
+    { MP_ROM_QSTR(MP_QSTR_make_console), MP_ROM_PTR(&busio_uart_make_console_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(busio_uart_locals_dict, busio_uart_locals_dict_table);
 
