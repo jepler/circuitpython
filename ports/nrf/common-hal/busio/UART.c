@@ -57,6 +57,8 @@ static nrfx_uarte_t nrfx_uartes[] = {
 #endif
 };
 
+STATIC uint8_t small_buffers[MP_ARRAY_SIZE(nrfx_uartes)][64];
+
 STATIC bool never_reset[MP_ARRAY_SIZE(nrfx_uartes)];
 
 static uint32_t get_nrf_baud (uint32_t baudrate) {
@@ -149,12 +151,13 @@ void common_hal_busio_uart_never_reset(busio_uart_obj_t *self) {
 void common_hal_busio_uart_construct (busio_uart_obj_t *self,
                                       const mcu_pin_obj_t * tx, const mcu_pin_obj_t * rx, uint32_t baudrate,
                                       uint8_t bits, uart_parity_t parity, uint8_t stop, mp_float_t timeout,
-                                      uint16_t receiver_buffer_size) {
+                                      uint16_t receiver_buffer_size, bool never_reset_self) {
     // Find a free UART peripheral.
     self->uarte = NULL;
-    for (size_t i = 0 ; i < MP_ARRAY_SIZE(nrfx_uartes); i++) {
-        if ((nrfx_uartes[i].p_reg->ENABLE & UARTE_ENABLE_ENABLE_Msk) == 0) {
-            self->uarte = &nrfx_uartes[i];
+    size_t uarte_index;
+    for (uarte_index = 0 ; uarte_index < MP_ARRAY_SIZE(nrfx_uartes); uarte_index++) {
+        if ((nrfx_uartes[uarte_index].p_reg->ENABLE & UARTE_ENABLE_ENABLE_Msk) == 0) {
+            self->uarte = &nrfx_uartes[uarte_index];
             break;
         }
     }
@@ -199,7 +202,13 @@ void common_hal_busio_uart_construct (busio_uart_obj_t *self,
         // pointers like this are NOT moved, allocating the buffer
         // in the long-lived pool is not strictly necessary)
         // (This is a macro.)
-        ringbuf_alloc(&self->rbuf, receiver_buffer_size, true);
+        if(never_reset_self) {
+            self->rbuf.buf = small_buffers[uarte_index];
+            self->rbuf.size = sizeof(small_buffers[uarte_index]);
+            self->rbuf.iget = self->rbuf.iput = 0;
+        } else {
+            ringbuf_alloc(&self->rbuf, receiver_buffer_size, true);
+        }
 
         if ( !self->rbuf.buf ) {
             nrfx_uarte_uninit(self->uarte);
@@ -236,7 +245,7 @@ void common_hal_busio_uart_deinit(busio_uart_obj_t *self) {
         self->tx_pin_number = NO_PIN;
         self->rx_pin_number = NO_PIN;
 
-        gc_free(self->rbuf.buf);
+        self->rbuf.buf = NULL;
         self->rbuf.size = 0;
         self->rbuf.iput = self->rbuf.iget = 0;
     }
@@ -275,6 +284,17 @@ size_t common_hal_busio_uart_read(busio_uart_obj_t *self, uint8_t *data, size_t 
     return rx_bytes;
 }
 
+STATIC void tx_one_sram_buffer(nrfx_uarte_t *uarte, const uint8_t *data, size_t len, uint64_t start_ticks, uint64_t timeout_ms, int *errcode) {
+    /* data must be in SRAM */
+    (*errcode) = nrfx_uarte_tx(uarte, data, len);
+    _VERIFY_ERR(*errcode);
+    (*errcode) = 0;
+
+    while ( nrfx_uarte_tx_in_progress(uarte) && (ticks_ms - start_ticks < timeout_ms) ) {
+        RUN_BACKGROUND_TASKS;
+    }
+}
+
 // Write characters.
 size_t common_hal_busio_uart_write (busio_uart_obj_t *self, const uint8_t *data, size_t len, int *errcode) {
     if ( nrf_uarte_tx_pin_get(self->uarte->p_reg) == NRF_UARTE_PSEL_DISCONNECTED ) {
@@ -299,21 +319,16 @@ size_t common_hal_busio_uart_write (busio_uart_obj_t *self, const uint8_t *data,
     // EasyDMA can only access SRAM
     uint8_t * tx_buf = (uint8_t*) data;
     if ( !nrfx_is_in_ram(data) ) {
-        // TODO: If this is not too big, we could allocate it on the stack.
-        tx_buf = (uint8_t *) gc_alloc(len, false, false);
-        memcpy(tx_buf, data, len);
-    }
-
-    (*errcode) = nrfx_uarte_tx(self->uarte, tx_buf, len);
-    _VERIFY_ERR(*errcode);
-    (*errcode) = 0;
-
-    while ( nrfx_uarte_tx_in_progress(self->uarte) && (ticks_ms - start_ticks < self->timeout_ms) ) {
-        RUN_BACKGROUND_TASKS;
-    }
-
-    if ( !nrfx_is_in_ram(data) ) {
-        gc_free(tx_buf);
+        uint8_t flash_tx_buf[64];
+        while (len > 0) {
+            int sz = MIN(len, sizeof(flash_tx_buf));
+            memcpy(flash_tx_buf, data, sz);
+            tx_one_sram_buffer(self->uarte, flash_tx_buf, sz, start_ticks, self->timeout_ms, errcode);
+            data += sz;
+            len -= sz;
+        }
+    } else {
+        tx_one_sram_buffer(self->uarte, tx_buf, len, start_ticks, self->timeout_ms, errcode);
     }
 
     return len;

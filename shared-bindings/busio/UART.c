@@ -110,7 +110,7 @@ typedef struct {
 extern const busio_uart_parity_obj_t busio_uart_parity_even_obj;
 extern const busio_uart_parity_obj_t busio_uart_parity_odd_obj;
 
-STATIC mp_obj_t busio_uart_construct_common(busio_uart_obj_t *self, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t busio_uart_construct_common(busio_uart_obj_t *self, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args, bool never_reset) {
     self->base.type = &busio_uart_type;
     enum { ARG_tx, ARG_rx, ARG_baudrate, ARG_bits, ARG_parity, ARG_stop, ARG_timeout, ARG_receiver_buffer_size};
     static const mp_arg_t allowed_args[] = {
@@ -158,7 +158,7 @@ STATIC mp_obj_t busio_uart_construct_common(busio_uart_obj_t *self, size_t n_arg
 
     common_hal_busio_uart_construct(self, tx, rx,
                                     args[ARG_baudrate].u_int, bits, parity, stop, timeout,
-                                    args[ARG_receiver_buffer_size].u_int);
+                                    args[ARG_receiver_buffer_size].u_int, never_reset);
     return (mp_obj_t)self;
 }
 
@@ -168,7 +168,7 @@ STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, co
     // cannot accomodate being moved after creation. (See
     // https://github.com/adafruit/circuitpython/issues/1056)
     busio_uart_obj_t *self = m_new_ll_obj(busio_uart_obj_t);
-    return busio_uart_construct_common(self, n_args, pos_args, kw_args);
+    return busio_uart_construct_common(self, n_args, pos_args, kw_args, false);
 }
 
 STATIC mp_obj_t busio_uart_obj_deinit(mp_obj_t self_in) {
@@ -192,7 +192,7 @@ STATIC mp_obj_t busio_uart_make_console(size_t n_args, const mp_obj_t *pos_args,
     if (!common_hal_busio_uart_deinited(&busio_uart_console_obj)) {
         common_hal_busio_uart_deinit(&busio_uart_console_obj);
     }
-    busio_uart_construct_common(&busio_uart_console_obj, n_args-1, pos_args+1, kw_args);
+    busio_uart_construct_common(&busio_uart_console_obj, n_args-1, pos_args+1, kw_args, true);
     common_hal_busio_uart_never_reset(&busio_uart_console_obj);
     busio_uart_serial_hook.data = &busio_uart_console_obj;
     serial_hook_set(&busio_uart_serial_hook);
