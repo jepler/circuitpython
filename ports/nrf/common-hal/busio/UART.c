@@ -57,6 +57,8 @@ static nrfx_uarte_t nrfx_uartes[] = {
 #endif
 };
 
+STATIC bool never_reset[MP_ARRAY_SIZE(nrfx_uartes)];
+
 static uint32_t get_nrf_baud (uint32_t baudrate) {
 
     static const struct {
@@ -124,9 +126,25 @@ static void uart_callback_irq (const nrfx_uarte_event_t * event, void * context)
 
 void uart_reset(void) {
     for (size_t i = 0 ; i < MP_ARRAY_SIZE(nrfx_uartes); i++) {
+        if (never_reset[i]) {
+            continue;
+        }
         nrf_uarte_disable(nrfx_uartes[i].p_reg);
     }
 }
+
+void common_hal_busio_uart_never_reset(busio_uart_obj_t *self) {
+    for (size_t i = 0 ; i < MP_ARRAY_SIZE(nrfx_uartes); i++) {
+        if (self->uarte == &nrfx_uartes[i]) {
+            never_reset[i] = true;
+
+            never_reset_pin_number(self->tx_pin_number);
+            never_reset_pin_number(self->rx_pin_number);
+            break;
+        }
+    }
+}
+
 
 void common_hal_busio_uart_construct (busio_uart_obj_t *self,
                                       const mcu_pin_obj_t * tx, const mcu_pin_obj_t * rx, uint32_t baudrate,
