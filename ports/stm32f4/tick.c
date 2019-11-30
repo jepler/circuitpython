@@ -30,6 +30,7 @@
 #include "supervisor/filesystem.h"
 #include "shared-module/gamepad/__init__.h"
 #include "shared-bindings/microcontroller/Processor.h"
+#include "shared-bindings/time/__init__.h"
 
 #include "stm32f4xx.h"
 
@@ -92,4 +93,8 @@ void current_tick(uint64_t* ms, uint32_t* us_until_ms) {
 void wait_until(uint64_t ms, uint32_t us_until_ms) {
     uint32_t ticks_per_us = SystemCoreClock / 1000 / 1000;
     while(ticks_ms <= ms && SysTick->VAL / ticks_per_us >= us_until_ms) {}
+}
+
+uint64_t common_hal_time_monotonic_ns(void) {
+    return common_hal_time_monotonic() * 1000000;
 }

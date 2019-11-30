@@ -32,6 +32,7 @@
 #include "supervisor/filesystem.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/microcontroller/Processor.h"
+#include "shared-bindings/time/__init__.h"
 
 #if CIRCUITPY_GAMEPAD
 #include "shared-module/gamepad/__init__.h"
@@ -131,3 +132,29 @@ void wait_until(uint64_t ms, uint32_t us_until_ms) {
     uint32_t ticks_per_us = common_hal_mcu_processor_get_frequency() / 1000 / 1000;
     while (ticks_ms <= ms && SysTick->VAL / ticks_per_us >= us_until_ms) {}
 }
+
+#if CIRCUITPY_FULL_BUILD
+uint64_t common_hal_time_monotonic_ns(void) {
+    uint32_t ticks_per_us = common_hal_mcu_processor_get_frequency() / 1000 / 1000;
+
+    // We disable interrupts to prevent ticks_ms from changing while we grab it.
+    common_hal_mcu_disable_interrupts();
+    uint32_t tick_status = SysTick->CTRL;
+    uint32_t current_us = SysTick->VAL;
+    uint32_t tick_status2 = SysTick->CTRL;
+    uint64_t current_ms = ticks_ms;
+    // The second clause ensures our value actually rolled over. Its possible it hit zero between
+    // the VAL read and CTRL read.
+    if ((tick_status & SysTick_CTRL_COUNTFLAG_Msk) != 0 ||
+        ((tick_status2 & SysTick_CTRL_COUNTFLAG_Msk) != 0 && current_us > ticks_per_us)) {
+        current_ms++;
+    }
+    common_hal_mcu_enable_interrupts();
+    return (current_ms + 1) * 1000000
+        - current_us * 1000 / ticks_per_us;
+}
+#else
+uint64_t common_hal_time_monotonic_ns(void) {
+    return common_hal_time_monotonic() * 1000000;
+}
+#endif

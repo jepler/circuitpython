@@ -43,3 +43,7 @@ void board_timerhook(void)
     autoreload_tick();
 #endif
 }
+
+uint64_t common_hal_time_monotonic_ns(void) {
+    return ticks_ms * 1000000;
+}
