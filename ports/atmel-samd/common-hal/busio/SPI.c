@@ -42,6 +42,7 @@
 #include "samd/sercom.h"
 
 bool never_reset_sercoms[SERCOM_INST_NUM];
+#define inhibit_dma (1)
 
 void never_reset_sercom(Sercom* sercom) {
     // Reset all SERCOMs except the ones being used by on-board devices.
@@ -312,7 +313,7 @@ bool common_hal_busio_spi_write(busio_spi_obj_t *self,
         return true;
     }
     int32_t status;
-    if (len >= 16) {
+    if (len >= 16 && !inhibit_dma) {
         status = sercom_dma_write(self->spi_desc.dev.prvt, data, len);
     } else {
         struct io_descriptor *spi_io;
@@ -328,7 +329,7 @@ bool common_hal_busio_spi_read(busio_spi_obj_t *self,
         return true;
     }
     int32_t status;
-    if (len >= 16) {
+    if (len >= 16 && !inhibit_dma) {
         status = sercom_dma_read(self->spi_desc.dev.prvt, data, len, write_value);
     } else {
         self->spi_desc.dev.dummy_byte = write_value;
@@ -346,7 +347,7 @@ bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, uint8_t *data_out, uin
         return true;
     }
     int32_t status;
-    if (len >= 16) {
+    if (len >= 16 && !inhibit_dma) {
         status = sercom_dma_transfer(self->spi_desc.dev.prvt, data_out, data_in, len);
     } else {
         struct spi_xfer xfer;
