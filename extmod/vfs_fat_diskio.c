@@ -80,12 +80,15 @@ DRESULT disk_read (
         vfs->readblocks[3] = MP_OBJ_FROM_PTR(&ar);
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
+            inhibit_background_tasks++;
             mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->readblocks);
             nlr_pop();
+            inhibit_background_tasks--;
             if (ret != mp_const_none && MP_OBJ_SMALL_INT_VALUE(ret) != 0) {
                 return RES_ERROR;
             }
         } else {
+            inhibit_background_tasks--;
             // Exception thrown by readblocks or something it calls.
             return RES_ERROR;
         }
@@ -126,12 +129,15 @@ DRESULT disk_write (
         vfs->writeblocks[3] = MP_OBJ_FROM_PTR(&ar);
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
+            inhibit_background_tasks++;
             mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->writeblocks);
             nlr_pop();
+            inhibit_background_tasks--;
             if (ret != mp_const_none && MP_OBJ_SMALL_INT_VALUE(ret) != 0) {
                 return RES_ERROR;
             }
         } else {
+            inhibit_background_tasks--;
             // Exception thrown by writeblocks or something it calls.
             return RES_ERROR;
         }
