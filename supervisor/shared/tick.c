@@ -97,3 +97,7 @@ void supervisor_fake_tick() {
     uint32_t now32 = ticks_ms;
     background_ticks_ms32 = (now32 - 1);
 }
+
+void reset_tick() {
+    inhibit_background_tasks = 0;
+}

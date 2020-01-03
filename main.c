@@ -55,6 +55,7 @@
 #include "supervisor/shared/safe_mode.h"
 #include "supervisor/shared/status_leds.h"
 #include "supervisor/shared/stack.h"
+#include "supervisor/shared/tick.h"
 #include "supervisor/serial.h"
 
 #if CIRCUITPY_DISPLAYIO
@@ -185,6 +186,7 @@ bool maybe_run_list(const char ** filenames, pyexec_result_t* exec_result) {
 }
 
 void cleanup_after_vm(supervisor_allocation* heap) {
+    reset_tick();
     // Turn off the display and flush the fileystem before the heap disappears.
     #if CIRCUITPY_DISPLAYIO
     reset_displays();

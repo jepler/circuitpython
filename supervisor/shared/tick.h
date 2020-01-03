@@ -29,6 +29,12 @@
 
 #include <stdint.h>
 
+/** @brief To be called at initialization
+ *
+ * reset_tick must be called at initialization, to ensure that
+ * inhibit_background_tasks is cleared to 0.
+ */
+extern void reset_tick(void);
 /** @brief To be called once every ms
  *
  * The port must call supervisor_tick once per millisecond to perform regular tasks.
