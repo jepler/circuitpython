@@ -64,4 +64,6 @@ extern uint64_t supervisor_ticks_ms64(void);
  */
 extern void supervisor_run_background_if_tick(void);
 
+extern volatile int inhibit_background_tasks;
+
 #endif

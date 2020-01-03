@@ -30,6 +30,7 @@
 
 static volatile uint64_t ticks_ms;
 static volatile uint32_t background_ticks_ms32;
+volatile int inhibit_background_tasks;
 
 #if CIRCUITPY_GAMEPAD
 #include "shared-module/gamepad/__init__.h"
@@ -78,6 +79,10 @@ uint32_t supervisor_ticks_ms32() {
 extern void run_background_tasks(void);
 
 void supervisor_run_background_tasks_if_tick() {
+    if (inhibit_background_tasks) {
+        return;
+    }
+
     uint32_t now32 = ticks_ms;
 
     if (now32 == background_ticks_ms32) {
