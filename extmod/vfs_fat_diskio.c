@@ -29,6 +29,9 @@
 
 #include "py/mpconfig.h"
 #if MICROPY_VFS && MICROPY_VFS_FAT
+#if CIRCUITPY
+#include "supervisor/shared/tick.h"
+#endif
 
 #include <stdint.h>
 #include <stdio.h>
@@ -80,15 +83,21 @@ DRESULT disk_read (
         vfs->readblocks[3] = MP_OBJ_FROM_PTR(&ar);
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
+#if CIRCUITPY
             inhibit_background_tasks++;
+#endif
             mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->readblocks);
             nlr_pop();
+#if CIRCUITPY
             inhibit_background_tasks--;
+#endif
             if (ret != mp_const_none && MP_OBJ_SMALL_INT_VALUE(ret) != 0) {
                 return RES_ERROR;
             }
         } else {
+#if CIRCUITPY
             inhibit_background_tasks--;
+#endif
             // Exception thrown by readblocks or something it calls.
             return RES_ERROR;
         }
@@ -129,15 +138,21 @@ DRESULT disk_write (
         vfs->writeblocks[3] = MP_OBJ_FROM_PTR(&ar);
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
+#if CIRCUITPY
             inhibit_background_tasks++;
+#endif
             mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->writeblocks);
             nlr_pop();
+#if CIRCUITPY
             inhibit_background_tasks--;
+#endif
             if (ret != mp_const_none && MP_OBJ_SMALL_INT_VALUE(ret) != 0) {
                 return RES_ERROR;
             }
         } else {
+#if CIRCUITPY
             inhibit_background_tasks--;
+#endif
             // Exception thrown by writeblocks or something it calls.
             return RES_ERROR;
         }
