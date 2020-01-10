@@ -63,6 +63,13 @@ audioio_get_buffer_result_t audiosample_get_buffer(mp_obj_t sample_obj,
     return proto->get_buffer(MP_OBJ_TO_PTR(sample_obj), single_channel, channel, buffer, buffer_length);
 }
 
+void audiosample_tock(mp_obj_t sample_obj) {
+    const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
+    if (proto->tock) {
+        return proto->tock(MP_OBJ_TO_PTR(sample_obj));
+    }
+}
+
 void audiosample_get_buffer_structure(mp_obj_t sample_obj, bool single_channel,
                                       bool* single_buffer, bool* samples_signed,
                                       uint32_t* max_buffer_length, uint8_t* spacing) {

@@ -149,6 +149,7 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
             descriptor->DESCADDR.reg = 0;
         }
     }
+    audiosample_tock(dma->sample);
     descriptor->BTCTRL.bit.VALID = true;
 }
 

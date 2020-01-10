@@ -343,6 +343,12 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t* 
     return GET_BUFFER_MORE_DATA;
 }
 
+void audiomp3_mp3file_tock(audiomp3_mp3file_obj_t* self) {
+    if (self->other_channel == -1) {
+        mp3file_update_inbuf(self);
+    }
+}
+
 void audiomp3_mp3file_get_buffer_structure(audiomp3_mp3file_obj_t* self, bool single_channel,
                                            bool* single_buffer, bool* samples_signed,
                                            uint32_t* max_buffer_length, uint8_t* spacing) {

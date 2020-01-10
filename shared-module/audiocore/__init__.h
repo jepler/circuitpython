@@ -51,6 +51,7 @@ typedef void (*audiosample_get_buffer_structure_fun)(mp_obj_t,
         bool single_channel, bool* single_buffer,
         bool* samples_signed, uint32_t *max_buffer_length,
         uint8_t* spacing);
+typedef void (*audiosample_tock_fun)(mp_obj_t);
 
 typedef struct _audiosample_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_audiosample
@@ -60,6 +61,7 @@ typedef struct _audiosample_p_t {
     audiosample_reset_buffer_fun reset_buffer;
     audiosample_get_buffer_fun get_buffer;
     audiosample_get_buffer_structure_fun get_buffer_structure;
+    audiosample_tock_fun tock;
 } audiosample_p_t;
 
 uint32_t audiosample_sample_rate(mp_obj_t sample_obj);
@@ -73,5 +75,6 @@ audioio_get_buffer_result_t audiosample_get_buffer(mp_obj_t sample_obj,
 void audiosample_get_buffer_structure(mp_obj_t sample_obj, bool single_channel,
                                       bool* single_buffer, bool* samples_signed,
                                       uint32_t* max_buffer_length, uint8_t* spacing);
+void audiosample_tock(mp_obj_t sample_obj);
 
 #endif  // MICROPY_INCLUDED_SHARED_MODULE_AUDIOCORE__INIT__H

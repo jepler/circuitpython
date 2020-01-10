@@ -298,6 +298,7 @@ STATIC const audiosample_p_t audiomp3_mp3file_proto = {
     .reset_buffer = (audiosample_reset_buffer_fun)audiomp3_mp3file_reset_buffer,
     .get_buffer = (audiosample_get_buffer_fun)audiomp3_mp3file_get_buffer,
     .get_buffer_structure = (audiosample_get_buffer_structure_fun)audiomp3_mp3file_get_buffer_structure,
+    .tock = (audiosample_tock_fun)audiomp3_mp3file_tock,
 };
 
 const mp_obj_type_t audiomp3_mp3file_type = {

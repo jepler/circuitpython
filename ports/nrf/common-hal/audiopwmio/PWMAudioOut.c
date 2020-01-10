@@ -130,6 +130,8 @@ STATIC void fill_buffers(audiopwmio_pwmaudioout_obj_t *self, int buf) {
     } else if (get_buffer_result == GET_BUFFER_DONE) {
         self->pwm->SHORTS = NRF_PWM_SHORT_SEQEND0_STOP_MASK | NRF_PWM_SHORT_SEQEND1_STOP_MASK;
         self->stopping = true;
+    } else {
+        audiosample_tock(dma->sample);
     }
 }
 

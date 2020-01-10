@@ -155,6 +155,7 @@ static void i2s_buffer_fill(audiobusio_i2sout_obj_t* self) {
         self->sample_data += bytecount;
         bytesleft -= bytecount;
     }
+    audiosample_tock(dma->sample);
 
     // Find the last frame of real audio data and replicate its samples until
     // you have 32 bits worth, which is the fundamental unit of nRF I2S DMA
