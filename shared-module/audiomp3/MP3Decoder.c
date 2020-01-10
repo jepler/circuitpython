@@ -51,8 +51,8 @@
  * Sets self->eof if any read of the file returns 0 bytes
  */
 STATIC bool mp3file_update_inbuf(audiomp3_mp3file_obj_t* self) {
-    // If buffer is over half full, do nothing
-    if (self->inbuf_offset < self->inbuf_length/2) return true;
+    // If we wouldn't read at least one block, do nothing
+    if (self->inbuf_offset < 512) return true;
 
     // If we didn't previously reach the end of file, we can try reading now
     if (!self->eof) {
@@ -168,8 +168,14 @@ void common_hal_audiomp3_mp3file_construct(audiomp3_mp3file_obj_t* self,
     // than the two 4kB output buffers, except that the alignment allows to
     // never allocate that extra frame buffer.
 
+    // I haven't been able to find an authoritative source for the maximum amount of data
+    // needed for one MP3 frame; https://www.mars.org/pipermail/mad-dev/2002-January/000425.html
+    // states that "there is a "soft" limit imposed by the standard of 960 bytes", and we want
+    // to read at least 512 bytes at a time, leading to an input buffer of (960+512) bytes, about
+    // .5kB smaller than the one in Adafruit_MP3
+
     self->level = 0x8000;
-    self->inbuf_length = 2048;
+    self->inbuf_length = 960+512;
     self->inbuf_offset = self->inbuf_length;
     self->inbuf = m_malloc(self->inbuf_length, false);
     if (self->inbuf == NULL) {
