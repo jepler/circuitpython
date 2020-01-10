@@ -26,6 +26,7 @@
  */
 
 #include <stdint.h>
+#include <math.h>
 
 #include "lib/utils/context_manager_helpers.h"
 #include "py/objproperty.h"
@@ -240,6 +241,38 @@ const mp_obj_property_t audiomp3_mp3file_rms_level_obj = {
               (mp_obj_t)&mp_const_none_obj},
 };
 
+//|   .. attribute:: level
+//|
+//|     Volume level
+//|
+STATIC mp_obj_t audiomp3_mp3file_obj_get_level(mp_obj_t self_in) {
+    audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    check_for_deinit(self);
+    return mp_obj_new_float(self->level / (float)0x8000);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_level_obj, audiomp3_mp3file_obj_get_level);
+
+STATIC mp_obj_t audiomp3_mp3file_obj_set_level(mp_obj_t self_in, mp_obj_t value) {
+    audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    check_for_deinit(self);
+    float value_float = mp_obj_get_float(value);
+    if (value_float < 0 || value_float > 1.0) {
+        mp_raise_ValueError(translate("level must be between 0 and 1"));
+    }
+    self->level = (int)roundf(value_float * 0x8000);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(audiomp3_mp3file_set_level_obj, audiomp3_mp3file_obj_set_level);
+
+const mp_obj_property_t audiomp3_mp3file_level_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&audiomp3_mp3file_get_level_obj,
+              (mp_obj_t)&audiomp3_mp3file_set_level_obj,
+              (mp_obj_t)&mp_const_none_obj},
+};
+
+
+
 
 STATIC const mp_rom_map_elem_t audiomp3_mp3file_locals_dict_table[] = {
     // Methods
@@ -249,6 +282,7 @@ STATIC const mp_rom_map_elem_t audiomp3_mp3file_locals_dict_table[] = {
 
     // Properties
     { MP_ROM_QSTR(MP_QSTR_file), MP_ROM_PTR(&audiomp3_mp3file_file_obj) },
+    { MP_ROM_QSTR(MP_QSTR_level), MP_ROM_PTR(&audiomp3_mp3file_level_obj) },
     { MP_ROM_QSTR(MP_QSTR_sample_rate), MP_ROM_PTR(&audiomp3_mp3file_sample_rate_obj) },
     { MP_ROM_QSTR(MP_QSTR_bits_per_sample), MP_ROM_PTR(&audiomp3_mp3file_bits_per_sample_obj) },
     { MP_ROM_QSTR(MP_QSTR_channel_count), MP_ROM_PTR(&audiomp3_mp3file_channel_count_obj) },

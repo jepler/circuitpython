@@ -168,6 +168,7 @@ void common_hal_audiomp3_mp3file_construct(audiomp3_mp3file_obj_t* self,
     // than the two 4kB output buffers, except that the alignment allows to
     // never allocate that extra frame buffer.
 
+    self->level = 0x8000;
     self->inbuf_length = 2048;
     self->inbuf_offset = self->inbuf_length;
     self->inbuf = m_malloc(self->inbuf_length, false);
@@ -320,6 +321,14 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t* 
     int bytes_left = BYTES_LEFT(self);
     uint8_t *inbuf = READ_PTR(self);
     int err = MP3Decode(self->decoder, &inbuf, &bytes_left, buffer, 0);
+    if(self->level != 0x8000) {
+        int level = self->level;
+        int n = self->frame_buffer_size / sizeof(int16_t);
+        for (int i=0; i < n; i++) {
+            buffer[i] = ((int32_t)buffer[i] * level) >> 15;
+        }
+    }
+
     CONSUME(self, BYTES_LEFT(self) - bytes_left);
     if (err) {
         return GET_BUFFER_DONE;
