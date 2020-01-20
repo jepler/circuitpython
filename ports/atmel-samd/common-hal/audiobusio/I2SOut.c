@@ -299,7 +299,9 @@ void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t* self,
     #endif
     audio_dma_result result = audio_dma_setup_playback(&self->dma, sample, loop, false, 0,
         true /* output signed */, tx_register, dmac_id);
-
+    if (result == AUDIO_DMA_OK) {
+        result = audio_dma_preload(&self->dma, dmac_id);
+    }
     if (result == AUDIO_DMA_DMA_BUSY) {
         common_hal_audiobusio_i2sout_stop(self);
         mp_raise_RuntimeError(translate("No DMA channel found"));

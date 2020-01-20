@@ -377,10 +377,11 @@ void common_hal_audioio_audioout_play(audioio_audioout_obj_t* self,
         mp_raise_ValueError_varg(translate("Sample rate too high. It must be less than %d"), max_sample_rate);
     }
     #ifdef SAMD21
+    uint8_t left_channel_trigger = DAC_DMAC_ID_EMPTY;
     result = audio_dma_setup_playback(&self->left_dma, sample, loop, true, 0,
                                       false /* output unsigned */,
                                       (uint32_t) &DAC->DATABUF.reg,
-                                      DAC_DMAC_ID_EMPTY);
+                                      left_channel_trigger);
     #endif
 
     #ifdef SAMD51
@@ -406,9 +407,14 @@ void common_hal_audioio_audioout_play(audioio_audioout_obj_t* self,
                                           false /* output unsigned */,
                                           right_channel_reg,
                                           right_channel_trigger);
+        if (result == AUDIO_DMA_OK) {
+            audio_dma_link_channels(&self->left_dma, &self->right_dma);
+        }
     }
     #endif
-    if (result != AUDIO_DMA_OK) {
+    if (result == AUDIO_DMA_OK) {
+        result = audio_dma_preload(&self->left_dma, left_channel_trigger);
+    } else {
         audio_dma_stop(&self->left_dma);
         #ifdef SAMD51
         audio_dma_stop(&self->right_dma);

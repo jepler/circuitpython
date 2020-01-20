@@ -35,6 +35,7 @@
 typedef struct {
     mp_obj_t sample;
     uint8_t dma_channel;
+    uint8_t sibling_channel;
     uint8_t event_channel;
     uint8_t audio_channel;
     uint8_t bytes_per_sample;
@@ -84,6 +85,11 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
                                           bool output_signed,
                                           uint32_t output_register_address,
                                           uint8_t dma_trigger_source);
+
+#ifdef SAMD51
+audio_dma_result audio_dma_link_channels(audio_dma_t* first, audio_dma_t* second);
+#endif
+audio_dma_result audio_dma_preload(audio_dma_t* dma, uint8_t dma_trigger_source);
 
 void audio_dma_disable_channel(uint8_t channel);
 void audio_dma_enable_channel(uint8_t channel);

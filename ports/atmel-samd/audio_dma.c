@@ -37,6 +37,9 @@
 
 #if CIRCUITPY_AUDIOIO || CIRCUITPY_AUDIOBUSIO
 
+#define SECOND_SIBLING (uint8_t)-1
+#define NO_SIBLING     (uint8_t)-2
+
 static audio_dma_t* audio_dma_state[AUDIO_DMA_CHANNEL_COUNT];
 
 // This cannot be in audio_dma_state because it's volatile.
@@ -120,7 +123,7 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
     uint8_t* buffer;
     uint32_t buffer_length;
     audioio_get_buffer_result_t get_buffer_result =
-        audiosample_get_buffer(dma->sample, dma->single_channel, dma->audio_channel,
+        audiosample_get_buffer(dma->sample, false, dma->audio_channel,
                                &buffer, &buffer_length);
 
     DmacDescriptor* descriptor = dma->second_descriptor;
@@ -131,6 +134,11 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
 
     if (get_buffer_result == GET_BUFFER_ERROR) {
         audio_dma_stop(dma);
+#ifdef SAMD51
+        if (dma->sibling_channel != NO_SIBLING ) {
+            audio_dma_stop(audio_dma_state[dma->sibling_channel]);
+        }
+#endif
         return;
     }
 
@@ -150,6 +158,29 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
         }
     }
     descriptor->BTCTRL.bit.VALID = true;
+
+#ifdef SAMD51
+    if (dma->sibling_channel != NO_SIBLING) {
+        dma = audio_dma_state[dma->sibling_channel];
+        descriptor = dma->second_descriptor;
+        if (dma->first_descriptor_free) {
+            descriptor = dma_descriptor(dma->dma_channel);
+        }
+        dma->first_descriptor_free = !dma->first_descriptor_free;
+
+        audio_dma_convert_signed(dma, buffer + dma->beat_size, buffer_length, &output_buffer, &output_buffer_length,
+            &output_spacing);
+
+        descriptor->BTCNT.reg = output_buffer_length / dma->beat_size / output_spacing;
+        descriptor->SRCADDR.reg = ((uint32_t) output_buffer) + output_buffer_length;
+        if (get_buffer_result == GET_BUFFER_DONE) {
+            if (!dma->loop) {
+                descriptor->DESCADDR.reg = 0;
+            }
+        }
+        descriptor->BTCTRL.bit.VALID = true;
+    }
+#endif
 }
 
 static void setup_audio_descriptor(DmacDescriptor* descriptor, uint8_t beat_size,
@@ -187,6 +218,9 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
     dma->single_channel = single_channel;
     dma->audio_channel = audio_channel;
     dma->dma_channel = dma_channel;
+#ifdef SAMD51
+    dma->sibling_channel = NO_SIBLING;
+#endif
     dma->signed_to_unsigned = false;
     dma->unsigned_to_signed = false;
     dma->second_descriptor = NULL;
@@ -269,17 +303,42 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
         dma->second_descriptor->DESCADDR.reg = (uint32_t) first_descriptor;
     }
 
+    return AUDIO_DMA_OK;
+}
+
+#ifdef SAMD51
+audio_dma_result audio_dma_link_channels(audio_dma_t* first, audio_dma_t* second) {
+    first->sibling_channel = second->dma_channel;
+    second->sibling_channel = SECOND_SIBLING;
+    return AUDIO_DMA_OK;
+}
+#endif
+
+
+audio_dma_result audio_dma_preload(audio_dma_t* dma, uint8_t dma_trigger_source) {
     // Load the first two blocks up front.
+    uint8_t channel = dma->dma_channel;
+    audio_dma_pending[channel] = true;
     audio_dma_load_next_block(dma);
-    if (!single_buffer) {
+    if (dma->second_descriptor) {
         audio_dma_load_next_block(dma);
     }
 
-    dma_configure(dma_channel, dma_trigger_source, true);
-    audio_dma_enable_channel(dma_channel);
+    dma_configure(dma->dma_channel, dma_trigger_source, true);
+    audio_dma_enable_channel(dma->dma_channel);
+
+#ifdef SAMD51
+    if (dma->sibling_channel != NO_SIBLING) {
+        dma = audio_dma_state[dma->sibling_channel];
+        dma_configure(dma->dma_channel, dma_trigger_source, true);
+        audio_dma_enable_channel(dma->dma_channel);
+    }
+#endif
+    audio_dma_pending[channel] = false;
 
     return AUDIO_DMA_OK;
 }
+
 
 void audio_dma_stop(audio_dma_t* dma) {
     uint8_t channel = dma->dma_channel;
@@ -349,6 +408,12 @@ void audio_dma_background(void) {
         if (dma == NULL) {
             continue;
         }
+
+#ifdef SAMD51
+        if (dma->sibling_channel == SECOND_SIBLING) {
+            continue;
+        }
+#endif
 
         bool block_done = event_interrupt_active(dma->event_channel);
         if (!block_done) {
