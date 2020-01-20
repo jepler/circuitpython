@@ -232,6 +232,7 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
     uint32_t max_buffer_length;
     audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
                                      &max_buffer_length, &dma->spacing);
+    dma->spacing = single_channel ? audiosample_channel_count(sample) : 1;
     uint8_t output_spacing = dma->spacing;
     if (output_signed != samples_signed) {
         output_spacing = 1;

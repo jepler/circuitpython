@@ -228,10 +228,8 @@ void common_hal_audiopwmio_pwmaudioout_play(audiopwmio_pwmaudioout_obj_t* self, 
     self->bytes_per_sample = audiosample_bits_per_sample(sample) / 8;
 
     uint32_t max_buffer_length;
-    uint8_t spacing;
     audiosample_get_buffer_structure(sample,
-        &self->single_buffer, &self->signed_to_unsigned, &max_buffer_length,
-        &spacing);
+        &self->single_buffer, &self->signed_to_unsigned, &max_buffer_length);
     self->sample_channel_count = audiosample_channel_count(sample);
 
     if (max_buffer_length > UINT16_MAX) {
