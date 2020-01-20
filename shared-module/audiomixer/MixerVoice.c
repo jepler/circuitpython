@@ -63,7 +63,7 @@ void common_hal_audiomixer_mixervoice_play(audiomixer_mixervoice_obj_t* self, mp
     bool samples_signed;
     uint32_t max_buffer_length;
     uint8_t spacing;
-    audiosample_get_buffer_structure(sample, false, &single_buffer, &samples_signed,
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
                                      &max_buffer_length, &spacing);
     if (samples_signed != self->parent->samples_signed) {
         mp_raise_ValueError(translate("The sample's signedness does not match the mixer's"));
@@ -72,7 +72,7 @@ void common_hal_audiomixer_mixervoice_play(audiomixer_mixervoice_obj_t* self, mp
     self->loop = loop;
 
     audiosample_reset_buffer(sample, false, 0);
-    audioio_get_buffer_result_t result = audiosample_get_buffer(sample, false, 0, (uint8_t**) &self->remaining_buffer, &self->buffer_length);
+    audioio_get_buffer_result_t result = audiosample_get_buffer(sample, (uint8_t**) &self->remaining_buffer, &self->buffer_length);
     // Track length in terms of words.
     self->buffer_length /= sizeof(uint32_t);
     self->more_data = result == GET_BUFFER_MORE_DATA;

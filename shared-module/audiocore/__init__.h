@@ -45,12 +45,10 @@ typedef uint8_t (*audiosample_channel_count_fun)(mp_obj_t);
 typedef void (*audiosample_reset_buffer_fun)(mp_obj_t,
         bool single_channel, uint8_t audio_channel);
 typedef audioio_get_buffer_result_t (*audiosample_get_buffer_fun)(mp_obj_t,
-        bool single_channel, uint8_t channel, uint8_t** buffer,
-        uint32_t* buffer_length);
+        uint8_t** buffer, uint32_t* buffer_length);
 typedef void (*audiosample_get_buffer_structure_fun)(mp_obj_t,
-        bool single_channel, bool* single_buffer,
-        bool* samples_signed, uint32_t *max_buffer_length,
-        uint8_t* spacing);
+        bool* single_buffer, bool* samples_signed,
+        uint32_t *max_buffer_length, uint8_t* spacing);
 
 typedef struct _audiosample_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_audiosample
@@ -67,10 +65,8 @@ uint8_t audiosample_bits_per_sample(mp_obj_t sample_obj);
 uint8_t audiosample_channel_count(mp_obj_t sample_obj);
 void audiosample_reset_buffer(mp_obj_t sample_obj, bool single_channel, uint8_t audio_channel);
 audioio_get_buffer_result_t audiosample_get_buffer(mp_obj_t sample_obj,
-                                                   bool single_channel,
-                                                   uint8_t channel,
                                                    uint8_t** buffer, uint32_t* buffer_length);
-void audiosample_get_buffer_structure(mp_obj_t sample_obj, bool single_channel,
+void audiosample_get_buffer_structure(mp_obj_t sample_obj,
                                       bool* single_buffer, bool* samples_signed,
                                       uint32_t* max_buffer_length, uint8_t* spacing);
 

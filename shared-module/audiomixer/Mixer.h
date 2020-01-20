@@ -43,10 +43,6 @@ typedef struct {
     uint8_t channel_count;
     uint32_t sample_rate;
 
-    uint32_t read_count;
-    uint32_t left_read_count;
-    uint32_t right_read_count;
-
     uint8_t voice_count;
     mp_obj_tuple_t *voice_tuple;
     mp_obj_t voice[];
@@ -58,11 +54,9 @@ void audiomixer_mixer_reset_buffer(audiomixer_mixer_obj_t* self,
                                     bool single_channel,
                                     uint8_t channel);
 audioio_get_buffer_result_t audiomixer_mixer_get_buffer(audiomixer_mixer_obj_t* self,
-                                                         bool single_channel,
-                                                         uint8_t channel,
                                                          uint8_t** buffer,
                                                          uint32_t* buffer_length); // length in bytes
-void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self, bool single_channel,
+void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self,
                                             bool* single_buffer, bool* samples_signed,
                                             uint32_t* max_buffer_length, uint8_t* spacing);
 

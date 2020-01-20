@@ -117,7 +117,7 @@ static void i2s_buffer_fill(audiobusio_i2sout_obj_t* self) {
         if (self->sample_data == self->sample_end) {
             uint32_t sample_buffer_length;
             audioio_get_buffer_result_t get_buffer_result =
-                audiosample_get_buffer(self->sample, false, 0,
+                audiosample_get_buffer(self->sample,
                                        &self->sample_data, &sample_buffer_length);
             self->sample_end = self->sample_data + sample_buffer_length;
             if (get_buffer_result == GET_BUFFER_DONE) {
@@ -245,7 +245,7 @@ void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t* self,
 
     uint32_t max_buffer_length;
     bool single_buffer, samples_signed;
-    audiosample_get_buffer_structure(sample, /* single channel */ true,
+    audiosample_get_buffer_structure(sample,
         &single_buffer, &samples_signed, &max_buffer_length,
         &self->channel_count);
     self->single_buffer = single_buffer;

@@ -159,7 +159,7 @@ static void mix_one_voice(audiomixer_mixer_obj_t* self,
             }
             if (!voice_done) {
                 // Load another buffer
-                audioio_get_buffer_result_t result = audiosample_get_buffer(voice->sample, false, 0, (uint8_t**) &voice->remaining_buffer, &voice->buffer_length);
+                audioio_get_buffer_result_t result = audiosample_get_buffer(voice->sample, (uint8_t**) &voice->remaining_buffer, &voice->buffer_length);
                 // Track length in terms of words.
                 voice->buffer_length /= sizeof(uint32_t);
                 voice->more_data = result == GET_BUFFER_MORE_DATA;
@@ -241,79 +241,49 @@ static void mix_one_voice(audiomixer_mixer_obj_t* self,
 }
 
 audioio_get_buffer_result_t audiomixer_mixer_get_buffer(audiomixer_mixer_obj_t* self,
-                                                        bool single_channel,
-                                                        uint8_t channel,
                                                         uint8_t** buffer,
                                                         uint32_t* buffer_length) {
-    if (!single_channel) {
-        channel = 0;
-    }
-
-    uint32_t channel_read_count = self->left_read_count;
-    if (channel == 1) {
-        channel_read_count = self->right_read_count;
-    }
     *buffer_length = self->len;
 
-    bool need_more_data = self->read_count == channel_read_count;
-    if (need_more_data) {
-        uint32_t* word_buffer;
-        if (self->use_first_buffer) {
-            *buffer = (uint8_t*) self->first_buffer;
-            word_buffer = self->first_buffer;
-        } else {
-            *buffer = (uint8_t*) self->second_buffer;
-            word_buffer = self->second_buffer;
-        }
-        self->use_first_buffer = !self->use_first_buffer;
-        bool voices_active = false;
-        uint32_t length = self->len / sizeof(uint32_t);
-
-        for (int32_t v = 0; v < self->voice_count; v++) {
-            audiomixer_mixervoice_obj_t* voice = MP_OBJ_TO_PTR(self->voice[v]);
-
-            mix_one_voice(self, voice, voices_active, word_buffer, length);
-            voices_active = true;
-        }
-
-        if (!self->samples_signed) {
-            if (self->bits_per_sample == 16) {
-                for (uint32_t i = 0; i < length; i++) {
-                    word_buffer[i] = tounsigned16(word_buffer[i]);
-                }
-            } else {
-                for (uint32_t i = 0; i < length; i++) {
-                    word_buffer[i] = tounsigned8(word_buffer[i]);
-                }
-            }
-        }
-
-        self->read_count += 1;
-    } else if (!self->use_first_buffer) {
+    uint32_t* word_buffer;
+    if (self->use_first_buffer) {
         *buffer = (uint8_t*) self->first_buffer;
+        word_buffer = self->first_buffer;
     } else {
         *buffer = (uint8_t*) self->second_buffer;
+        word_buffer = self->second_buffer;
+    }
+    self->use_first_buffer = !self->use_first_buffer;
+    bool voices_active = false;
+    uint32_t length = self->len / sizeof(uint32_t);
+
+    for (int32_t v = 0; v < self->voice_count; v++) {
+        audiomixer_mixervoice_obj_t* voice = MP_OBJ_TO_PTR(self->voice[v]);
+
+        mix_one_voice(self, voice, voices_active, word_buffer, length);
+        voices_active = true;
     }
 
-
-    if (channel == 0) {
-        self->left_read_count += 1;
-    } else if (channel == 1) {
-        self->right_read_count += 1;
-        *buffer = *buffer + self->bits_per_sample / 8;
+    if (!self->samples_signed) {
+        if (self->bits_per_sample == 16) {
+            for (uint32_t i = 0; i < length; i++) {
+                word_buffer[i] = tounsigned16(word_buffer[i]);
+            }
+        } else {
+            for (uint32_t i = 0; i < length; i++) {
+                word_buffer[i] = tounsigned8(word_buffer[i]);
+            }
+        }
     }
+
     return GET_BUFFER_MORE_DATA;
 }
 
-void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self, bool single_channel,
+void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self,
                                         bool* single_buffer, bool* samples_signed,
                                         uint32_t* max_buffer_length, uint8_t* spacing) {
     *single_buffer = false;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->len;
-    if (single_channel) {
-        *spacing = self->channel_count;
-    } else {
-        *spacing = 1;
-    }
+    *spacing = 1;
 }

@@ -91,7 +91,7 @@ STATIC void fill_buffers(audiopwmio_pwmaudioout_obj_t *self, int buf) {
     uint8_t *buffer;
     uint32_t buffer_length;
     audioio_get_buffer_result_t get_buffer_result =
-        audiosample_get_buffer(self->sample, false, 0,
+        audiosample_get_buffer(self->sample,
                                &buffer, &buffer_length);
     if (get_buffer_result == GET_BUFFER_ERROR) {
         common_hal_audiopwmio_pwmaudioout_stop(self);
@@ -229,7 +229,7 @@ void common_hal_audiopwmio_pwmaudioout_play(audiopwmio_pwmaudioout_obj_t* self, 
 
     uint32_t max_buffer_length;
     uint8_t spacing;
-    audiosample_get_buffer_structure(sample, /* single channel */ false,
+    audiosample_get_buffer_structure(sample,
         &self->single_buffer, &self->signed_to_unsigned, &max_buffer_length,
         &spacing);
     self->sample_channel_count = audiosample_channel_count(sample);

@@ -73,28 +73,18 @@ void audioio_rawsample_reset_buffer(audioio_rawsample_obj_t* self,
 }
 
 audioio_get_buffer_result_t audioio_rawsample_get_buffer(audioio_rawsample_obj_t* self,
-                                                         bool single_channel,
-                                                         uint8_t channel,
                                                          uint8_t** buffer,
                                                          uint32_t* buffer_length) {
     *buffer_length = self->len;
-    if (single_channel) {
-        *buffer = self->buffer + (channel % self->channel_count) * (self->bits_per_sample / 8);
-    } else {
-        *buffer = self->buffer;
-    }
+    *buffer = self->buffer;
     return GET_BUFFER_DONE;
 }
 
-void audioio_rawsample_get_buffer_structure(audioio_rawsample_obj_t* self, bool single_channel,
+void audioio_rawsample_get_buffer_structure(audioio_rawsample_obj_t* self,
                                             bool* single_buffer, bool* samples_signed,
                                             uint32_t* max_buffer_length, uint8_t* spacing) {
     *single_buffer = true;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->len;
-    if (single_channel) {
-        *spacing = self->channel_count;
-    } else {
-        *spacing = 1;
-    }
+    *spacing = 1;
 }

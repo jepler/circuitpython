@@ -123,8 +123,7 @@ void audio_dma_load_next_block(audio_dma_t* dma) {
     uint8_t* buffer;
     uint32_t buffer_length;
     audioio_get_buffer_result_t get_buffer_result =
-        audiosample_get_buffer(dma->sample, false, dma->audio_channel,
-                               &buffer, &buffer_length);
+        audiosample_get_buffer(dma->sample, &buffer, &buffer_length);
 
     DmacDescriptor* descriptor = dma->second_descriptor;
     if (dma->first_descriptor_free) {
@@ -231,7 +230,7 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t* dma,
     bool single_buffer;
     bool samples_signed;
     uint32_t max_buffer_length;
-    audiosample_get_buffer_structure(sample, single_channel, &single_buffer, &samples_signed,
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
                                      &max_buffer_length, &dma->spacing);
     uint8_t output_spacing = dma->spacing;
     if (output_signed != samples_signed) {
