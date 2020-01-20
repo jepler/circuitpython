@@ -143,7 +143,8 @@ bool common_hal_audioio_wavefile_deinited(audioio_wavefile_obj_t* self) {
     return self->buffer == NULL;
 }
 
-uint32_t common_hal_audioio_wavefile_get_sample_rate(audioio_wavefile_obj_t* self) {
+uint32_t common_hal_audioio_wavefile_get_sample_rate(void* self_in) {
+    audioio_wavefile_obj_t* self = self_in;
     return self->sample_rate;
 }
 
@@ -152,25 +153,29 @@ void common_hal_audioio_wavefile_set_sample_rate(audioio_wavefile_obj_t* self,
     self->sample_rate = sample_rate;
 }
 
-uint8_t common_hal_audioio_wavefile_get_bits_per_sample(audioio_wavefile_obj_t* self) {
+uint8_t common_hal_audioio_wavefile_get_bits_per_sample(void* self_in) {
+    audioio_wavefile_obj_t* self = self_in;
     return self->bits_per_sample;
 }
 
-uint8_t common_hal_audioio_wavefile_get_channel_count(audioio_wavefile_obj_t* self) {
+uint8_t common_hal_audioio_wavefile_get_channel_count(void* self_in) {
+    audioio_wavefile_obj_t* self = self_in;
     return self->channel_count;
 }
 
-bool audioio_wavefile_samples_signed(audioio_wavefile_obj_t* self) {
+bool audioio_wavefile_samples_signed(void* self_in) {
+    audioio_wavefile_obj_t* self = self_in;
     return self->bits_per_sample > 8;
 }
 
-uint32_t audioio_wavefile_max_buffer_length(audioio_wavefile_obj_t* self) {
+uint32_t audioio_wavefile_max_buffer_length(void* self_in) {
     return 512;
 }
 
-void audioio_wavefile_reset_buffer(audioio_wavefile_obj_t* self,
+void audioio_wavefile_reset_buffer(void* self_in,
                                    bool single_channel,
                                    uint8_t channel) {
+    audioio_wavefile_obj_t* self = self_in;
     if (single_channel && channel == 1) {
         return;
     }
@@ -180,9 +185,10 @@ void audioio_wavefile_reset_buffer(audioio_wavefile_obj_t* self,
     f_lseek(&self->file->fp, self->data_start);
 }
 
-audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* self,
+audioio_get_buffer_result_t audioio_wavefile_get_buffer(void* self_in,
                                                         uint8_t** buffer,
                                                         uint32_t* buffer_length) {
+    audioio_wavefile_obj_t* self = self_in;
     if (self->bytes_remaining == 0) {
         *buffer = NULL;
         *buffer_length = 0;
@@ -230,9 +236,10 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* 
     return self->bytes_remaining == 0 ? GET_BUFFER_DONE : GET_BUFFER_MORE_DATA;
 }
 
-void audioio_wavefile_get_buffer_structure(audioio_wavefile_obj_t* self,
+void audioio_wavefile_get_buffer_structure(void* self_in,
                                            bool* single_buffer, bool* samples_signed,
                                            uint32_t* max_buffer_length, uint8_t* spacing) {
+    audioio_wavefile_obj_t* self = self_in;
     *single_buffer = false;
     *samples_signed = self->bits_per_sample > 8;
     *max_buffer_length = 512;

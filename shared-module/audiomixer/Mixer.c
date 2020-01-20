@@ -72,15 +72,18 @@ bool common_hal_audiomixer_mixer_deinited(audiomixer_mixer_obj_t* self) {
     return self->first_buffer == NULL;
 }
 
-uint32_t common_hal_audiomixer_mixer_get_sample_rate(audiomixer_mixer_obj_t* self) {
+uint32_t common_hal_audiomixer_mixer_get_sample_rate(void* self_in) {
+    audiomixer_mixer_obj_t* self = self_in;
     return self->sample_rate;
 }
 
-uint8_t common_hal_audiomixer_mixer_get_channel_count(audiomixer_mixer_obj_t* self) {
+uint8_t common_hal_audiomixer_mixer_get_channel_count(void* self_in) {
+    audiomixer_mixer_obj_t* self = self_in;
     return self->channel_count;
 }
 
-uint8_t common_hal_audiomixer_mixer_get_bits_per_sample(audiomixer_mixer_obj_t* self) {
+uint8_t common_hal_audiomixer_mixer_get_bits_per_sample(void* self_in) {
+    audiomixer_mixer_obj_t* self = self_in;
     return self->bits_per_sample;
 }
 
@@ -93,9 +96,10 @@ bool common_hal_audiomixer_mixer_get_playing(audiomixer_mixer_obj_t* self) {
     return false;
 }
 
-void audiomixer_mixer_reset_buffer(audiomixer_mixer_obj_t* self,
+void audiomixer_mixer_reset_buffer(void* self_in,
                                    bool single_channel,
                                    uint8_t channel) {
+    audiomixer_mixer_obj_t* self = self_in;
     for (uint8_t i = 0; i < self->voice_count; i++) {
         common_hal_audiomixer_mixervoice_stop(self->voice[i]);
     }
@@ -240,9 +244,10 @@ static void mix_one_voice(audiomixer_mixer_obj_t* self,
     }
 }
 
-audioio_get_buffer_result_t audiomixer_mixer_get_buffer(audiomixer_mixer_obj_t* self,
+audioio_get_buffer_result_t audiomixer_mixer_get_buffer(void *self_in,
                                                         uint8_t** buffer,
                                                         uint32_t* buffer_length) {
+    audiomixer_mixer_obj_t* self = self_in;
     *buffer_length = self->len;
 
     uint32_t* word_buffer;
@@ -279,9 +284,10 @@ audioio_get_buffer_result_t audiomixer_mixer_get_buffer(audiomixer_mixer_obj_t* 
     return GET_BUFFER_MORE_DATA;
 }
 
-void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self,
+void audiomixer_mixer_get_buffer_structure(void* self_in,
                                         bool* single_buffer, bool* samples_signed,
                                         uint32_t* max_buffer_length, uint8_t* spacing) {
+    audiomixer_mixer_obj_t* self = self_in;
     *single_buffer = false;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->len;

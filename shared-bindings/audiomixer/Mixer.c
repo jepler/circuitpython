@@ -293,12 +293,12 @@ STATIC MP_DEFINE_CONST_DICT(audiomixer_mixer_locals_dict, audiomixer_mixer_local
 
 STATIC const audiosample_p_t audiomixer_mixer_proto = {
     MP_PROTO_IMPLEMENT(MP_QSTR_protocol_audiosample)
-    .sample_rate = (audiosample_sample_rate_fun)common_hal_audiomixer_mixer_get_sample_rate,
-    .bits_per_sample = (audiosample_bits_per_sample_fun)common_hal_audiomixer_mixer_get_bits_per_sample,
-    .channel_count = (audiosample_channel_count_fun)common_hal_audiomixer_mixer_get_channel_count,
-    .reset_buffer = (audiosample_reset_buffer_fun)audiomixer_mixer_reset_buffer,
-    .get_buffer = (audiosample_get_buffer_fun)audiomixer_mixer_get_buffer,
-    .get_buffer_structure = (audiosample_get_buffer_structure_fun)audiomixer_mixer_get_buffer_structure,
+    .sample_rate = common_hal_audiomixer_mixer_get_sample_rate,
+    .bits_per_sample = common_hal_audiomixer_mixer_get_bits_per_sample,
+    .channel_count = common_hal_audiomixer_mixer_get_channel_count,
+    .reset_buffer = audiomixer_mixer_reset_buffer,
+    .get_buffer = audiomixer_mixer_get_buffer,
+    .get_buffer_structure = audiomixer_mixer_get_buffer_structure,
 };
 
 const mp_obj_type_t audiomixer_mixer_type = {

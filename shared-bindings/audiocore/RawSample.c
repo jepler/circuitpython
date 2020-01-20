@@ -109,7 +109,7 @@ STATIC mp_obj_t audioio_rawsample_make_new(const mp_obj_type_t *type, size_t n_a
 //|
 //|      Deinitialises the AudioOut and releases any hardware resources for reuse.
 //|
-STATIC mp_obj_t audioio_rawsample_deinit(mp_obj_t self_in) {
+STATIC mp_obj_t audioio_rawsample_deinit(void* self_in) {
     audioio_rawsample_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_audioio_rawsample_deinit(self);
     return mp_const_none;
@@ -147,14 +147,14 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audioio_rawsample___exit___obj, 4, 4,
 //|     sample. This will not change the sample rate of any active playback. Call ``play`` again to
 //|     change it.
 //|
-STATIC mp_obj_t audioio_rawsample_obj_get_sample_rate(mp_obj_t self_in) {
+STATIC mp_obj_t audioio_rawsample_obj_get_sample_rate(void* self_in) {
     audioio_rawsample_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
     return MP_OBJ_NEW_SMALL_INT(common_hal_audioio_rawsample_get_sample_rate(self));
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audioio_rawsample_get_sample_rate_obj, audioio_rawsample_obj_get_sample_rate);
 
-STATIC mp_obj_t audioio_rawsample_obj_set_sample_rate(mp_obj_t self_in, mp_obj_t sample_rate) {
+STATIC mp_obj_t audioio_rawsample_obj_set_sample_rate(void* self_in, mp_obj_t sample_rate) {
     audioio_rawsample_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
     common_hal_audioio_rawsample_set_sample_rate(self, mp_obj_get_int(sample_rate));
@@ -182,12 +182,12 @@ STATIC MP_DEFINE_CONST_DICT(audioio_rawsample_locals_dict, audioio_rawsample_loc
 
 STATIC const audiosample_p_t audioio_rawsample_proto = {
     MP_PROTO_IMPLEMENT(MP_QSTR_protocol_audiosample)
-    .sample_rate = (audiosample_sample_rate_fun)common_hal_audioio_rawsample_get_sample_rate,
-    .bits_per_sample = (audiosample_bits_per_sample_fun)common_hal_audioio_rawsample_get_bits_per_sample,
-    .channel_count = (audiosample_channel_count_fun)common_hal_audioio_rawsample_get_channel_count,
-    .reset_buffer = (audiosample_reset_buffer_fun)audioio_rawsample_reset_buffer,
-    .get_buffer = (audiosample_get_buffer_fun)audioio_rawsample_get_buffer,
-    .get_buffer_structure = (audiosample_get_buffer_structure_fun)audioio_rawsample_get_buffer_structure,
+    .sample_rate = common_hal_audioio_rawsample_get_sample_rate,
+    .bits_per_sample = common_hal_audioio_rawsample_get_bits_per_sample,
+    .channel_count = common_hal_audioio_rawsample_get_channel_count,
+    .reset_buffer = audioio_rawsample_reset_buffer,
+    .get_buffer = audioio_rawsample_get_buffer,
+    .get_buffer_structure = audioio_rawsample_get_buffer_structure,
 };
 
 const mp_obj_type_t audioio_rawsample_type = {

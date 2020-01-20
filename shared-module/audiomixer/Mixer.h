@@ -50,13 +50,13 @@ typedef struct {
 
 
 // These are not available from Python because it may be called in an interrupt.
-void audiomixer_mixer_reset_buffer(audiomixer_mixer_obj_t* self,
+void audiomixer_mixer_reset_buffer(void* self_in,
                                     bool single_channel,
                                     uint8_t channel);
-audioio_get_buffer_result_t audiomixer_mixer_get_buffer(audiomixer_mixer_obj_t* self,
+audioio_get_buffer_result_t audiomixer_mixer_get_buffer(void* self_in,
                                                          uint8_t** buffer,
                                                          uint32_t* buffer_length); // length in bytes
-void audiomixer_mixer_get_buffer_structure(audiomixer_mixer_obj_t* self,
+void audiomixer_mixer_get_buffer_structure(void* self_in,
                                             bool* single_buffer, bool* samples_signed,
                                             uint32_t* max_buffer_length, uint8_t* spacing);
 
