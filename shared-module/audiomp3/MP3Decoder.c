@@ -313,11 +313,10 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t* 
 
 void audiomp3_mp3file_get_buffer_structure(audiomp3_mp3file_obj_t* self,
                                            bool* single_buffer, bool* samples_signed,
-                                           uint32_t* max_buffer_length, uint8_t* spacing) {
+                                           uint32_t* max_buffer_length) {
     *single_buffer = false;
     *samples_signed = true;
     *max_buffer_length = self->frame_buffer_size;
-    *spacing = 1;
 }
 
 float common_hal_audiomp3_mp3file_get_rms_level(audiomp3_mp3file_obj_t* self) {

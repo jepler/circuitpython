@@ -238,10 +238,9 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(void* self_in,
 
 void audioio_wavefile_get_buffer_structure(void* self_in,
                                            bool* single_buffer, bool* samples_signed,
-                                           uint32_t* max_buffer_length, uint8_t* spacing) {
+                                           uint32_t* max_buffer_length) {
     audioio_wavefile_obj_t* self = self_in;
     *single_buffer = false;
     *samples_signed = self->bits_per_sample > 8;
     *max_buffer_length = 512;
-    *spacing = 1;
 }

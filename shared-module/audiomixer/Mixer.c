@@ -286,10 +286,9 @@ audioio_get_buffer_result_t audiomixer_mixer_get_buffer(void *self_in,
 
 void audiomixer_mixer_get_buffer_structure(void* self_in,
                                         bool* single_buffer, bool* samples_signed,
-                                        uint32_t* max_buffer_length, uint8_t* spacing) {
+                                        uint32_t* max_buffer_length) {
     audiomixer_mixer_obj_t* self = self_in;
     *single_buffer = false;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->len;
-    *spacing = 1;
 }

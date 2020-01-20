@@ -63,8 +63,8 @@ audioio_get_buffer_result_t audiosample_get_buffer(mp_obj_t sample_obj,
 
 void audiosample_get_buffer_structure(mp_obj_t sample_obj,
                                       bool* single_buffer, bool* samples_signed,
-                                      uint32_t* max_buffer_length, uint8_t* spacing) {
+                                      uint32_t* max_buffer_length) {
     const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
     proto->get_buffer_structure(MP_OBJ_TO_PTR(sample_obj), single_buffer,
-        samples_signed, max_buffer_length, spacing);
+        samples_signed, max_buffer_length);
 }

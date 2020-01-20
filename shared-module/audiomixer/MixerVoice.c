@@ -62,9 +62,8 @@ void common_hal_audiomixer_mixervoice_play(audiomixer_mixervoice_obj_t* self, mp
     bool single_buffer;
     bool samples_signed;
     uint32_t max_buffer_length;
-    uint8_t spacing;
     audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
-                                     &max_buffer_length, &spacing);
+                                     &max_buffer_length);
     if (samples_signed != self->parent->samples_signed) {
         mp_raise_ValueError(translate("The sample's signedness does not match the mixer's"));
     }

@@ -60,7 +60,7 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t* 
                                                         uint32_t* buffer_length); // length in bytes
 void audiomp3_mp3file_get_buffer_structure(audiomp3_mp3file_obj_t* self,
                                            bool* single_buffer, bool* samples_signed,
-                                           uint32_t* max_buffer_length, uint8_t* spacing);
+                                           uint32_t* max_buffer_length);
 
 float audiomp3_mp3file_get_rms_level(audiomp3_mp3file_obj_t* self);
 

@@ -86,10 +86,9 @@ audioio_get_buffer_result_t audioio_rawsample_get_buffer(void* self_in,
 
 void audioio_rawsample_get_buffer_structure(void* self_in,
                                             bool* single_buffer, bool* samples_signed,
-                                            uint32_t* max_buffer_length, uint8_t* spacing) {
+                                            uint32_t* max_buffer_length) {
     audioio_rawsample_obj_t* self = self_in;
     *single_buffer = true;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->len;
-    *spacing = 1;
 }

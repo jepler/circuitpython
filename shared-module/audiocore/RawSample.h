@@ -52,6 +52,6 @@ audioio_get_buffer_result_t audioio_rawsample_get_buffer(void* self_in,
                                                          uint32_t* buffer_length); // length in bytes
 void audioio_rawsample_get_buffer_structure(void* self_in,
                                             bool* single_buffer, bool* samples_signed,
-                                            uint32_t* max_buffer_length, uint8_t* spacing);
+                                            uint32_t* max_buffer_length);
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_AUDIOIO_RAWSAMPLE_H
