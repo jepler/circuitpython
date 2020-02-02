@@ -111,6 +111,11 @@ STATIC mp_obj_t palette_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t val
         return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_palette_get_color(self, index));
     }
 
+    // Convert a tuple to a bytearray
+    if (mp_obj_get_type(value)->getiter == mp_obj_tuple_getiter) {
+        value = mp_type_bytes.make_new(&mp_type_bytes, 1, &value, NULL);
+    }
+
     uint32_t color;
     mp_int_t int_value;
     mp_buffer_info_t bufinfo;
@@ -130,7 +135,7 @@ STATIC mp_obj_t palette_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t val
         }
         color = int_value;
     } else {
-        mp_raise_TypeError(translate("color buffer must be a buffer or int"));
+        mp_raise_TypeError(translate("color buffer must be a buffer, tuple or int"));
     }
     common_hal_displayio_palette_set_color(self, index, color);
     return mp_const_none;

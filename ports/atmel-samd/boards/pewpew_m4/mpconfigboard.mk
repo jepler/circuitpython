@@ -46,7 +46,13 @@ USB_DEVICES = "CDC,MSC"
 
 # Tweak inlining depending on language.
 ifeq ($(TRANSLATION), zh_Latn_pinyin)
-CFLAGS_INLINE_LIMIT = 45
+CFLAGS_INLINE_LIMIT = 15
+CFLAGS_BOARD = --param inline-unit-growth=12 --param max-inline-insns-auto=15
+else
+ifeq ($(TRANSLATION), de_DE)
+CFLAGS_INLINE_LIMIT = 15
+CFLAGS_BOARD = --param inline-unit-growth=12 --param max-inline-insns-auto=15
 else
 CFLAGS_INLINE_LIMIT = 70
+endif
 endif
