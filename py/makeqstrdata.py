@@ -97,13 +97,28 @@ def translate(translation_file, i18ns):
             translations.append((original, translation))
         return translations
 
+def frequent_ngrams(corpus, sz, n):
+    return collections.Counter(corpus[i:i+sz] for i in range(len(corpus)-sz)).most_common(n)
+
+def ngrams_to_pua(translation, ngrams):
+    for i, g in enumerate(ngrams):
+        translation = translation.replace(g, chr(0xe000 + i))
+    return translation
+
+def pua_to_ngrams(compressed, ngrams):
+    print((repr(compressed)), len(ngrams), file=sys.stderr)
+    return "".join(ngrams[ord(c) - 0xe000] if (u'\ue000' <= c <= u'\uf8ff') else c for c in compressed)
+
 def compute_huffman_coding(translations, qstrs, compression_filename):
     all_strings = [x[1] for x in translations]
 
     # go through each qstr and print it out
     for _, _, qstr in qstrs.values():
         all_strings.append(qstr)
+
     all_strings_concat = "".join(all_strings)
+    ngrams = [i[0] for i in frequent_ngrams(all_strings_concat, 2, 64)]
+    all_strings_concat = ngrams_to_pua(all_strings_concat, ngrams)
     counts = collections.Counter(all_strings_concat)
     cb = huffman.codebook(counts.items())
     values = []
@@ -129,15 +144,17 @@ def compute_huffman_coding(translations, qstrs, compression_filename):
     for i in range(1, max(length_count) + 2):
         lengths.append(length_count.get(i, 0))
     print("// values", values, "lengths", len(lengths), lengths)
-    print("// estimated total memory size", len(lengths) + 2*len(values) + sum(len(cb[u]) for u in all_strings_concat))
+    ngramdata = [ord(ni) for i in ngrams for ni in i]
+    print("// estimated total memory size", len(lengths) + 2*len(values) + 2 * len(ngramdata) + sum((len(cb[u]) + 7)//8 for u in all_strings_concat))
     print("//", values, lengths)
     values_type = "uint16_t" if max(ord(u) for u in values) > 255 else "uint8_t"
     with open(compression_filename, "w") as f:
         f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
         f.write("const {} values[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(u)) for u in values)))
-    return values, lengths
+        f.write("const uint16_t ngrams[] = {{ {} }};\n".format(", ".join(str(u) for u in ngramdata)))
+    return (values, lengths), ngrams
 
-def decompress(encoding_table, length, encoded):
+def decompress(encoding_table, length, encoded, ngrams):
     values, lengths = encoding_table
     #print(l, encoded)
     dec = []
@@ -171,7 +188,7 @@ def decompress(encoding_table, length, encoded):
 
         v = values[searched_length + bits - max_code]
         dec.append(v)
-    return ''.join(dec)
+    return pua_to_ngrams(''.join(dec), ngrams)
 
 def compress(encoding_table, decompressed):
     if not isinstance(decompressed, str):
@@ -320,7 +337,7 @@ def make_bytes(cfg_bytes_len, cfg_bytes_hash, qstr):
     qhash_str = ('\\x%02x' * cfg_bytes_hash) % tuple(((qhash >> (8 * i)) & 0xff) for i in range(cfg_bytes_hash))
     return '(const byte*)"%s%s" "%s"' % (qhash_str, qlen_str, qdata)
 
-def print_qstr_data(encoding_table, qcfgs, qstrs, i18ns):
+def print_qstr_data(encoding_table, qcfgs, qstrs, i18ns, ngrams):
     # get config variables
     cfg_bytes_len = int(qcfgs['BYTES_IN_LEN'])
     cfg_bytes_hash = int(qcfgs['BYTES_IN_HASH'])
@@ -344,9 +361,10 @@ def print_qstr_data(encoding_table, qcfgs, qstrs, i18ns):
     total_text_compressed_size = 0
     for original, translation in i18ns:
         translation_encoded = translation.encode("utf-8")
+        translation = ngrams_to_pua(translation, ngrams)
         compressed = compress(encoding_table, translation)
         total_text_compressed_size += len(compressed)
-        decompressed = decompress(encoding_table, len(translation_encoded), compressed)
+        decompressed = decompress(encoding_table, len(translation_encoded), compressed, ngrams)
         for c in C_ESCAPES:
             decompressed = decompressed.replace(c, C_ESCAPES[c])
         print("TRANSLATION(\"{}\", {}, {{ {} }}) // {}".format(original, len(translation_encoded)+1, ", ".join(["0x{:02x}".format(x) for x in compressed]), decompressed))
@@ -386,7 +404,7 @@ if __name__ == "__main__":
     qcfgs, qstrs, i18ns = parse_input_headers(args.infiles)
     if args.translation:
         translations = translate(args.translation, i18ns)
-        encoding_table = compute_huffman_coding(translations, qstrs, args.compression_filename)
-        print_qstr_data(encoding_table, qcfgs, qstrs, translations)
+        encoding_table, ngrams = compute_huffman_coding(translations, qstrs, args.compression_filename)
+        print_qstr_data(encoding_table, qcfgs, qstrs, translations, ngrams)
     else:
         print_qstr_enums(qstrs)
