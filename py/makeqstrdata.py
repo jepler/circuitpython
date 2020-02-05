@@ -106,7 +106,6 @@ def ngrams_to_pua(translation, ngrams):
     return translation
 
 def pua_to_ngrams(compressed, ngrams):
-    print((repr(compressed)), len(ngrams), file=sys.stderr)
     return "".join(ngrams[ord(c) - 0xe000] if (u'\ue000' <= c <= u'\uf8ff') else c for c in compressed)
 
 def compute_huffman_coding(translations, qstrs, compression_filename):
@@ -117,7 +116,7 @@ def compute_huffman_coding(translations, qstrs, compression_filename):
         all_strings.append(qstr)
 
     all_strings_concat = "".join(all_strings)
-    ngrams = [i[0] for i in frequent_ngrams(all_strings_concat, 2, 64)]
+    ngrams = [i[0] for i in frequent_ngrams(all_strings_concat, 2, 32)]
     all_strings_concat = ngrams_to_pua(all_strings_concat, ngrams)
     counts = collections.Counter(all_strings_concat)
     cb = huffman.codebook(counts.items())
