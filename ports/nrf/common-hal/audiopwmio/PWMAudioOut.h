@@ -38,11 +38,13 @@ typedef struct {
     uint16_t buffer_length;
     uint16_t quiescent_value;
     uint16_t scale;
+    uint32_t rampvalue, rampdelta;
 
     uint8_t left_channel_number;
     uint8_t right_channel_number;
     uint8_t sample_channel_count;
     uint8_t bytes_per_sample;
+    uint8_t state;
 
     bool playing;
     bool stopping;

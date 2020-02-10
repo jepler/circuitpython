@@ -41,6 +41,47 @@
 // TODO: This should be the same size as PWMOut.c:pwms[], but there's no trivial way to accomplish that
 STATIC audiopwmio_pwmaudioout_obj_t* active_audio[4];
 
+#define printf(...) mp_printf(&mp_plat_print, __VA_ARGS__)
+
+int ramp_step = 9;
+STATIC void ramp_value(NRF_PWM_Type *pwm, uint16_t start, uint16_t end, uint16_t scale, uint8_t shift) {
+    int32_t diff = (int32_t) end - start;
+    int32_t step = ramp_step;
+    int32_t steps = diff / step;
+    uint32_t buf;
+    if (diff < 0) {
+        steps = -steps;
+        step = -step;
+    }
+
+// printf("ramp step=%d steps=%d diff=%d\n",  step, steps, diff);
+
+    pwm->LOOP = 1;
+    pwm->SHORTS = NRF_PWM_SHORT_LOOPSDONE_SEQSTART0_MASK;
+    pwm->SEQ[1].PTR = pwm->SEQ[0].PTR = (intptr_t)&buf;
+    pwm->SEQ[1].CNT = pwm->SEQ[0].CNT = 2;
+    pwm->TASKS_SEQSTART[0] = 1;
+
+    for (int32_t i = 0; i < steps; i++) {
+        uint32_t value = start + step * i;
+        buf = 0x00010001 * ((value * scale) >> 16);
+#if 0
+        printf("ramp value=%d scale=%d shift=%d buf=%08x\n", value, scale, shift, buf);
+        printf("events = %d %d %d %d %d\n",
+            pwm->EVENTS_SEQSTARTED[0],
+            pwm->EVENTS_SEQSTARTED[1],
+            pwm->EVENTS_SEQEND[0],
+            pwm->EVENTS_SEQEND[1],
+            pwm->EVENTS_STOPPED);
+#endif
+        common_hal_mcu_delay_us(5);
+        RUN_BACKGROUND_TASKS;
+    }
+
+printf("\n");
+    pwm->TASKS_STOP = 1;
+}
+
 #define F_TARGET (62500)
 #define F_PWM (16000000)
 // return the REFRESH value, store the TOP value in an out-parameter
@@ -164,6 +205,7 @@ void common_hal_audiopwmio_pwmaudioout_construct(audiopwmio_pwmaudioout_obj_t* s
         mp_raise_RuntimeError(translate("All timers in use"));
     }
 
+    self->pwm->MODE = 0;
     self->pwm->PRESCALER = PWM_PRESCALER_PRESCALER_DIV_1;
     // two uint16_t values per sample when Grouped
     // n.b. SEQ[#].CNT "counts" are 2 per sample (left and right channels)
@@ -181,7 +223,7 @@ void common_hal_audiopwmio_pwmaudioout_construct(audiopwmio_pwmaudioout_obj_t* s
         claim_pin(right_channel);
     }
 
-    self->quiescent_value = quiescent_value >> 8;
+    self->quiescent_value = quiescent_value;
 
     self->pwm->ENABLE = 1;
     // TODO: Ramp from 0 to quiescent value
@@ -198,6 +240,10 @@ void common_hal_audiopwmio_pwmaudioout_deinit(audiopwmio_pwmaudioout_obj_t* self
     deactivate_audiopwmout_obj(self);
 
     // TODO: ramp the pwm down from quiescent value to 0
+    if (self->playing) {
+        ramp_value(self->pwm, self->quiescent_value, 65535, self->scale, self->bytes_per_sample * 8);
+    }
+    self->playing = false;
     self->pwm->ENABLE = 0;
 
     if (self->left_channel_number)
@@ -249,7 +295,11 @@ void common_hal_audiopwmio_pwmaudioout_play(audiopwmio_pwmaudioout_obj_t* self, 
     self->pwm->COUNTERTOP = top;
 
     self->pwm->LOOP = 1;
+    if(!self->playing)
+        ramp_value(self->pwm, 65535, self->quiescent_value, self->scale, self->bytes_per_sample * 8);
+
     audiosample_reset_buffer(self->sample, false, 0);
+
     activate_audiopwmout_obj(self);
     self->stopping = false;
     self->pwm->SHORTS = NRF_PWM_SHORT_LOOPSDONE_SEQSTART0_MASK;
@@ -271,12 +321,17 @@ void common_hal_audiopwmio_pwmaudioout_stop(audiopwmio_pwmaudioout_obj_t* self) 
     self->pwm->TASKS_STOP = 1;
     self->stopping = false;
     self->paused = false;
+    if (self->playing) {
+        ramp_value(self->pwm, self->quiescent_value, 65535, self->scale, self->bytes_per_sample * 8);
+    }
+    self->playing = false;
 
     m_free(self->buffers[0]);
     self->buffers[0] = NULL;
 
     m_free(self->buffers[1]);
     self->buffers[1] = NULL;
+
 }
 
 bool common_hal_audiopwmio_pwmaudioout_get_playing(audiopwmio_pwmaudioout_obj_t* self) {
