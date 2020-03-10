@@ -123,3 +123,6 @@
 [submodule "frozen/Adafruit_CircuitPython_Requests"]
 	path = frozen/Adafruit_CircuitPython_Requests
 	url = https://github.com/adafruit/Adafruit_CircuitPython_Requests
+[submodule "lib/protomatter"]
+	path = lib/protomatter
+	url = https://github.com/adafruit/Adafruit_Protomatter
