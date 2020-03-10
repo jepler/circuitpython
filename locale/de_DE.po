@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-17 16:39-0500\n"
+"POT-Creation-Date: 2020-03-20 10:47-0500\n"
 "PO-Revision-Date: 2018-07-27 11:55-0700\n"
 "Last-Translator: Pascal Deneaux\n"
 "Language-Team: Sebastian Plamauer, Pascal Deneaux\n"
@@ -336,6 +336,7 @@ msgstr ""
 "auszuführen oder verbinde dich mit der REPL zum Deaktivieren.\n"
 
 #: shared-module/displayio/Display.c
+#: shared-module/displayio/FramebufferDisplay.c
 msgid "Below minimum frame rate"
 msgstr "Unterhalb der minimalen Frame Rate"
 
@@ -352,6 +353,7 @@ msgid "Both pins must support hardware interrupts"
 msgstr "Beide pins müssen Hardware Interrupts unterstützen"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness must be 0-1.0"
 msgstr "Die Helligkeit muss zwischen 0 und 1.0 liegen"
 
@@ -360,6 +362,7 @@ msgid "Brightness must be between 0 and 255"
 msgstr "Die Helligkeit muss zwischen 0 und 255 liegen"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness not adjustable"
 msgstr "Die Helligkeit ist nicht einstellbar"
 
@@ -374,10 +377,12 @@ msgid "Buffer incorrect size. Should be %d bytes."
 msgstr "Der Puffergröße ist inkorrekt. Sie sollte %d bytes haben."
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is not a bytearray."
 msgstr "Der Puffer ist kein Byte-Array"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is too small"
 msgstr "Der Puffer ist zu klein"
 
@@ -625,11 +630,13 @@ msgid "DigitalInOut not supported on given pin"
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display must have a 16 bit colorspace."
 msgstr "Display muss einen 16 Bit Farbraum haben."
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display rotation must be in 90 degree increments"
 msgstr "Die Rotation der Anzeige muss in 90-Grad-Schritten erfolgen"
 
@@ -749,6 +756,7 @@ msgstr "Die Funktion erwartet, dass der 'lock'-Befehl zuvor ausgeführt wurde"
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Group already used"
 msgstr "Gruppe schon benutzt"
 
@@ -839,7 +847,7 @@ msgstr ""
 msgid "Invalid UART pin selection"
 msgstr ""
 
-#: py/moduerrno.c
+#: py/moduerrno.c shared-bindings/_protomatter/Protomatter.c
 msgid "Invalid argument"
 msgstr "Ungültiges Argument"
 
@@ -893,7 +901,7 @@ msgstr "Ungültige Phase"
 
 #: ports/atmel-samd/common-hal/audioio/AudioOut.c
 #: ports/atmel-samd/common-hal/touchio/TouchIn.c
-#: shared-bindings/pulseio/PWMOut.c
+#: shared-bindings/_protomatter/Protomatter.c shared-bindings/pulseio/PWMOut.c
 msgid "Invalid pin"
 msgstr "Ungültiger Pin"
 
@@ -1091,6 +1099,10 @@ msgstr "Kein Speicherplatz mehr verfügbar auf dem Gerät"
 msgid "No such file/directory"
 msgstr "Keine solche Datei/Verzeichnis"
 
+#: shared-bindings/_protomatter/Protomatter.c
+msgid "No timer available"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Nordic Soft Device failure assertion."
 msgstr ""
@@ -1189,6 +1201,11 @@ msgid "Press any key to enter the REPL. Use CTRL-D to reload."
 msgstr ""
 "Drücke eine Taste um dich mit der REPL zu verbinden. Drücke Strg-D zum neu "
 "laden"
+
+#: shared-bindings/_protomatter/Protomatter.c
+#, c-format
+msgid "Protomatter internal error #%d"
+msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
 msgid "Pull not used when direction is output."
@@ -1391,6 +1408,7 @@ msgstr ""
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Too many displays"
 msgstr "Zu viele displays"
 

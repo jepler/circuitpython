@@ -29,6 +29,7 @@
 
 #include "shared-bindings/displayio/Display.h"
 #include "shared-bindings/displayio/EPaperDisplay.h"
+#include "shared-bindings/displayio/FramebufferDisplay.h"
 #include "shared-bindings/displayio/FourWire.h"
 #include "shared-bindings/displayio/Group.h"
 #include "shared-bindings/displayio/I2CDisplay.h"
@@ -39,10 +40,12 @@ typedef struct {
         displayio_fourwire_obj_t fourwire_bus;
         displayio_i2cdisplay_obj_t i2cdisplay_bus;
         displayio_parallelbus_obj_t parallel_bus;
+        mp_obj_t framebuffer;
     };
     union {
         displayio_display_obj_t display;
         displayio_epaperdisplay_obj_t epaper_display;
+        displayio_framebufferdisplay_obj_t framebuffer_display;
     };
 } primary_display_t;
 

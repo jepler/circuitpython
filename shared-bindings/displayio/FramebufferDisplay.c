@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "shared-bindings/displayio/Display.h"
+#include "shared-bindings/displayio/FramebufferDisplay.h"
 
 #include <stdint.h>
 
@@ -41,46 +41,23 @@
 
 //| .. currentmodule:: displayio
 //|
-//| :class:`Display` -- Manage updating a display over a display bus
-//| ==========================================================================
+//| :class:`FramebufferDisplay` -- Manage updating a display with framebuffer in RAM
+//| ================================================================================
 //|
 //| This initializes a display and connects it into CircuitPython. Unlike other
 //| objects in CircuitPython, Display objects live until `displayio.release_displays()`
 //| is called. This is done so that CircuitPython can use the display itself.
 //|
 //| Most people should not use this class directly. Use a specific display driver instead that will
-//| contain the initialization sequence at minimum.
+//| manage the framebuffer and provide a callback
 //|
-//| .. class:: Display(display_bus, init_sequence, *, width, height, colstart=0, rowstart=0, rotation=0, color_depth=16, grayscale=False, pixels_in_byte_share_row=True, bytes_per_cell=1, reverse_pixels_in_byte=False, set_column_command=0x2a, set_row_command=0x2b, write_ram_command=0x2c, set_vertical_scroll=0, backlight_pin=None, brightness_command=None, brightness=1.0, auto_brightness=False, single_byte_bounds=False, data_as_commands=False, auto_refresh=True, native_frames_per_second=60)
+//| .. class:: FramebufferDisplay(framebuffer, *, width, height, colstart=0, rowstart=0, rotation=0, color_depth=16, grayscale=False, pixels_in_byte_share_row=True, bytes_per_cell=1, reverse_pixels_in_byte=False, backlight_pin=None, brightness=1.0, auto_brightness=False, auto_refresh=True, native_frames_per_second=60)
 //|
-//|   Create a Display object on the given display bus (`displayio.FourWire` or `displayio.ParallelBus`).
+//|   Create a Display object with the given framebuffer (a buffer, array, ulab.array, etc)
 //|
-//|   The ``init_sequence`` is bitpacked to minimize the ram impact. Every command begins with a
-//|   command byte followed by a byte to determine the parameter count and if a delay is need after.
-//|   When the top bit of the second byte is 1, the next byte will be the delay time in milliseconds.
-//|   The remaining 7 bits are the parameter count excluding any delay byte. The third through final
-//|   bytes are the remaining command parameters. The next byte will begin a new command definition.
-//|   Here is a portion of ILI9341 init code:
-//|
-//|   .. code-block:: python
-//|
-//|     init_sequence = (b"\xe1\x0f\x00\x0E\x14\x03\x11\x07\x31\xC1\x48\x08\x0F\x0C\x31\x36\x0F" # Set Gamma
-//|                      b"\x11\x80\x78"# Exit Sleep then delay 0x78 (120ms)
-//|                      b"\x29\x80\x78"# Display on then delay 0x78 (120ms)
-//|                     )
-//|      display = displayio.Display(display_bus, init_sequence, width=320, height=240)
-//|
-//|   The first command is 0xe1 with 15 (0xf) parameters following. The second and third are 0x11 and
-//|   0x29 respectively with delays (0x80) of 120ms (0x78) and no parameters. Multiple byte literals
-//|   (b"") are merged together on load. The parens are needed to allow byte literals on subsequent
-//|   lines.
-//|
-//|   The initialization sequence should always leave the display memory access inline with the scan
-//|   of the display to minimize tearing artifacts.
-//|
-//|   :param display_bus: The bus that the display is connected to
-//|   :type display_bus: displayio.FourWire or displayio.ParallelBus
-//|   :param buffer init_sequence: Byte-packed initialization sequence.
+//|   :param framebuffer: The bus that the display is connected to
+//|   :type framebuffer: buffer, array.array, ulab.array, or machine-specific object
+//|   :param callback: Function or bound method to call when the framebuffer has been updated.  The callback receives one argument, the framebuffer object.
 //|   :param int width: Width in pixels
 //|   :param int height: Height in pixels
 //|   :param int colstart: The index if the first visible column
@@ -92,25 +69,19 @@
 //|   :param bool pixels_in_byte_share_row: True when pixels are less than a byte and a byte includes pixels from the same row of the display. When False, pixels share a column.
 //|   :param int bytes_per_cell: Number of bytes per addressable memory location when color_depth < 8. When greater than one, bytes share a row or column according to pixels_in_byte_share_row.
 //|   :param bool reverse_pixels_in_byte: Reverses the pixel order within each byte when color_depth < 8. Does not apply across multiple bytes even if there is more than one byte per cell (bytes_per_cell.)
+//|   :param bool reverse_pixels_in_byte: Reverses the pixel order within each byte when color_depth < 8. Does not apply across multiple bytes even if there is more than one byte per cell (bytes_per_cell.)
 //|   :param bool reverse_bytes_in_word: Reverses the order of bytes within a word when color_depth == 16
-//|   :param int set_column_command: Command used to set the start and end columns to update
-//|   :param int set_row_command: Command used so set the start and end rows to update
-//|   :param int write_ram_command: Command used to write pixels values into the update region. Ignored if data_as_commands is set.
-//|   :param int set_vertical_scroll: Command used to set the first row to show
 //|   :param microcontroller.Pin backlight_pin: Pin connected to the display's backlight
-//|   :param int brightness_command: Command to set display brightness. Usually available in OLED controllers.
 //|   :param bool brightness: Initial display brightness. This value is ignored if auto_brightness is True.
 //|   :param bool auto_brightness: If True, brightness is controlled via an ambient light sensor or other mechanism.
-//|   :param bool single_byte_bounds: Display column and row commands use single bytes
-//|   :param bool data_as_commands: Treat all init and boundary data as SPI commands. Certain displays require this.
 //|   :param bool auto_refresh: Automatically refresh the screen
-//|   :param int native_frames_per_second: Number of display refreshes per second that occur with the given init_sequence.
+//|   :param int native_frames_per_second: Number of display refreshes per second
 //|
-STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_display_bus, ARG_init_sequence, ARG_width, ARG_height, ARG_colstart, ARG_rowstart, ARG_rotation, ARG_color_depth, ARG_grayscale, ARG_pixels_in_byte_share_row, ARG_bytes_per_cell, ARG_reverse_pixels_in_byte, ARG_reverse_bytes_in_word, ARG_set_column_command, ARG_set_row_command, ARG_write_ram_command, ARG_set_vertical_scroll, ARG_backlight_pin, ARG_brightness_command, ARG_brightness, ARG_auto_brightness, ARG_single_byte_bounds, ARG_data_as_commands, ARG_auto_refresh, ARG_native_frames_per_second };
+STATIC mp_obj_t displayio_framebufferdisplay_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_framebuffer, ARG_callback, ARG_width, ARG_height, ARG_colstart, ARG_rowstart, ARG_rotation, ARG_color_depth, ARG_grayscale, ARG_pixels_in_byte_share_row, ARG_bytes_per_cell, ARG_reverse_pixels_in_byte, ARG_reverse_bytes_in_word, ARG_backlight_pin, ARG_brightness, ARG_auto_brightness, ARG_data_as_commands, ARG_auto_refresh, ARG_native_frames_per_second };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_display_bus, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_init_sequence, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_framebuffer, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_callback, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_width, MP_ARG_INT | MP_ARG_KW_ONLY | MP_ARG_REQUIRED, },
         { MP_QSTR_height, MP_ARG_INT | MP_ARG_KW_ONLY | MP_ARG_REQUIRED, },
         { MP_QSTR_colstart, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0} },
@@ -121,27 +92,20 @@ STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_a
         { MP_QSTR_pixels_in_byte_share_row, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = true} },
         { MP_QSTR_bytes_per_cell, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 1} },
         { MP_QSTR_reverse_pixels_in_byte, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
-        { MP_QSTR_reverse_bytes_in_word, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = true} },
-        { MP_QSTR_set_column_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2a} },
-        { MP_QSTR_set_row_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2b} },
-        { MP_QSTR_write_ram_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2c} },
-        { MP_QSTR_set_vertical_scroll, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x0} },
+        { MP_QSTR_reverse_bytes_in_word, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_backlight_pin, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
-        { MP_QSTR_brightness_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = NO_BRIGHTNESS_COMMAND} },
         { MP_QSTR_brightness, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_OBJ_NEW_SMALL_INT(1)} },
         { MP_QSTR_auto_brightness, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
-        { MP_QSTR_single_byte_bounds, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
-        { MP_QSTR_data_as_commands, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_auto_refresh, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = true} },
         { MP_QSTR_native_frames_per_second, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 60} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_obj_t display_bus = args[ARG_display_bus].u_obj;
+    mp_obj_t framebuffer = args[ARG_framebuffer].u_obj;
 
     mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(args[ARG_init_sequence].u_obj, &bufinfo, MP_BUFFER_READ);
+    mp_get_buffer_raise(args[ARG_framebuffer].u_obj, &bufinfo, MP_BUFFER_READ);
 
     const mcu_pin_obj_t* backlight_pin = validate_obj_is_free_pin_or_none(args[ARG_backlight_pin].u_obj);
 
@@ -152,36 +116,32 @@ STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_a
         mp_raise_ValueError(translate("Display rotation must be in 90 degree increments"));
     }
 
-    displayio_display_obj_t *self = NULL;
+    displayio_framebufferdisplay_obj_t *self = NULL;
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         if (displays[i].display.base.type == NULL ||
             displays[i].display.base.type == &mp_type_NoneType) {
-            self = &displays[i].display;
+            self = &displays[i].framebuffer_display;
             break;
         }
     }
     if (self == NULL) {
         mp_raise_RuntimeError(translate("Too many displays"));
     }
-    self->base.type = &displayio_display_type;
-    common_hal_displayio_display_construct(
+    self->base.type = &displayio_framebufferdisplay_type;
+    common_hal_displayio_framebufferdisplay_construct(
         self,
-        display_bus, args[ARG_width].u_int, args[ARG_height].u_int, args[ARG_colstart].u_int, args[ARG_rowstart].u_int, rotation,
+        framebuffer,
+        args[ARG_callback].u_obj,
+        args[ARG_width].u_int, args[ARG_height].u_int,
+        args[ARG_colstart].u_int, args[ARG_rowstart].u_int, rotation,
         args[ARG_color_depth].u_int, args[ARG_grayscale].u_bool,
         args[ARG_pixels_in_byte_share_row].u_bool,
         args[ARG_bytes_per_cell].u_bool,
         args[ARG_reverse_pixels_in_byte].u_bool,
         args[ARG_reverse_bytes_in_word].u_bool,
-        args[ARG_set_column_command].u_int, args[ARG_set_row_command].u_int,
-        args[ARG_write_ram_command].u_int,
-        args[ARG_set_vertical_scroll].u_int,
-        bufinfo.buf, bufinfo.len,
         MP_OBJ_TO_PTR(backlight_pin),
-        args[ARG_brightness_command].u_int,
         brightness,
         args[ARG_auto_brightness].u_bool,
-        args[ARG_single_byte_bounds].u_bool,
-        args[ARG_data_as_commands].u_bool,
         args[ARG_auto_refresh].u_bool,
         args[ARG_native_frames_per_second].u_int
         );
@@ -190,8 +150,8 @@ STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_a
 }
 
 // Helper to ensure we have the native super class instead of a subclass.
-static displayio_display_obj_t* native_display(mp_obj_t display_obj) {
-    mp_obj_t native_display = mp_instance_cast_to_native_base(display_obj, &displayio_display_type);
+static displayio_framebufferdisplay_obj_t* native_display(mp_obj_t display_obj) {
+    mp_obj_t native_display = mp_instance_cast_to_native_base(display_obj, &displayio_framebufferdisplay_type);
     mp_obj_assert_native_inited(native_display);
     return MP_OBJ_TO_PTR(native_display);
 }
@@ -202,20 +162,21 @@ static displayio_display_obj_t* native_display(mp_obj_t display_obj) {
 //|     CircuitPython terminal will be shown.
 //|
 //|     :param Group group: The group to show.
-STATIC mp_obj_t displayio_display_obj_show(mp_obj_t self_in, mp_obj_t group_in) {
-    displayio_display_obj_t *self = native_display(self_in);
+//|
+STATIC mp_obj_t displayio_framebufferdisplay_obj_show(mp_obj_t self_in, mp_obj_t group_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
     displayio_group_t* group = NULL;
     if (group_in != mp_const_none) {
         group = MP_OBJ_TO_PTR(native_group(group_in));
     }
 
-    bool ok = common_hal_displayio_display_show(self, group);
+    bool ok = common_hal_displayio_framebufferdisplay_show(self, group);
     if (!ok) {
         mp_raise_ValueError(translate("Group already used"));
     }
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_show_obj, displayio_display_obj_show);
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_framebufferdisplay_show_obj, displayio_framebufferdisplay_obj_show);
 
 //|   .. method:: refresh(*, target_frames_per_second=60, minimum_frames_per_second=1)
 //|
@@ -233,7 +194,7 @@ MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_show_obj, displayio_display_obj_show
 //|   :param int target_frames_per_second: How many times a second `refresh` should be called and the screen updated.
 //|   :param int minimum_frames_per_second: The minimum number of times the screen should be updated per second.
 //|
-STATIC mp_obj_t displayio_display_obj_refresh(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t displayio_framebufferdisplay_obj_refresh(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_target_frames_per_second, ARG_minimum_frames_per_second };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_target_frames_per_second, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 60} },
@@ -242,39 +203,39 @@ STATIC mp_obj_t displayio_display_obj_refresh(size_t n_args, const mp_obj_t *pos
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    displayio_display_obj_t *self = native_display(pos_args[0]);
+    displayio_framebufferdisplay_obj_t *self = native_display(pos_args[0]);
     uint32_t maximum_ms_per_real_frame = 0xffffffff;
     mp_int_t minimum_frames_per_second = args[ARG_minimum_frames_per_second].u_int;
     if (minimum_frames_per_second > 0) {
         maximum_ms_per_real_frame = 1000 / minimum_frames_per_second;
     }
-    return mp_obj_new_bool(common_hal_displayio_display_refresh(self, 1000 / args[ARG_target_frames_per_second].u_int, maximum_ms_per_real_frame));
+    return mp_obj_new_bool(common_hal_displayio_framebufferdisplay_refresh(self, 1000 / args[ARG_target_frames_per_second].u_int, maximum_ms_per_real_frame));
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(displayio_display_refresh_obj, 1, displayio_display_obj_refresh);
+MP_DEFINE_CONST_FUN_OBJ_KW(displayio_framebufferdisplay_refresh_obj, 1, displayio_framebufferdisplay_obj_refresh);
 
 //|   .. attribute:: auto_refresh
 //|
 //|     True when the display is refreshed automatically.
 //|
-STATIC mp_obj_t displayio_display_obj_get_auto_refresh(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return mp_obj_new_bool(common_hal_displayio_display_get_auto_refresh(self));
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_auto_refresh(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return mp_obj_new_bool(common_hal_displayio_framebufferdisplay_get_auto_refresh(self));
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_auto_refresh_obj, displayio_display_obj_get_auto_refresh);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_auto_refresh_obj, displayio_framebufferdisplay_obj_get_auto_refresh);
 
-STATIC mp_obj_t displayio_display_obj_set_auto_refresh(mp_obj_t self_in, mp_obj_t auto_refresh) {
-    displayio_display_obj_t *self = native_display(self_in);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_set_auto_refresh(mp_obj_t self_in, mp_obj_t auto_refresh) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
 
-    common_hal_displayio_display_set_auto_refresh(self, mp_obj_is_true(auto_refresh));
+    common_hal_displayio_framebufferdisplay_set_auto_refresh(self, mp_obj_is_true(auto_refresh));
 
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_set_auto_refresh_obj, displayio_display_obj_set_auto_refresh);
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_framebufferdisplay_set_auto_refresh_obj, displayio_framebufferdisplay_obj_set_auto_refresh);
 
-const mp_obj_property_t displayio_display_auto_refresh_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_auto_refresh_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_auto_refresh_obj,
-              (mp_obj_t)&displayio_display_set_auto_refresh_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_auto_refresh_obj,
+              (mp_obj_t)&displayio_framebufferdisplay_set_auto_refresh_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
 
@@ -284,35 +245,35 @@ const mp_obj_property_t displayio_display_auto_refresh_obj = {
 //|     `auto_brightness` is True, the value of `brightness` will change automatically.
 //|     If `brightness` is set, `auto_brightness` will be disabled and will be set to False.
 //|
-STATIC mp_obj_t displayio_display_obj_get_brightness(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    mp_float_t brightness = common_hal_displayio_display_get_brightness(self);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_brightness(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    mp_float_t brightness = common_hal_displayio_framebufferdisplay_get_brightness(self);
     if (brightness < 0) {
         mp_raise_RuntimeError(translate("Brightness not adjustable"));
     }
     return mp_obj_new_float(brightness);
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_brightness_obj, displayio_display_obj_get_brightness);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_brightness_obj, displayio_framebufferdisplay_obj_get_brightness);
 
-STATIC mp_obj_t displayio_display_obj_set_brightness(mp_obj_t self_in, mp_obj_t brightness_obj) {
-    displayio_display_obj_t *self = native_display(self_in);
-    common_hal_displayio_display_set_auto_brightness(self, false);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_set_brightness(mp_obj_t self_in, mp_obj_t brightness_obj) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    common_hal_displayio_framebufferdisplay_set_auto_brightness(self, false);
     mp_float_t brightness = mp_obj_get_float(brightness_obj);
     if (brightness < 0 || brightness > 1.0) {
         mp_raise_ValueError(translate("Brightness must be 0-1.0"));
     }
-    bool ok = common_hal_displayio_display_set_brightness(self, brightness);
+    bool ok = common_hal_displayio_framebufferdisplay_set_brightness(self, brightness);
     if (!ok) {
         mp_raise_RuntimeError(translate("Brightness not adjustable"));
     }
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_set_brightness_obj, displayio_display_obj_set_brightness);
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_framebufferdisplay_set_brightness_obj, displayio_framebufferdisplay_obj_set_brightness);
 
-const mp_obj_property_t displayio_display_brightness_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_brightness_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_brightness_obj,
-              (mp_obj_t)&displayio_display_set_brightness_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_brightness_obj,
+              (mp_obj_t)&displayio_framebufferdisplay_set_brightness_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
 
@@ -323,63 +284,58 @@ const mp_obj_property_t displayio_display_brightness_obj = {
 //|     but not actually implement automatic brightness adjustment. `auto_brightness` is set to False
 //|     if `brightness` is set manually.
 //|
-STATIC mp_obj_t displayio_display_obj_get_auto_brightness(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return mp_obj_new_bool(common_hal_displayio_display_get_auto_brightness(self));
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_auto_brightness(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return mp_obj_new_bool(common_hal_displayio_framebufferdisplay_get_auto_brightness(self));
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_auto_brightness_obj, displayio_display_obj_get_auto_brightness);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_auto_brightness_obj, displayio_framebufferdisplay_obj_get_auto_brightness);
 
-STATIC mp_obj_t displayio_display_obj_set_auto_brightness(mp_obj_t self_in, mp_obj_t auto_brightness) {
-    displayio_display_obj_t *self = native_display(self_in);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_set_auto_brightness(mp_obj_t self_in, mp_obj_t auto_brightness) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
 
-    common_hal_displayio_display_set_auto_brightness(self, mp_obj_is_true(auto_brightness));
+    common_hal_displayio_framebufferdisplay_set_auto_brightness(self, mp_obj_is_true(auto_brightness));
 
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_set_auto_brightness_obj, displayio_display_obj_set_auto_brightness);
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_framebufferdisplay_set_auto_brightness_obj, displayio_framebufferdisplay_obj_set_auto_brightness);
 
-const mp_obj_property_t displayio_display_auto_brightness_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_auto_brightness_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_auto_brightness_obj,
-              (mp_obj_t)&displayio_display_set_auto_brightness_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_auto_brightness_obj,
+              (mp_obj_t)&displayio_framebufferdisplay_set_auto_brightness_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
 
-
-
-
 //|   .. attribute:: width
 //|
-//|	Gets the width of the board
+//|	Gets the width of the framebuffer
 //|
-//|
-STATIC mp_obj_t displayio_display_obj_get_width(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_display_get_width(self));
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_width(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_framebufferdisplay_get_width(self));
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_width_obj, displayio_display_obj_get_width);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_width_obj, displayio_framebufferdisplay_obj_get_width);
 
-const mp_obj_property_t displayio_display_width_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_width_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_width_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_width_obj,
               (mp_obj_t)&mp_const_none_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
 
 //|   .. attribute:: height
 //|
-//|	Gets the height of the board
+//|	Gets the height of the framebuffer
 //|
-//|
-STATIC mp_obj_t displayio_display_obj_get_height(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_display_get_height(self));
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_height(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_framebufferdisplay_get_height(self));
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_height_obj, displayio_display_obj_get_height);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_height_obj, displayio_framebufferdisplay_obj_get_height);
 
-const mp_obj_property_t displayio_display_height_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_height_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_height_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_height_obj,
               (mp_obj_t)&mp_const_none_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
@@ -388,40 +344,40 @@ const mp_obj_property_t displayio_display_height_obj = {
 //|
 //|     The rotation of the display as an int in degrees.
 //|
-STATIC mp_obj_t displayio_display_obj_get_rotation(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_display_get_rotation(self));
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_rotation(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_framebufferdisplay_get_rotation(self));
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_rotation_obj, displayio_display_obj_get_rotation);
-STATIC mp_obj_t displayio_display_obj_set_rotation(mp_obj_t self_in, mp_obj_t value) {
-    displayio_display_obj_t *self = native_display(self_in);
-    common_hal_displayio_display_set_rotation(self, mp_obj_get_int(value));
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_rotation_obj, displayio_framebufferdisplay_obj_get_rotation);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_set_rotation(mp_obj_t self_in, mp_obj_t value) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    common_hal_displayio_framebufferdisplay_set_rotation(self, mp_obj_get_int(value));
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_display_set_rotation_obj, displayio_display_obj_set_rotation);
+MP_DEFINE_CONST_FUN_OBJ_2(displayio_framebufferdisplay_set_rotation_obj, displayio_framebufferdisplay_obj_set_rotation);
 
 
-const mp_obj_property_t displayio_display_rotation_obj = {
+const mp_obj_property_t displayio_framebufferdisplay_rotation_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_rotation_obj,
-              (mp_obj_t)&displayio_display_set_rotation_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_rotation_obj,
+              (mp_obj_t)&displayio_framebufferdisplay_set_rotation_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
 
-//|   .. attribute:: bus
+//|   .. attribute:: framebuffer
 //|
-//|	The bus being used by the display
+//|	The framebuffer being used by the display
 //|
 //|
-STATIC mp_obj_t displayio_display_obj_get_bus(mp_obj_t self_in) {
-    displayio_display_obj_t *self = native_display(self_in);
-    return common_hal_displayio_display_get_bus(self);
+STATIC mp_obj_t displayio_framebufferdisplay_obj_get_framebuffer(mp_obj_t self_in) {
+    displayio_framebufferdisplay_obj_t *self = native_display(self_in);
+    return common_hal_displayio_framebufferdisplay_get_framebuffer(self);
 }
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_display_get_bus_obj, displayio_display_obj_get_bus);
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_framebufferdisplay_get_framebuffer_obj, displayio_framebufferdisplay_obj_get_framebuffer);
 
-const mp_obj_property_t displayio_display_bus_obj = {
+const mp_obj_property_t displayio_framebufferframebuffer_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_display_get_bus_obj,
+    .proxy = {(mp_obj_t)&displayio_framebufferdisplay_get_framebuffer_obj,
               (mp_obj_t)&mp_const_none_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
@@ -433,7 +389,7 @@ const mp_obj_property_t displayio_display_bus_obj = {
 //|
 //|     :param int y: The top edge of the area
 //|     :param bytearray buffer: The buffer in which to place the pixel data
-STATIC mp_obj_t displayio_display_obj_fill_row(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t displayio_framebufferdisplay_obj_fill_row(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_y, ARG_buffer };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_y, MP_ARG_INT | MP_ARG_REQUIRED, {.u_int = -1} },
@@ -441,7 +397,7 @@ STATIC mp_obj_t displayio_display_obj_fill_row(size_t n_args, const mp_obj_t *po
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-    displayio_display_obj_t *self = native_display(pos_args[0]);
+    displayio_framebufferdisplay_obj_t *self = native_display(pos_args[0]);
     mp_int_t y = args[ARG_y].u_int;
     mp_obj_t *result = args[ARG_buffer].u_obj;
 
@@ -485,28 +441,28 @@ STATIC mp_obj_t displayio_display_obj_fill_row(size_t n_args, const mp_obj_t *po
       mp_raise_ValueError(translate("Buffer is too small"));
     }
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(displayio_display_fill_row_obj, 1, displayio_display_obj_fill_row);
+MP_DEFINE_CONST_FUN_OBJ_KW(displayio_framebufferdisplay_fill_row_obj, 1, displayio_framebufferdisplay_obj_fill_row);
 
-STATIC const mp_rom_map_elem_t displayio_display_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_show), MP_ROM_PTR(&displayio_display_show_obj) },
-    { MP_ROM_QSTR(MP_QSTR_refresh), MP_ROM_PTR(&displayio_display_refresh_obj) },
-    { MP_ROM_QSTR(MP_QSTR_fill_row), MP_ROM_PTR(&displayio_display_fill_row_obj) },
+STATIC const mp_rom_map_elem_t displayio_framebufferdisplay_locals_dict_table[] = {
+    { MP_ROM_QSTR(MP_QSTR_show), MP_ROM_PTR(&displayio_framebufferdisplay_show_obj) },
+    { MP_ROM_QSTR(MP_QSTR_refresh), MP_ROM_PTR(&displayio_framebufferdisplay_refresh_obj) },
+    { MP_ROM_QSTR(MP_QSTR_fill_row), MP_ROM_PTR(&displayio_framebufferdisplay_fill_row_obj) },
 
-    { MP_ROM_QSTR(MP_QSTR_auto_refresh), MP_ROM_PTR(&displayio_display_auto_refresh_obj) },
+    { MP_ROM_QSTR(MP_QSTR_auto_refresh), MP_ROM_PTR(&displayio_framebufferdisplay_auto_refresh_obj) },
 
-    { MP_ROM_QSTR(MP_QSTR_brightness), MP_ROM_PTR(&displayio_display_brightness_obj) },
-    { MP_ROM_QSTR(MP_QSTR_auto_brightness), MP_ROM_PTR(&displayio_display_auto_brightness_obj) },
+    { MP_ROM_QSTR(MP_QSTR_brightness), MP_ROM_PTR(&displayio_framebufferdisplay_brightness_obj) },
+    { MP_ROM_QSTR(MP_QSTR_auto_brightness), MP_ROM_PTR(&displayio_framebufferdisplay_auto_brightness_obj) },
 
-    { MP_ROM_QSTR(MP_QSTR_width), MP_ROM_PTR(&displayio_display_width_obj) },
-    { MP_ROM_QSTR(MP_QSTR_height), MP_ROM_PTR(&displayio_display_height_obj) },
-    { MP_ROM_QSTR(MP_QSTR_rotation), MP_ROM_PTR(&displayio_display_rotation_obj) },
-    { MP_ROM_QSTR(MP_QSTR_bus), MP_ROM_PTR(&displayio_display_bus_obj) },
+    { MP_ROM_QSTR(MP_QSTR_width), MP_ROM_PTR(&displayio_framebufferdisplay_width_obj) },
+    { MP_ROM_QSTR(MP_QSTR_height), MP_ROM_PTR(&displayio_framebufferdisplay_height_obj) },
+    { MP_ROM_QSTR(MP_QSTR_rotation), MP_ROM_PTR(&displayio_framebufferdisplay_rotation_obj) },
+    { MP_ROM_QSTR(MP_QSTR_framebuffer), MP_ROM_PTR(&displayio_framebufferframebuffer_obj) },
 };
-STATIC MP_DEFINE_CONST_DICT(displayio_display_locals_dict, displayio_display_locals_dict_table);
+STATIC MP_DEFINE_CONST_DICT(displayio_framebufferdisplay_locals_dict, displayio_framebufferdisplay_locals_dict_table);
 
-const mp_obj_type_t displayio_display_type = {
+const mp_obj_type_t displayio_framebufferdisplay_type = {
     { &mp_type_type },
-    .name = MP_QSTR_Display,
-    .make_new = displayio_display_make_new,
-    .locals_dict = (mp_obj_dict_t*)&displayio_display_locals_dict,
+    .name = MP_QSTR_FramebufferDisplay,
+    .make_new = displayio_framebufferdisplay_make_new,
+    .locals_dict = (mp_obj_dict_t*)&displayio_framebufferdisplay_locals_dict,
 };

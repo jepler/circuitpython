@@ -47,6 +47,8 @@ void displayio_background(void) {
         }
         if (displays[i].display.base.type == &displayio_display_type) {
             displayio_display_background(&displays[i].display);
+        } else if (displays[i].framebuffer_display.base.type == &displayio_framebufferdisplay_type) {
+            // displayio_framebufferdisplay_background(&displays[i].framebuffer_display);
         } else if (displays[i].epaper_display.base.type == &displayio_epaperdisplay_type) {
             displayio_epaperdisplay_background(&displays[i].epaper_display);
         }
@@ -169,6 +171,8 @@ void displayio_gc_collect(void) {
         // but this is more precise, and is the only field that needs marking.
         if (displays[i].display.base.type == &displayio_display_type) {
             displayio_display_collect_ptrs(&displays[i].display);
+        } else if (displays[i].framebuffer_display.base.type == &displayio_framebufferdisplay_type) {
+            displayio_framebufferdisplay_collect_ptrs(&displays[i].framebuffer_display);
         } else if (displays[i].epaper_display.base.type == &displayio_epaperdisplay_type) {
             displayio_epaperdisplay_collect_ptrs(&displays[i].epaper_display);
         }

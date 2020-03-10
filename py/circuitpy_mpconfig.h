@@ -454,6 +454,13 @@ extern const struct _mp_obj_module_t pixelbuf_module;
 #define PIXELBUF_MODULE
 #endif
 
+#if CIRCUITPY_PROTOMATTER
+extern const struct _mp_obj_module_t protomatter_module;
+#define PROTOMATTER_MODULE        { MP_OBJ_NEW_QSTR(MP_QSTR__protomatter),(mp_obj_t)&protomatter_module },
+#else
+#define PROTOMATTER_MODULE
+#endif
+
 #if CIRCUITPY_PULSEIO
 extern const struct _mp_obj_module_t pulseio_module;
 #define PULSEIO_MODULE         { MP_OBJ_NEW_QSTR(MP_QSTR_pulseio), (mp_obj_t)&pulseio_module },
@@ -643,6 +650,7 @@ extern const struct _mp_obj_module_t ustack_module;
     PEW_MODULE \
     PIXELBUF_MODULE \
     PS2IO_MODULE \
+    PROTOMATTER_MODULE \
     PULSEIO_MODULE \
     RANDOM_MODULE \
     RE_MODULE \
