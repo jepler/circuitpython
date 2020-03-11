@@ -70,6 +70,12 @@ MICROPY_PY_ULAB = 1
 endif
 endif
 
+ifndef MICROPY_PY_PROTOMATTER
+ifneq ($(CIRCUITPY_SMALL_BUILD),1)
+CIRCUITPY_PROTOMATTER = 1
+endif
+endif
+$(info I: $(CIRCUITPY_PROTOMATTER))
 endif # samd51
 
 INTERNAL_LIBM = 1

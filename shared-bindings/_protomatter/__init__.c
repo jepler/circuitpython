@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Scott Shawcroft
+ * Copyright (c) 2020 Jeff Epler for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,29 +24,32 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_MICROCONTROLLER_PIN_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_MICROCONTROLLER_PIN_H
+#include <stdint.h>
 
-#include "common-hal/microcontroller/Pin.h"
 #include "py/obj.h"
+#include "py/runtime.h"
 
-// Type object used in Python. Should be shared between ports.
-extern const mp_obj_type_t mcu_pin_type;
+#include "shared-bindings/_protomatter/Protomatter.h"
 
-mcu_pin_obj_t *validate_obj_is_pin(mp_obj_t obj);
-mcu_pin_obj_t *validate_obj_is_pin_or_none(mp_obj_t obj);
-mcu_pin_obj_t *validate_obj_is_free_pin(mp_obj_t obj);
-mcu_pin_obj_t *validate_obj_is_free_pin_or_none(mp_obj_t obj);
+//| :mod:`_protomatter` --- Low-level routines for bitbanged LED matrices
+//| =====================================================================
+//|
+//| .. module:: _protomatter
+//|   :synopsis: Low-level routines for bitbanged LED matrices
+//|
+//| .. toctree::
+//|     :maxdepth: 3
+//|
+//|     Protomatter
 
-void assert_pin_free(const mcu_pin_obj_t* pin);
+STATIC const mp_rom_map_elem_t protomatter_module_globals_table[] = {
+    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR__protomatter) },
+    { MP_ROM_QSTR(MP_QSTR_Protomatter), MP_ROM_PTR(&protomatter_Protomatter_type) },
+};
 
-bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin);
-void common_hal_never_reset_pin(const mcu_pin_obj_t* pin);
-void common_hal_reset_pin(const mcu_pin_obj_t* pin);
-uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t* pin);
-void common_hal_mcu_pin_claim(const mcu_pin_obj_t* pin);
-void common_hal_mcu_pin_reset_number(uint8_t pin_no);
+STATIC MP_DEFINE_CONST_DICT(protomatter_module_globals, protomatter_module_globals_table);
 
-#define COMMON_HAL_MCU_NO_PIN ((uint8_t)0xff)
-
-#endif  // MICROPY_INCLUDED_SHARED_BINDINGS_MICROCONTROLLER_PIN_H
+const mp_obj_module_t protomatter_module = {
+    .base = { &mp_type_module },
+    .globals = (mp_obj_dict_t*)&protomatter_module_globals,
+};
