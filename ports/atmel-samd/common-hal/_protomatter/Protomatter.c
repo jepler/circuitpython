@@ -24,23 +24,52 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_PROTOMATTER_PROTOMATTER_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_PROTOMATTER_PROTOMATTER_H
+#include <stddef.h>
 
-#include "shared-module/_protomatter/Protomatter.h"
-#include "lib/protomatter/core.h"
+#include "common-hal/_protomatter/Protomatter.h"
 
-extern const mp_obj_type_t protomatter_Protomatter_type;
-typedef struct {
-    mp_obj_base_t base;
-    Protomatter_core core;
-    void *timer;
-    uint8_t *rgb_pins;
-    uint8_t *addr_pins;
-    uint8_t clock_pin, latch_pin, oe_pin;
-    uint8_t rgb_count, addr_count;
-    bool core_is_initialized;
-    bool paused;
-} protomatter_protomatter_obj_t;
+#include "samd/timers.h"
+#include "timer_handler.h"
 
-#endif
+void *common_hal_protomatter_timer_allocate() {
+    uint8_t timer_index = find_free_timer();
+    if (timer_index == 0xff) {
+        return NULL;
+    }
+    return tc_insts[timer_index];
+}
+
+static uint8_t tc_index_from_ptr(void* ptr) {
+    for (uint8_t i = TC_INST_NUM; i > 0; i--) {
+        if (tc_insts[i] == ptr) {
+            return i;
+        }
+    }
+    return 0xff;
+}
+
+void common_hal_protomatter_timer_enable(void* ptr) {
+    uint8_t timer_index = tc_index_from_ptr(ptr);
+    if (timer_index == 0xff) {
+        return;
+    }
+    set_timer_handler(true, timer_index, TC_HANDLER_PROTOMATTER); 
+    turn_on_clocks(true, timer_index, 1);
+}
+
+void common_hal_protomatter_timer_disable(void* ptr) {
+    uint8_t timer_index = tc_index_from_ptr(ptr);
+    if (timer_index == 0xff) {
+        return;
+    }
+    set_timer_handler(true, timer_index, TC_HANDLER_NO_INTERRUPT); 
+}
+ 
+void common_hal_protomatter_timer_free(void* ptr) {
+    uint8_t timer_index = tc_index_from_ptr(ptr);
+    if (timer_index == 0xff) {
+        return;
+    }
+    tc_set_enable(ptr, false);   
+    tc_reset(ptr);
+}

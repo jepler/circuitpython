@@ -241,7 +241,7 @@ bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin) {
     return pin_number_is_free(pin->number);
 }
 
-uint8_t common_hal_mcu_pin_no(const mcu_pin_obj_t* pin) {
+uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t* pin) {
     return pin->number;
 }
 

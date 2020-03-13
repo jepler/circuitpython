@@ -650,6 +650,7 @@ extern const struct _mp_obj_module_t ustack_module;
     PEW_MODULE \
     PIXELBUF_MODULE \
     PS2IO_MODULE \
+    PROTOMATTER_MODULE \
     PULSEIO_MODULE \
     RANDOM_MODULE \
     RE_MODULE \

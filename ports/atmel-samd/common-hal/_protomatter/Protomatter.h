@@ -24,23 +24,12 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_PROTOMATTER_PROTOMATTER_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_PROTOMATTER_PROTOMATTER_H
+#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PROTOMATTER_PROTOMATTER_H
+#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PROTOMATTER_PROTOMATTER_H
 
-#include "shared-module/_protomatter/Protomatter.h"
-#include "lib/protomatter/core.h"
-
-extern const mp_obj_type_t protomatter_Protomatter_type;
-typedef struct {
-    mp_obj_base_t base;
-    Protomatter_core core;
-    void *timer;
-    uint8_t *rgb_pins;
-    uint8_t *addr_pins;
-    uint8_t clock_pin, latch_pin, oe_pin;
-    uint8_t rgb_count, addr_count;
-    bool core_is_initialized;
-    bool paused;
-} protomatter_protomatter_obj_t;
+void *common_hal_protomatter_timer_allocate(void); 
+void common_hal_protomatter_timer_enable(void*); 
+void common_hal_protomatter_timer_disable(void*); 
+void common_hal_protomatter_timer_free(void*); 
 
 #endif
