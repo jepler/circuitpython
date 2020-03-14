@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-09 08:19-0500\n"
+"POT-Creation-Date: 2020-03-14 11:49-0500\n"
 "PO-Revision-Date: 2018-07-27 11:55-0700\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -831,7 +831,7 @@ msgstr ""
 msgid "Invalid UART pin selection"
 msgstr ""
 
-#: py/moduerrno.c
+#: py/moduerrno.c shared-bindings/_protomatter/Protomatter.c
 msgid "Invalid argument"
 msgstr ""
 
@@ -885,7 +885,7 @@ msgstr ""
 
 #: ports/atmel-samd/common-hal/audioio/AudioOut.c
 #: ports/atmel-samd/common-hal/touchio/TouchIn.c
-#: shared-bindings/pulseio/PWMOut.c
+#: shared-bindings/_protomatter/Protomatter.c shared-bindings/pulseio/PWMOut.c
 msgid "Invalid pin"
 msgstr ""
 
@@ -1082,6 +1082,10 @@ msgstr ""
 msgid "No such file/directory"
 msgstr ""
 
+#: shared-bindings/_protomatter/Protomatter.c
+msgid "No timer available"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Nordic Soft Device failure assertion."
 msgstr ""
@@ -1167,6 +1171,11 @@ msgstr ""
 
 #: main.c
 msgid "Press any key to enter the REPL. Use CTRL-D to reload."
+msgstr ""
+
+#: shared-bindings/_protomatter/Protomatter.c
+#, c-format
+msgid "Protomatter internal error #%d"
 msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
@@ -2923,6 +2932,7 @@ msgstr ""
 
 #: ports/atmel-samd/common-hal/busio/UART.c
 #: ports/mimxrt10xx/common-hal/busio/UART.c ports/nrf/common-hal/busio/UART.c
+#: shared-bindings/busio/UART.c
 msgid "tx and rx cannot both be None"
 msgstr ""
 

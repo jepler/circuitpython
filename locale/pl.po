@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-09 08:19-0500\n"
+"POT-Creation-Date: 2020-03-14 11:49-0500\n"
 "PO-Revision-Date: 2019-03-19 18:37-0700\n"
 "Last-Translator: Radomir Dopieralski <circuitpython@sheep.art.pl>\n"
 "Language-Team: pl\n"
@@ -836,7 +836,7 @@ msgstr ""
 msgid "Invalid UART pin selection"
 msgstr ""
 
-#: py/moduerrno.c
+#: py/moduerrno.c shared-bindings/_protomatter/Protomatter.c
 msgid "Invalid argument"
 msgstr "Zły argument"
 
@@ -890,7 +890,7 @@ msgstr "Zła faza"
 
 #: ports/atmel-samd/common-hal/audioio/AudioOut.c
 #: ports/atmel-samd/common-hal/touchio/TouchIn.c
-#: shared-bindings/pulseio/PWMOut.c
+#: shared-bindings/_protomatter/Protomatter.c shared-bindings/pulseio/PWMOut.c
 msgid "Invalid pin"
 msgstr "Zła nóżka"
 
@@ -1087,6 +1087,10 @@ msgstr "Brak miejsca"
 msgid "No such file/directory"
 msgstr "Brak pliku/katalogu"
 
+#: shared-bindings/_protomatter/Protomatter.c
+msgid "No timer available"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Nordic Soft Device failure assertion."
 msgstr ""
@@ -1173,6 +1177,11 @@ msgstr ""
 #: main.c
 msgid "Press any key to enter the REPL. Use CTRL-D to reload."
 msgstr "Dowolny klawisz aby uruchomić konsolę. CTRL-D aby przeładować."
+
+#: shared-bindings/_protomatter/Protomatter.c
+#, c-format
+msgid "Protomatter internal error #%d"
+msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
 msgid "Pull not used when direction is output."
@@ -2934,6 +2943,7 @@ msgstr "wymagana krotka/lista po prawej stronie"
 
 #: ports/atmel-samd/common-hal/busio/UART.c
 #: ports/mimxrt10xx/common-hal/busio/UART.c ports/nrf/common-hal/busio/UART.c
+#: shared-bindings/busio/UART.c
 msgid "tx and rx cannot both be None"
 msgstr "tx i rx nie mogą być oba None"
 
