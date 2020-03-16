@@ -33,7 +33,7 @@ const mp_obj_type_t pixelbuf_pixelbuf_type;
 
 void common_hal__pixelbuf_pixelbuf_construct(pixelbuf_pixelbuf_obj_t *self, size_t n,
     pixelbuf_byteorder_details_t* byteorder, mp_float_t brightness, bool auto_write, uint8_t* header,
-    size_t header_len, uint8_t* trailer, size_t trailer_len);
+    size_t header_len, uint8_t* trailer, size_t trailer_len, int width);
 
 // These take mp_obj_t because they are called on subclasses of PixelBuf.
 uint8_t common_hal__pixelbuf_pixelbuf_get_bpp(mp_obj_t self);
@@ -42,6 +42,8 @@ void common_hal__pixelbuf_pixelbuf_set_brightness(mp_obj_t self, mp_float_t brig
 bool common_hal__pixelbuf_pixelbuf_get_auto_write(mp_obj_t self);
 void common_hal__pixelbuf_pixelbuf_set_auto_write(mp_obj_t self, bool auto_write);
 size_t common_hal__pixelbuf_pixelbuf_get_len(mp_obj_t self_in);
+int common_hal__pixelbuf_pixelbuf_get_width(mp_obj_t self_in);
+int common_hal__pixelbuf_pixelbuf_get_height(mp_obj_t self_in);
 mp_obj_t common_hal__pixelbuf_pixelbuf_get_byteorder_string(mp_obj_t self);
 void common_hal__pixelbuf_pixelbuf_fill(mp_obj_t self, mp_obj_t item);
 void common_hal__pixelbuf_pixelbuf_show(mp_obj_t self);
