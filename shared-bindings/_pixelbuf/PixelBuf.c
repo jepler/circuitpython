@@ -136,6 +136,17 @@ static void parse_byteorder(mp_obj_t byteorder_obj, pixelbuf_byteorder_details_t
     }
     parsed->order_string = byteorder_obj;
 
+    if (bo_len == 3 && !strcmp(byteorder, "565")) {
+        parsed->is_dotstar = false;
+        parsed->has_white = false;
+        parsed->bpp = 2;
+        parsed->byteorder.r = 0;
+        parsed->byteorder.g = 1;
+        parsed->byteorder.b = 2;
+        parsed->byteorder.w = 0;
+        return;
+    }
+
     parsed->bpp = bo_len;
     char *dotstar = strchr(byteorder, 'P');
     char *r = strchr(byteorder, 'R');
