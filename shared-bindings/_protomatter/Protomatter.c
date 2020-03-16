@@ -80,8 +80,11 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
+    // Because interrupt handlers point directly at protomatter objects,
+    // it is NOT okay to move them to the long-lived pool later.  Allocate
+    // them there to begin with, since generally they'll be long-lived anyway.
     protomatter_protomatter_obj_t *self =
-            m_new_obj(protomatter_protomatter_obj_t);
+            m_new_ll_obj(protomatter_protomatter_obj_t);
     self->base.type = &protomatter_Protomatter_type;
 
     self->rgb_pins = validate_pins(args[ARG_rgb_list].u_obj, &self->rgb_count);
