@@ -41,12 +41,13 @@ static pixelbuf_pixelbuf_obj_t* native_pixelbuf(mp_obj_t pixelbuf_obj) {
 
 void common_hal__pixelbuf_pixelbuf_construct(pixelbuf_pixelbuf_obj_t *self, size_t n,
         pixelbuf_byteorder_details_t* byteorder, mp_float_t brightness, bool auto_write,
-        uint8_t* header, size_t header_len, uint8_t* trailer, size_t trailer_len) {
+        uint8_t* header, size_t header_len, uint8_t* trailer, size_t trailer_len, int width) {
 
     self->pixel_count = n;
     self->byteorder = *byteorder;  // Copied because we modify for dotstar
     self->bytes_per_pixel = byteorder->is_dotstar ? 4 : byteorder->bpp;
     self->auto_write = false;
+    self->width = width;
 
     size_t pixel_len = self->pixel_count * self->bytes_per_pixel;
     self->transmit_buffer_obj = mp_obj_new_bytes_of_zeros(header_len + pixel_len + trailer_len);
@@ -78,6 +79,16 @@ void common_hal__pixelbuf_pixelbuf_construct(pixelbuf_pixelbuf_obj_t *self, size
 size_t common_hal__pixelbuf_pixelbuf_get_len(mp_obj_t self_in) {
     pixelbuf_pixelbuf_obj_t* self = native_pixelbuf(self_in);
     return self->pixel_count;
+}
+
+int common_hal__pixelbuf_pixelbuf_get_width(mp_obj_t self_in) {
+    pixelbuf_pixelbuf_obj_t* self = native_pixelbuf(self_in);
+    return self->width;
+}
+
+int common_hal__pixelbuf_pixelbuf_get_height(mp_obj_t self_in) {
+    pixelbuf_pixelbuf_obj_t* self = native_pixelbuf(self_in);
+    return self->width == -1 ? -1 : (int)self->pixel_count / self->width;
 }
 
 uint8_t common_hal__pixelbuf_pixelbuf_get_bpp(mp_obj_t self_in) {

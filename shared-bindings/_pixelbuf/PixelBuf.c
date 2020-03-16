@@ -72,7 +72,7 @@ static void parse_byteorder(mp_obj_t byteorder_obj, pixelbuf_byteorder_details_t
 //|
 STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     mp_arg_check_num(n_args, kw_args, 1, MP_OBJ_FUN_ARGS_MAX, true);
-    enum { ARG_size, ARG_byteorder, ARG_brightness, ARG_auto_write, ARG_header, ARG_trailer };
+    enum { ARG_size, ARG_byteorder, ARG_brightness, ARG_auto_write, ARG_header, ARG_trailer, ARG_width };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_size, MP_ARG_REQUIRED | MP_ARG_INT },
         { MP_QSTR_byteorder, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = MP_OBJ_NEW_QSTR(MP_QSTR_BGR) } },
@@ -80,6 +80,7 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
         { MP_QSTR_auto_write, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_header, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
         { MP_QSTR_trailer, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
+        { MP_QSTR_width, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -89,7 +90,11 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
 
     mp_buffer_info_t header_bufinfo;
     mp_buffer_info_t trailer_bufinfo;
+    int width = -1;
 
+    if (args[ARG_width].u_obj != mp_const_none) {
+        width = MP_OBJ_SMALL_INT_VALUE(args[ARG_width].u_obj);
+    }
     if (!mp_get_buffer(args[ARG_header].u_obj, &header_bufinfo, MP_BUFFER_READ)) {
         header_bufinfo.buf = NULL;
         header_bufinfo.len = 0;
@@ -114,7 +119,7 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
     self->base.type = &pixelbuf_pixelbuf_type;
     common_hal__pixelbuf_pixelbuf_construct(self, args[ARG_size].u_int,
     &byteorder_details, brightness, args[ARG_auto_write].u_bool, header_bufinfo.buf,
-    header_bufinfo.len, trailer_bufinfo.buf, trailer_bufinfo.len);
+    header_bufinfo.len, trailer_bufinfo.buf, trailer_bufinfo.len, width);
 
     return MP_OBJ_FROM_PTR(self);
 }
@@ -277,6 +282,27 @@ STATIC mp_obj_t pixelbuf_pixelbuf_fill(mp_obj_t self_in, mp_obj_t value) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(pixelbuf_pixelbuf_fill_obj, pixelbuf_pixelbuf_fill);
 
+STATIC size_t pixelbuf_get_index(mp_obj_t self_in, mp_obj_t index_in) {
+    size_t length = common_hal__pixelbuf_pixelbuf_get_len(self_in);
+    int16_t width = common_hal__pixelbuf_pixelbuf_get_width(self_in);
+    if(width != -1 && MP_OBJ_IS_TYPE(index_in, &mp_type_tuple)) {
+        size_t x = mp_get_index(mp_obj_get_type(self_in),
+                                    width,
+                                    mp_obj_tuple_subscr(index_in,
+                                                        MP_OBJ_NEW_SMALL_INT(0),
+                                                        MP_OBJ_SENTINEL),
+                                    false);
+        size_t y = mp_get_index(mp_obj_get_type(self_in),
+                                    common_hal__pixelbuf_pixelbuf_get_height(self_in),
+                                    mp_obj_tuple_subscr(index_in,
+                                                        MP_OBJ_NEW_SMALL_INT(1),
+                                                        MP_OBJ_SENTINEL),
+                                    false);
+        return x + width * y;
+    } else {
+        return mp_get_index(self_in, length, index_in, false);
+    }
+}
 
 //|   .. method:: __getitem__(index)
 //|
@@ -353,8 +379,7 @@ STATIC mp_obj_t pixelbuf_pixelbuf_subscr(mp_obj_t self_in, mp_obj_t index_in, mp
         }
 #endif
     } else { // Single index rather than slice.
-        size_t length = common_hal__pixelbuf_pixelbuf_get_len(self_in);
-        size_t index = mp_get_index(mp_obj_get_type(self_in), length, index_in, false);
+        size_t index = pixelbuf_get_index(self_in, index_in);
 
         if (value == MP_OBJ_SENTINEL) { // Get
             return common_hal__pixelbuf_pixelbuf_get_pixel(self_in, index);
