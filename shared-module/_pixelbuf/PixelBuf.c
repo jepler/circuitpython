@@ -169,7 +169,8 @@ void _pixelbuf_parse_color(pixelbuf_pixelbuf_obj_t* self, mp_obj_t color, uint8_
         mp_obj_t *items;
         size_t len;
         mp_obj_get_array(color, &len, &items);
-        if (len != byteorder->bpp && !byteorder->is_dotstar) {
+        size_t n_elems = self->byteorder.bpp == 2 ? 3 : self->byteorder.bpp;
+        if (len != n_elems && !byteorder->is_dotstar) {
             mp_raise_ValueError_varg(translate("Expected tuple of length %d, got %d"), byteorder->bpp, len);
         }
 
@@ -187,8 +188,6 @@ void _pixelbuf_parse_color(pixelbuf_pixelbuf_obj_t* self, mp_obj_t color, uint8_
 }
 
 void _pixelbuf_set_pixel_color(pixelbuf_pixelbuf_obj_t* self, size_t index, uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
-    // DotStars don't have white, instead they have 5 bit brightness so pack it into w. Shift right
-    // by three to leave the top five bits.
     if (self->bytes_per_pixel == 4 && self->byteorder.is_dotstar) {
         w = DOTSTAR_LED_START | w >> 3;
     }
@@ -200,9 +199,15 @@ void _pixelbuf_set_pixel_color(pixelbuf_pixelbuf_obj_t* self, size_t index, uint
             pre_brightness_buffer[rgbw_order->w] = w;
         }
 
-        pre_brightness_buffer[rgbw_order->r] = r;
-        pre_brightness_buffer[rgbw_order->g] = g;
-        pre_brightness_buffer[rgbw_order->b] = b;
+        if (self->bytes_per_pixel == 2) {
+            uint16_t rgb565 = ((r << 8) & 0xf800) | ((g <<3) & 0xfc0) | (b >> 3);
+            pre_brightness_buffer[0] = rgb565 & 0xff;
+            pre_brightness_buffer[1] = rgb565 >> 8;
+        } else {
+            pre_brightness_buffer[rgbw_order->r] = r;
+            pre_brightness_buffer[rgbw_order->g] = g;
+            pre_brightness_buffer[rgbw_order->b] = b;
+        }
     }
 
     uint8_t* post_brightness_buffer = self->post_brightness_buffer + offset;
@@ -213,9 +218,18 @@ void _pixelbuf_set_pixel_color(pixelbuf_pixelbuf_obj_t* self, size_t index, uint
         }
         post_brightness_buffer[rgbw_order->w] = w;
     }
-    post_brightness_buffer[rgbw_order->r] = r * self->brightness;
-    post_brightness_buffer[rgbw_order->g] = g * self->brightness;
-    post_brightness_buffer[rgbw_order->b] = b * self->brightness;
+    if (self->bytes_per_pixel == 2) {
+        r *= self->brightness;
+        g *= self->brightness;
+        b *= self->brightness;
+        uint16_t rgb565 = ((r << 8) & 0xf800) | ((g <<3) & 0x0fc0) | (b >> 3);
+        post_brightness_buffer[0] = rgb565 & 0xff;
+        post_brightness_buffer[1] = rgb565 >> 8;
+    } else {
+        post_brightness_buffer[rgbw_order->r] = r * self->brightness;
+        post_brightness_buffer[rgbw_order->g] = g * self->brightness;
+        post_brightness_buffer[rgbw_order->b] = b * self->brightness;
+    }
 }
 
 void _pixelbuf_set_pixel(pixelbuf_pixelbuf_obj_t* self, size_t index, mp_obj_t value) {
@@ -249,27 +263,41 @@ void common_hal__pixelbuf_pixelbuf_set_pixel(mp_obj_t self_in, size_t index, mp_
 
 mp_obj_t common_hal__pixelbuf_pixelbuf_get_pixel(mp_obj_t self_in, size_t index) {
     pixelbuf_pixelbuf_obj_t* self = native_pixelbuf(self_in);
-    mp_obj_t elems[self->byteorder.bpp];
+    size_t n_elems = self->byteorder.bpp == 2 ? 3 : self->byteorder.bpp;
+    mp_obj_t elems[n_elems];
     uint8_t* pixel_buffer = self->post_brightness_buffer;
     if (self->pre_brightness_buffer != NULL) {
         pixel_buffer = self->pre_brightness_buffer;
     }
     pixel_buffer += self->byteorder.bpp * index;
 
-    pixelbuf_rgbw_t *rgbw_order = &self->byteorder.byteorder;
-    elems[0] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->r]);
-    elems[1] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->g]);
-    elems[2] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->b]);
-    if (self->byteorder.bpp > 3) {
-        uint8_t w = pixel_buffer[rgbw_order->w];
-        if (self->byteorder.is_dotstar) {
-            elems[3] = mp_obj_new_float((w & 0b00011111) / 31.0);
-        } else {
-            elems[3] = MP_OBJ_NEW_SMALL_INT(w);
+    if (self->byteorder.bpp == 2) {
+        uint16_t rgb565 = pixel_buffer[0] + (pixel_buffer[1] << 8);
+        uint8_t r = rgb565 >> 11;
+        uint8_t g = (rgb565 >> 5) & 0x3f;
+        uint8_t b = rgb565 >> 5 & 0x1f;
+        r |= r >> 3;
+        g |= g >> 2;
+        b |= b >> 3;
+        elems[0] = MP_OBJ_NEW_SMALL_INT(r);
+        elems[1] = MP_OBJ_NEW_SMALL_INT(g);
+        elems[2] = MP_OBJ_NEW_SMALL_INT(b);
+    } else {
+        pixelbuf_rgbw_t *rgbw_order = &self->byteorder.byteorder;
+        elems[0] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->r]);
+        elems[1] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->g]);
+        elems[2] = MP_OBJ_NEW_SMALL_INT(pixel_buffer[rgbw_order->b]);
+        if (self->byteorder.bpp > 3) {
+            uint8_t w = pixel_buffer[rgbw_order->w];
+            if (self->byteorder.is_dotstar) {
+                elems[3] = mp_obj_new_float((w & 0b00011111) / 31.0);
+            } else {
+                elems[3] = MP_OBJ_NEW_SMALL_INT(w);
+            }
         }
     }
 
-    return mp_obj_new_tuple(self->byteorder.bpp, elems);
+    return mp_obj_new_tuple(n_elems, elems);
 }
 
 void common_hal__pixelbuf_pixelbuf_show(mp_obj_t self_in) {
