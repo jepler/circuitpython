@@ -98,6 +98,8 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
         mp_raise_ValueError(translate("No timer available"));
     }
 
+    self->width = args[ARG_bit_width].u_int;
+    self->bufsize = 2 * args[ARG_bit_width].u_int * self->rgb_count / 3 * (1 << self->addr_count);
     claim_pins(args[ARG_rgb_list].u_obj);
     claim_pins(args[ARG_addr_list].u_obj);
     common_hal_mcu_pin_claim(args[ARG_clock_pin].u_obj);
@@ -113,27 +115,13 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
 
     if (stat == PROTOMATTER_OK) {
         _PM_protoPtr = &self->core;
-
-        uint16_t *framebuffer = m_malloc(2*64*32, 0);
-        for(int i=0; i<64*32; i++) {
-            int r = (i % 2) ^ ((i / 64) % 2);
-            framebuffer[i] = r ? 0xf000 : 0x000f;
-        }
-        for(int i=0; i<64; i++) {
-            framebuffer[i] = i >> 1;
-            framebuffer[64+i] = i << 5;
-            framebuffer[128+i] = (i >> 1) << 11;
-            framebuffer[192+i] = (i >> 1) | (i << 5) | (i >> 1) << 11;
-        }
-
-common_hal_mcu_disable_interrupts();
+        uint16_t *framebuffer = m_malloc(self->bufsize, 0);
+        common_hal_mcu_disable_interrupts();
         stat = _PM_begin(&self->core);
         _PM_convert_565_byte(&self->core, framebuffer, 64);
-
-//        while(true) _PM_row_handler(&self->core);
         common_hal_protomatter_timer_enable(self->timer);
-common_hal_mcu_enable_interrupts();
         m_free(framebuffer);
+        common_hal_mcu_enable_interrupts();
     }
 
     if (stat != PROTOMATTER_OK) {
@@ -227,6 +215,7 @@ STATIC mp_obj_t protomatter_protomatter_set_paused(mp_obj_t self_in, mp_obj_t va
     } else if(!paused && self->paused) {
         _PM_resume(&self->core);
     }
+    self->paused = paused;
     
     return mp_const_none;
 }
@@ -253,14 +242,25 @@ const mp_obj_property_t protomatter_protomatter_frame_count_obj = {
               (mp_obj_t)&mp_const_none_obj},
 };
 
+STATIC mp_obj_t protomatter_protomatter_write(mp_obj_t self_in, mp_obj_t buf) {
+    protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
+    check_for_deinit(self);
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(buf, &bufinfo, MP_BUFFER_READ);
+
+    mp_get_index(mp_obj_get_type(buf), bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
+    _PM_convert_565_byte(&self->core, bufinfo.buf, self->width);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(protomatter_protomatter_write_obj, protomatter_protomatter_write);
+
 STATIC const mp_rom_map_elem_t protomatter_protomatter_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&protomatter_protomatter_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&protomatter_protomatter_paused_obj) },
     { MP_ROM_QSTR(MP_QSTR_frame_count), MP_ROM_PTR(&protomatter_protomatter_frame_count_obj) },
-// begin (method)
+    { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&protomatter_protomatter_write_obj) },
 // stop (method)
 // resume (method)
-// frameCount (property)
 };
 STATIC MP_DEFINE_CONST_DICT(protomatter_protomatter_locals_dict, protomatter_protomatter_locals_dict_table);
 

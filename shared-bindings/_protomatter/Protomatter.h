@@ -39,6 +39,7 @@ typedef struct {
     uint8_t *addr_pins;
     uint8_t clock_pin, latch_pin, oe_pin;
     uint8_t rgb_count, addr_count;
+    uint16_t bufsize, width;
     bool core_is_initialized;
     bool paused;
 } protomatter_protomatter_obj_t;
