@@ -74,6 +74,12 @@ void displayio_display_core_construct(displayio_display_core_t* self,
         self->begin_transaction = common_hal_displayio_i2cdisplay_begin_transaction;
         self->send = common_hal_displayio_i2cdisplay_send;
         self->end_transaction = common_hal_displayio_i2cdisplay_end_transaction;
+    } else if (MP_OBJ_IS_TYPE(bus, &displayio_framebufferdisplay_type)) {
+        self->bus_reset = common_hal_displayio_framebufferdisplay_reset;
+        self->bus_free = common_hal_displayio_framebufferdisplay_bus_free;
+        self->begin_transaction = common_hal_displayio_framebufferdisplay_begin_transaction;
+        self->send = common_hal_displayio_framebufferdisplay_send;
+        self->end_transaction = common_hal_displayio_framebufferdisplay_end_transaction;
     } else {
         mp_raise_ValueError(translate("Unsupported display bus type"));
     }

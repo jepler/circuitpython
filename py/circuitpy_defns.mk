@@ -348,6 +348,7 @@ SRC_SHARED_MODULE_ALL = \
 	displayio/FourWire.c \
 	displayio/Group.c \
 	displayio/I2CDisplay.c \
+	displayio/FramebufferDisplay.c \
 	displayio/OnDiskBitmap.c \
 	displayio/Palette.c \
 	displayio/Shape.c \
