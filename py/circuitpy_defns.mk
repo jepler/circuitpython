@@ -413,7 +413,7 @@ ifeq ($(CIRCUITPY_PROTOMATTER),1)
 SRC_MOD += $(addprefix lib/protomatter/, \
 	core.c \
 )
-$(BUILD)/lib/protomatter/core.o: CFLAGS += -include "py/misc.h" -DCIRCUITPY -D'_PM_ALLOCATOR(x)=m_malloc(x,0)' -D'_PM_FREE(x)=m_free(x)' -Wno-missing-braces
+$(BUILD)/lib/protomatter/core.o: CFLAGS += -include "shared-module/_protomatter/allocator.h" -DCIRCUITPY -Wno-missing-braces
 endif
 
 # All possible sources are listed here, and are filtered by SRC_PATTERNS.
