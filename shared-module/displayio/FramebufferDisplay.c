@@ -42,7 +42,7 @@
 #include "tick.h"
 
 void common_hal_displayio_framebufferdisplay_construct(displayio_framebufferdisplay_obj_t* self,
-        mp_obj_t framebuffer, mp_obj_t callback, uint16_t width, uint16_t height, int16_t colstart, int16_t rowstart,
+        mp_obj_t framebuffer, uint16_t width, uint16_t height, int16_t colstart, int16_t rowstart,
         uint16_t rotation, uint16_t color_depth, bool grayscale, bool pixels_in_byte_share_row,
         uint8_t bytes_per_cell, bool reverse_pixels_in_byte, bool reverse_bytes_in_word,
         const mcu_pin_obj_t* backlight_pin, mp_float_t brightness, bool auto_brightness,
@@ -50,8 +50,8 @@ void common_hal_displayio_framebufferdisplay_construct(displayio_framebufferdisp
     // Turn off auto-refresh as we init.
     self->auto_refresh = false;
     self->framebuffer = framebuffer;
-    self->callback = callback;
-    mp_get_buffer_raise(framebuffer, &self->bufinfo, MP_BUFFER_RW);
+    self->proto = mp_proto_get_or_throw(framebuffer, MP_QSTR_protocol_framebuffer);
+    self->proto->get_buffer(framebuffer, &self->bufinfo);
 
     uint16_t ram_width = 0x100;
     uint16_t ram_height = 0x100;
@@ -119,7 +119,9 @@ mp_float_t common_hal_displayio_framebufferdisplay_get_brightness(displayio_fram
 bool common_hal_displayio_framebufferdisplay_set_brightness(displayio_framebufferdisplay_obj_t* self, mp_float_t brightness) {
     self->updating_backlight = true;
     bool ok = false;
-    if (self->backlight_pwm.base.type == &pulseio_pwmout_type) {
+    if (self->proto->set_brightness) {
+        self->proto->set_brightness(self->framebuffer, brightness);
+    } else if (self->backlight_pwm.base.type == &pulseio_pwmout_type) {
         common_hal_pulseio_pwmout_set_duty_cycle(&self->backlight_pwm, (uint16_t) (0xffff * brightness));
         ok = true;
     } else if (self->backlight_inout.base.type == &digitalio_digitalinout_type) {
@@ -232,8 +234,7 @@ STATIC void _refresh_display(displayio_framebufferdisplay_obj_t* self) {
         current_area = current_area->next;
     }
     displayio_display_core_finish_refresh(&self->core);
-
-    mp_call_function_1(self->callback, self->framebuffer);
+    self->proto->swapbuffers(self->framebuffer);
 }
 
 void common_hal_displayio_framebufferdisplay_set_rotation(displayio_framebufferdisplay_obj_t* self, int rotation){

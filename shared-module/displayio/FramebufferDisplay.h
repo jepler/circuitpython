@@ -46,7 +46,6 @@ typedef struct {
     uint64_t last_backlight_refresh;
     uint64_t last_refresh_call;
     mp_float_t current_brightness;
-    uint16_t brightness_command;
     uint16_t native_frames_per_second;
     uint16_t native_ms_per_frame;
     bool auto_refresh;
@@ -62,5 +61,16 @@ void reset_framebufferdisplay(displayio_framebufferdisplay_obj_t* self);
 void displayio_framebufferdisplay_collect_ptrs(displayio_framebufferdisplay_obj_t* self);
 
 mp_obj_t common_hal_displayio_framebufferdisplay_get_framebuffer(displayio_framebufferdisplay_obj_t* self);
+
+void (*framebuffer_get_bufinfo_fun)(mp_obj_t, mp_buffer_info_t *bufinfo);
+void (*framebuffer_swapbuffers_fun)(mp_obj_t);
+void (*framebuffer_set_brightness_fun)(mp_obj_t, mp_float_t);
+
+typedef struct _framebuffer_p_t {
+    MP_PROTOCOL_HEAD // MP_QSTR_protocol_framebuffer
+    framebuffer_get_bufinfo_fun get_bufinfo;
+    framebuffer_swapbuffers_fun swapbuffers;
+    framebuffer_set_brightness_fun set_brightness;
+};
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_FRAMEBUFFERDISPLAY_H

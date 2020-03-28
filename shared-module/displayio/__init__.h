@@ -40,7 +40,7 @@ typedef struct {
         displayio_fourwire_obj_t fourwire_bus;
         displayio_i2cdisplay_obj_t i2cdisplay_bus;
         displayio_parallelbus_obj_t parallel_bus;
-        mp_obj_t framebuffer;
+        protomatter_protomatter_obj_t protomatter;
     };
     union {
         displayio_display_obj_t display;
@@ -58,4 +58,6 @@ void reset_displays(void);
 void displayio_gc_collect(void);
 
 primary_display_t *allocate_display(void);
+primary_display_t *allocate_display_or_raise(void);
+
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO___INIT___H

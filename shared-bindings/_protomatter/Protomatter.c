@@ -70,12 +70,14 @@ STATIC void claim_pins(mp_obj_t seq) {
 
 //| :class:`~_protomatter.Protomatter` displays an in-memory framebuffer to an LED matrix.
 //|
-//| .. class:: Protomatter(width, bit_depth, rgb_pins, addr_pins, clock_pin, latch_pin, oe_pin, doublebuffer=False)
+//| .. class:: Protomatter(width, bit_depth, rgb_pins, addr_pins, clock_pin, latch_pin, oe_pin, *, doublebuffer=True, framebuffer=None)
 //|
 //|   Create a Protomatter object with the given attributes.  The height of
 //|   the display is determined by the number of rgb and address pins:
 //|   len(rgb_pins)/3 * 2 ** len(address_pins).  With 6 RGB pins and 4
 //|   address lines, the display will be 32 pixels tall.
+//|
+//|   Up to 30 RGB pins and 8 address pins are supported.
 //|
 //|   The RGB pins must be within a single "port" and performance and memory
 //|   usage are best when they are all within "close by" bits of the port.
@@ -89,12 +91,9 @@ STATIC void claim_pins(mp_obj_t seq) {
 //|   When specified as True, double buffering can reduce some flickering of
 //|   the matrix; however, this increases memory usage.
 //|
-//|   The matrix is initialized to all black when created.  To show content,
-//|   pass an appropriately sized buffer filled with "RGB565" format
-//|   data to the ``write()`` method.
-//|
-//|   To use a Protomatter RGB matrix together with displayio, use the
-//|   Adafruit_Circuitpython_Protomatter library.
+//|   The framebuffer is in "RGB565" format.  If a framebuffer is not
+//|   passed in, one is allocated and initialized to all black.  To update
+//|   the content, modify the framebuffer and call swapbuffers.
 //|
 
 STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
@@ -302,15 +301,13 @@ const mp_obj_property_t protomatter_protomatter_frame_count_obj = {
 //|     blue.  The object can be any buffer, but `array.array` and `ulab.array`
 //|     objects are most often useful.
 //|
-STATIC mp_obj_t protomatter_protomatter_write(mp_obj_t self_in, mp_obj_t buf) {
+STATIC mp_obj_t protomatter_protomatter_swapbuffers(mp_obj_t self_in) {
     protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
     check_for_deinit(self);
-    mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(buf, &bufinfo, MP_BUFFER_READ);
 
     // verify that the matrix is big enough
-    mp_get_index(mp_obj_get_type(buf), bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
-    _PM_convert_565(&self->core, bufinfo.buf, self->width);
+    mp_get_index(mp_obj_get_type(buf), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
+    _PM_convert_565(&self->core, self->bufinfo.buf, self->width);
     _PM_swapbuffer_maybe(&self->core);
     return mp_const_none;
 }
@@ -318,13 +315,34 @@ MP_DEFINE_CONST_FUN_OBJ_2(protomatter_protomatter_write_obj, protomatter_protoma
 
 STATIC const mp_rom_map_elem_t protomatter_protomatter_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&protomatter_protomatter_deinit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&protomatter_protomatter_paused_obj) },
     { MP_ROM_QSTR(MP_QSTR_frame_count), MP_ROM_PTR(&protomatter_protomatter_frame_count_obj) },
-    { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&protomatter_protomatter_write_obj) },
-// stop (method)
-// resume (method)
+    { MP_ROM_QSTR(MP_QSTR_framebuffer), MP_ROM_PTR(&protomatter_protomatter_framebuffer_obj) },
+    { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&protomatter_protomatter_paused_obj) },
+    { MP_ROM_QSTR(MP_QSTR_swapbuffers), MP_ROM_PTR(&protomatter_protomatter_swapbuffers_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(protomatter_protomatter_locals_dict, protomatter_protomatter_locals_dict_table);
+
+STATIC void get_bufinfo(mp_obj_t self_in, mp_buffer_info_t *bufinfo) {
+    protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
+    check_for_deinit(self);
+    
+    *bufinfo = self->bufinfo;
+}
+
+STATIC void protomatter_protomatter_swapbuffers_void(mp_obj_t self_in) {
+    protomatter_protomatter_swapbuffers(self_in);
+}
+
+STATIC void protomatter_protomatter_set_brightness(mp_obj_t self_in, mp_float_t value) {
+    protomatter_protomatter_set_paused(self_in, mp_obj_new_bool(value <= 0));
+}
+
+STATIC const _framebuffer_p_t protomatter_protomatter_proto = {
+    MP_PROTO_IMPLEMENT(MP_QSTR_protocol_framebuffer)
+    .get_bufinfo = protomatter_protomatter_get_bufinfo,
+    .set_brightness = protomatter_protomatter_set_brightness,
+    .swapbuffers = protomatter_protomatter_swapbuffers,
+};
 
 const mp_obj_type_t protomatter_Protomatter_type = {
     { &mp_type_type },
