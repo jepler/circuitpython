@@ -57,4 +57,5 @@ void displayio_background(void);
 void reset_displays(void);
 void displayio_gc_collect(void);
 
+primary_display_t *allocate_display(void);
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO___INIT___H
