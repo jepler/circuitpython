@@ -48,15 +48,12 @@
 //| objects in CircuitPython, Display objects live until `displayio.release_displays()`
 //| is called. This is done so that CircuitPython can use the display itself.
 //|
-//| Most people should not use this class directly. Use a specific display driver instead that will
-//| manage the framebuffer and provide a callback
-//|
 //| .. class:: FramebufferDisplay(framebuffer, *, width, height, colstart=0, rowstart=0, rotation=0, color_depth=16, grayscale=False, pixels_in_byte_share_row=True, bytes_per_cell=1, reverse_pixels_in_byte=False, backlight_pin=None, brightness=1.0, auto_brightness=False, auto_refresh=True, native_frames_per_second=60)
 //|
 //|   Create a Display object with the given framebuffer (a buffer, array, ulab.array, etc)
 //|
-//|   :param framebuffer: The bus that the display is connected to
-//|   :type framebuffer: buffer, array.array, ulab.array, or machine-specific object
+//|   :param framebuffer: The framebuffer that the display is connected to
+//|   :type framebuffer: any core object implementing the framebuffer protocol
 //|   :param callback: Function or bound method to call when the framebuffer has been updated.  The callback receives one argument, the framebuffer object.
 //|   :param int width: Width in pixels
 //|   :param int height: Height in pixels
@@ -78,10 +75,9 @@
 //|   :param int native_frames_per_second: Number of display refreshes per second
 //|
 STATIC mp_obj_t displayio_framebufferdisplay_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_framebuffer, ARG_callback, ARG_width, ARG_height, ARG_colstart, ARG_rowstart, ARG_rotation, ARG_color_depth, ARG_grayscale, ARG_pixels_in_byte_share_row, ARG_bytes_per_cell, ARG_reverse_pixels_in_byte, ARG_reverse_bytes_in_word, ARG_backlight_pin, ARG_brightness, ARG_auto_brightness, ARG_data_as_commands, ARG_auto_refresh, ARG_native_frames_per_second };
+    enum { ARG_framebuffer, ARG_width, ARG_height, ARG_colstart, ARG_rowstart, ARG_rotation, ARG_color_depth, ARG_grayscale, ARG_pixels_in_byte_share_row, ARG_bytes_per_cell, ARG_reverse_pixels_in_byte, ARG_reverse_bytes_in_word, ARG_backlight_pin, ARG_brightness, ARG_auto_brightness, ARG_data_as_commands, ARG_auto_refresh, ARG_native_frames_per_second };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_framebuffer, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_callback, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_width, MP_ARG_INT | MP_ARG_KW_ONLY | MP_ARG_REQUIRED, },
         { MP_QSTR_height, MP_ARG_INT | MP_ARG_KW_ONLY | MP_ARG_REQUIRED, },
         { MP_QSTR_colstart, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0} },
@@ -104,9 +100,6 @@ STATIC mp_obj_t displayio_framebufferdisplay_make_new(const mp_obj_type_t *type,
 
     mp_obj_t framebuffer = args[ARG_framebuffer].u_obj;
 
-    mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(args[ARG_framebuffer].u_obj, &bufinfo, MP_BUFFER_READ);
-
     const mcu_pin_obj_t* backlight_pin = validate_obj_is_free_pin_or_none(args[ARG_backlight_pin].u_obj);
 
     mp_float_t brightness = mp_obj_get_float(args[ARG_brightness].u_obj);
@@ -117,12 +110,11 @@ STATIC mp_obj_t displayio_framebufferdisplay_make_new(const mp_obj_type_t *type,
     }
 
     primary_display_t *disp = allocate_display_or_raise();
-    displayio_display_obj_t *self = &disp->display;
+    displayio_framebufferdisplay_obj_t *self = &disp->framebuffer_display;
     self->base.type = &displayio_framebufferdisplay_type;
     common_hal_displayio_framebufferdisplay_construct(
         self,
         framebuffer,
-        args[ARG_callback].u_obj,
         args[ARG_width].u_int, args[ARG_height].u_int,
         args[ARG_colstart].u_int, args[ARG_rowstart].u_int, rotation,
         args[ARG_color_depth].u_int, args[ARG_grayscale].u_bool,

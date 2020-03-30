@@ -96,6 +96,9 @@ STATIC void claim_pins(mp_obj_t seq) {
 //|   passed in, one is allocated and initialized to all black.  To update
 //|   the content, modify the framebuffer and call swapbuffers.
 //|
+//|   If doublebuffer is False, some memory is saved, but the display may
+//|   flicker during updates.
+//|
 
 STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_bit_width, ARG_bit_depth, ARG_rgb_list, ARG_addr_list,
@@ -108,7 +111,7 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
         { MP_QSTR_clock_pin, MP_ARG_OBJ | MP_ARG_REQUIRED },
         { MP_QSTR_latch_pin, MP_ARG_OBJ | MP_ARG_REQUIRED },
         { MP_QSTR_oe_pin, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_doublebuffer, MP_ARG_BOOL, { .u_bool = false } },
+        { MP_QSTR_doublebuffer, MP_ARG_BOOL, { .u_bool = true } },
         { MP_QSTR_framebuffer, MP_ARG_OBJ, { .u_obj = mp_const_none } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -161,8 +164,8 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
         common_hal_protomatter_timer_enable(self->timer);
         stat = _PM_begin(&self->core);
         _PM_convert_565(&self->core, self->bufinfo.buf, self->width);
-        _PM_swapbuffer_maybe(&self->core);
         common_hal_mcu_enable_interrupts();
+        _PM_swapbuffer_maybe(&self->core);
     }
 
     if (stat != PROTOMATTER_OK) {

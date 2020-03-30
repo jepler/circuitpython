@@ -313,7 +313,7 @@ void displayio_area_transform_within(bool mirror_x, bool mirror_y, bool transpos
     }
 }
 
-primary_display_t *allocate_display() {
+primary_display_t *allocate_display(void) {
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t display_type = displays[i].display.base.type;
         if (display_type == NULL || display_type == &mp_type_NoneType) {
@@ -321,12 +321,12 @@ primary_display_t *allocate_display() {
         }
     }
     return NULL;
-
-primary_display_t *allocate_display_or_raise() {
-    primary_display_t *result = allocate_display();
-    if (!result) {
-        mp_raise_RuntimeError(translate("Too many displays"));
-    }
 }
 
+primary_display_t *allocate_display_or_raise(void) {
+    primary_display_t *result = allocate_display();
+    if (result) {
+        return result;
+    }
+    mp_raise_RuntimeError(translate("Too many displays"));
 }

@@ -27,6 +27,9 @@
 #ifndef MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_FRAMEBUFFERDISPLAY_H
 #define MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_FRAMEBUFFERDISPLAY_H
 
+#include "py/obj.h"
+#include "py/proto.h"
+
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/displayio/Group.h"
 #include "shared-bindings/pulseio/PWMOut.h"
@@ -41,7 +44,8 @@ typedef struct {
         digitalio_digitalinout_obj_t backlight_inout;
         pulseio_pwmout_obj_t backlight_pwm;
     };
-    mp_obj_t framebuffer, callback;
+    mp_obj_t framebuffer;
+    const struct _framebuffer_p_t *framebuffer_protocol;
     mp_buffer_info_t bufinfo;
     uint64_t last_backlight_refresh;
     uint64_t last_refresh_call;
@@ -62,15 +66,15 @@ void displayio_framebufferdisplay_collect_ptrs(displayio_framebufferdisplay_obj_
 
 mp_obj_t common_hal_displayio_framebufferdisplay_get_framebuffer(displayio_framebufferdisplay_obj_t* self);
 
-void (*framebuffer_get_bufinfo_fun)(mp_obj_t, mp_buffer_info_t *bufinfo);
-void (*framebuffer_swapbuffers_fun)(mp_obj_t);
-void (*framebuffer_set_brightness_fun)(mp_obj_t, mp_float_t);
+typedef void (*framebuffer_get_bufinfo_fun)(mp_obj_t, mp_buffer_info_t *bufinfo);
+typedef void (*framebuffer_swapbuffers_fun)(mp_obj_t);
+typedef void (*framebuffer_set_brightness_fun)(mp_obj_t, mp_float_t);
 
 typedef struct _framebuffer_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_framebuffer
     framebuffer_get_bufinfo_fun get_bufinfo;
     framebuffer_swapbuffers_fun swapbuffers;
     framebuffer_set_brightness_fun set_brightness;
-};
+} framebuffer_p_t;
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_FRAMEBUFFERDISPLAY_H

@@ -33,6 +33,8 @@
 extern const mp_obj_type_t protomatter_Protomatter_type;
 typedef struct {
     mp_obj_base_t base;
+    mp_obj_t framebuffer;
+    mp_buffer_info_t bufinfo;
     Protomatter_core core;
     void *timer;
     uint8_t *rgb_pins;

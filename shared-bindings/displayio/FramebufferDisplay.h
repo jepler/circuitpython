@@ -39,7 +39,7 @@ extern const mp_obj_type_t displayio_framebufferdisplay_type;
 #define NO_BRIGHTNESS_COMMAND 0x100
 
 void common_hal_displayio_framebufferdisplay_construct(displayio_framebufferdisplay_obj_t* self,
-        mp_obj_t framebuffer, mp_obj_t callback, uint16_t width, uint16_t height,
+        mp_obj_t framebuffer, uint16_t width, uint16_t height,
         int16_t colstart, int16_t rowstart,
         uint16_t rotation, uint16_t color_depth, bool grayscale, bool pixels_in_byte_share_row,
         uint8_t bytes_per_cell, bool reverse_pixels_in_byte, bool reverse_bytes_in_word,

@@ -50,8 +50,7 @@ void common_hal_displayio_framebufferdisplay_construct(displayio_framebufferdisp
     // Turn off auto-refresh as we init.
     self->auto_refresh = false;
     self->framebuffer = framebuffer;
-    self->proto = mp_proto_get_or_throw(framebuffer, MP_QSTR_protocol_framebuffer);
-    self->proto->get_buffer(framebuffer, &self->bufinfo);
+    self->framebuffer_protocol = mp_proto_get_or_throw(MP_QSTR_protocol_framebuffer, framebuffer);
 
     uint16_t ram_width = 0x100;
     uint16_t ram_height = 0x100;
@@ -80,7 +79,7 @@ void common_hal_displayio_framebufferdisplay_construct(displayio_framebufferdisp
             common_hal_pulseio_pwmout_never_reset(&self->backlight_pwm);
         }
     }
-    if (!self->auto_brightness && self->backlight_inout.base.type != &mp_type_NoneType) {
+    if (!self->auto_brightness && (self->framebuffer_protocol->set_brightness != NULL || self->backlight_inout.base.type != &mp_type_NoneType)) {
         common_hal_displayio_framebufferdisplay_set_brightness(self, brightness);
     } else {
         self->current_brightness = -1.0;
@@ -119,8 +118,9 @@ mp_float_t common_hal_displayio_framebufferdisplay_get_brightness(displayio_fram
 bool common_hal_displayio_framebufferdisplay_set_brightness(displayio_framebufferdisplay_obj_t* self, mp_float_t brightness) {
     self->updating_backlight = true;
     bool ok = false;
-    if (self->proto->set_brightness) {
-        self->proto->set_brightness(self->framebuffer, brightness);
+    if (self->framebuffer_protocol->set_brightness) {
+        self->framebuffer_protocol->set_brightness(self->framebuffer, brightness);
+        ok = true;
     } else if (self->backlight_pwm.base.type == &pulseio_pwmout_type) {
         common_hal_pulseio_pwmout_set_duty_cycle(&self->backlight_pwm, (uint16_t) (0xffff * brightness));
         ok = true;
@@ -228,13 +228,14 @@ STATIC bool _refresh_area(displayio_framebufferdisplay_obj_t* self, const displa
 
 STATIC void _refresh_display(displayio_framebufferdisplay_obj_t* self) {
     displayio_display_core_start_refresh(&self->core);
+    self->framebuffer_protocol->get_bufinfo(self->framebuffer, &self->bufinfo);
     const displayio_area_t* current_area = _get_refresh_areas(self);
     while (current_area != NULL) {
         _refresh_area(self, current_area);
         current_area = current_area->next;
     }
     displayio_display_core_finish_refresh(&self->core);
-    self->proto->swapbuffers(self->framebuffer);
+    self->framebuffer_protocol->swapbuffers(self->framebuffer);
 }
 
 void common_hal_displayio_framebufferdisplay_set_rotation(displayio_framebufferdisplay_obj_t* self, int rotation){
@@ -333,6 +334,5 @@ void reset_framebufferdisplay(displayio_framebufferdisplay_obj_t* self) {
 
 void displayio_framebufferdisplay_collect_ptrs(displayio_framebufferdisplay_obj_t* self) {
     gc_collect_ptr(self->framebuffer);
-    gc_collect_ptr(self->callback);
     displayio_display_core_collect_ptrs(&self->core);
 }
