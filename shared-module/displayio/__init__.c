@@ -143,6 +143,10 @@ void reset_displays(void) {
                     }
                 }
             }
+        } else if (displays[i].protomatter.base.type == &protomatter_Protomatter_type) {
+            protomatter_protomatter_obj_t * pm = &displays[i].protomatter;
+            (void) pm;
+            // TODO: what action needs to be taken here?
         } else {
             // Not an active display bus.
             continue;
@@ -163,6 +167,10 @@ void reset_displays(void) {
 
 void displayio_gc_collect(void) {
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
+        if (displays[i].protomatter.base.type == &protomatter_Protomatter_type) {
+            protomatter_protomatter_collect_ptrs(&displays[i].protomatter);
+        }
+
         if (displays[i].display.base.type == NULL) {
             continue;
         }

@@ -34,6 +34,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/util.h"
+#include "shared-module/displayio/__init__.h"
 #include "shared-module/displayio/FramebufferDisplay.h"
 
 //| .. currentmodule:: _protomatter
@@ -121,8 +122,7 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
     // Because interrupt handlers point directly at protomatter objects,
     // it is NOT okay to move them to the long-lived pool later.  Allocate
     // them there to begin with, since generally they'll be long-lived anyway.
-    protomatter_protomatter_obj_t *self =
-            m_new_ll_obj(protomatter_protomatter_obj_t);
+    protomatter_protomatter_obj_t *self = &allocate_display_bus_or_raise()->protomatter;
     self->base.type = &protomatter_Protomatter_type;
 
     uint8_t rgb_count, addr_count;

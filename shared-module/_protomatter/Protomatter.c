@@ -26,6 +26,7 @@
 
 #include <string.h>
 
+#include "py/gc.h"
 #include "py/obj.h"
 #include "py/objarray.h"
 #include "py/objproperty.h"
@@ -132,6 +133,10 @@ void common_hal_protomatter_protomatter_deinit(protomatter_protomatter_obj_t* se
         self->timer = 0;
     }
 
+    if (_PM_protoPtr == &self->core) {
+        _PM_protoPtr = NULL;
+    }
+
     free_pin_seq(self->rgb_pins, self->rgb_count);
     free_pin_seq(self->addr_pins, self->addr_count);
     free_pin(&self->clock_pin);
@@ -141,4 +146,14 @@ void common_hal_protomatter_protomatter_deinit(protomatter_protomatter_obj_t* se
     if (self->core.rgbPins) {
         _PM_free(&self->core);
     }
+
+    self->base.type = NULL;
 }
+
+void protomatter_protomatter_collect_ptrs(protomatter_protomatter_obj_t* self) {
+    gc_collect_ptr(self->framebuffer);
+    gc_collect_ptr(self->core.rgbPins);
+    gc_collect_ptr(self->core.addr);
+    gc_collect_ptr(self->core.screenData);
+}
+
