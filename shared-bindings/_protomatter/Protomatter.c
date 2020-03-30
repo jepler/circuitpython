@@ -32,6 +32,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/util.h"
+#include "shared-module/displayio/FramebufferDisplay.h"
 
 //| .. currentmodule:: _protomatter
 //|
@@ -98,7 +99,7 @@ STATIC void claim_pins(mp_obj_t seq) {
 
 STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_bit_width, ARG_bit_depth, ARG_rgb_list, ARG_addr_list,
-        ARG_clock_pin, ARG_latch_pin, ARG_oe_pin, ARG_doublebuffer };
+        ARG_clock_pin, ARG_latch_pin, ARG_oe_pin, ARG_doublebuffer, ARG_framebuffer };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_width, MP_ARG_INT | MP_ARG_REQUIRED },
         { MP_QSTR_bit_depth, MP_ARG_INT | MP_ARG_REQUIRED },
@@ -108,6 +109,7 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
         { MP_QSTR_latch_pin, MP_ARG_OBJ | MP_ARG_REQUIRED },
         { MP_QSTR_oe_pin, MP_ARG_OBJ | MP_ARG_REQUIRED },
         { MP_QSTR_doublebuffer, MP_ARG_BOOL, { .u_bool = false } },
+        { MP_QSTR_framebuffer, MP_ARG_OBJ, { .u_obj = mp_const_none } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -138,6 +140,14 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
     common_hal_mcu_pin_claim(args[ARG_oe_pin].u_obj);
     common_hal_mcu_pin_claim(args[ARG_latch_pin].u_obj);
 
+    self->framebuffer = args[ARG_framebuffer].u_obj;
+    if (self->framebuffer == mp_const_none) {
+        self->framebuffer = mp_obj_new_bytearray_of_zeros(self->bufsize);
+    }
+    mp_get_buffer_raise(self->framebuffer, &self->bufinfo, MP_BUFFER_READ);
+    // verify that the matrix is big enough
+    mp_get_index(mp_obj_get_type(self->framebuffer), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
+
     ProtomatterStatus stat = _PM_init(&self->core,
         args[ARG_bit_width].u_int, args[ARG_bit_depth].u_int,
         self->rgb_count/6, self->rgb_pins,
@@ -147,13 +157,11 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
 
     if (stat == PROTOMATTER_OK) {
         _PM_protoPtr = &self->core;
-        uint16_t *framebuffer = m_malloc(self->bufsize, 0);
         common_hal_mcu_disable_interrupts();
         common_hal_protomatter_timer_enable(self->timer);
         stat = _PM_begin(&self->core);
-        _PM_convert_565(&self->core, framebuffer, 64);
+        _PM_convert_565(&self->core, self->bufinfo.buf, self->width);
         _PM_swapbuffer_maybe(&self->core);
-        m_free(framebuffer);
         common_hal_mcu_enable_interrupts();
     }
 
@@ -233,7 +241,7 @@ STATIC mp_obj_t protomatter_protomatter_deinit(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_deinit_obj, protomatter_protomatter_deinit);
 
 static void check_for_deinit(protomatter_protomatter_obj_t *self) {
-    if(!self->core.rgbPins) {
+    if (!self->core.rgbPins) {
         raise_deinited_error();
     }
 }
@@ -255,7 +263,7 @@ STATIC mp_obj_t protomatter_protomatter_set_paused(mp_obj_t self_in, mp_obj_t va
     bool paused = mp_obj_is_true(value_in);
     if (paused && !self->paused) {
         _PM_stop(&self->core);
-    } else if(!paused && self->paused) {
+    } else if (!paused && self->paused) {
         _PM_resume(&self->core);
     }
     self->paused = paused;
@@ -271,22 +279,21 @@ const mp_obj_property_t protomatter_protomatter_paused_obj = {
               (mp_obj_t)&mp_const_none_obj},
 };
 
-//|   .. attribute:: frame_count
+//|   .. attribute:: framebuffer
 //|
-//|     Returns the number of times the matrix was refreshed since the
-//|     last time the attribute was referenced.  This can be used to
-//|     estimate the native refresh rate of the panel.
+//|     Retrieve the framebuffer object.  Modify this object and then
+//|     call swapbuffers to update the display.
 //|
-STATIC mp_obj_t protomatter_protomatter_get_frame_count(mp_obj_t self_in) {
+STATIC mp_obj_t protomatter_protomatter_get_framebuffer(mp_obj_t self_in) {
     protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
     check_for_deinit(self);
-    return MP_OBJ_NEW_SMALL_INT(_PM_getFrameCount(&self->core));
+    return self->framebuffer;
 }
-MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_get_frame_count_obj, protomatter_protomatter_get_frame_count);
+MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_get_framebuffer_obj, protomatter_protomatter_get_framebuffer);
 
-const mp_obj_property_t protomatter_protomatter_frame_count_obj = {
+const mp_obj_property_t protomatter_protomatter_framebuffer_obj = {
     .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&protomatter_protomatter_get_frame_count_obj,
+    .proxy = {(mp_obj_t)&protomatter_protomatter_get_framebuffer_obj,
               (mp_obj_t)&mp_const_none_obj,
               (mp_obj_t)&mp_const_none_obj},
 };
@@ -305,24 +312,21 @@ STATIC mp_obj_t protomatter_protomatter_swapbuffers(mp_obj_t self_in) {
     protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
     check_for_deinit(self);
 
-    // verify that the matrix is big enough
-    mp_get_index(mp_obj_get_type(buf), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
     _PM_convert_565(&self->core, self->bufinfo.buf, self->width);
     _PM_swapbuffer_maybe(&self->core);
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(protomatter_protomatter_write_obj, protomatter_protomatter_write);
+MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_swapbuffers_obj, protomatter_protomatter_swapbuffers);
 
 STATIC const mp_rom_map_elem_t protomatter_protomatter_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&protomatter_protomatter_deinit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_frame_count), MP_ROM_PTR(&protomatter_protomatter_frame_count_obj) },
     { MP_ROM_QSTR(MP_QSTR_framebuffer), MP_ROM_PTR(&protomatter_protomatter_framebuffer_obj) },
     { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&protomatter_protomatter_paused_obj) },
     { MP_ROM_QSTR(MP_QSTR_swapbuffers), MP_ROM_PTR(&protomatter_protomatter_swapbuffers_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(protomatter_protomatter_locals_dict, protomatter_protomatter_locals_dict_table);
 
-STATIC void get_bufinfo(mp_obj_t self_in, mp_buffer_info_t *bufinfo) {
+STATIC void protomatter_protomatter_get_bufinfo(mp_obj_t self_in, mp_buffer_info_t *bufinfo) {
     protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
     check_for_deinit(self);
     
@@ -337,16 +341,17 @@ STATIC void protomatter_protomatter_set_brightness(mp_obj_t self_in, mp_float_t 
     protomatter_protomatter_set_paused(self_in, mp_obj_new_bool(value <= 0));
 }
 
-STATIC const _framebuffer_p_t protomatter_protomatter_proto = {
+STATIC const framebuffer_p_t protomatter_protomatter_proto = {
     MP_PROTO_IMPLEMENT(MP_QSTR_protocol_framebuffer)
     .get_bufinfo = protomatter_protomatter_get_bufinfo,
     .set_brightness = protomatter_protomatter_set_brightness,
-    .swapbuffers = protomatter_protomatter_swapbuffers,
+    .swapbuffers = protomatter_protomatter_swapbuffers_void,
 };
 
 const mp_obj_type_t protomatter_Protomatter_type = {
     { &mp_type_type },
     .name = MP_QSTR_Protomatter,
     .make_new = protomatter_protomatter_make_new,
+    .protocol = &protomatter_protomatter_proto,
     .locals_dict = (mp_obj_dict_t*)&protomatter_protomatter_locals_dict,
 };
