@@ -27,6 +27,8 @@
 #include "py/obj.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
+#include "py/objarray.h"
+
 #include "common-hal/_protomatter/Protomatter.h"
 #include "shared-bindings/_protomatter/Protomatter.h"
 #include "shared-bindings/microcontroller/Pin.h"
@@ -41,8 +43,6 @@
 //|
 
 extern Protomatter_core *_PM_protoPtr;
-
-STATIC mp_obj_t protomatter_protomatter_deinit(mp_obj_t self_in);
 
 STATIC uint8_t validate_pin(mp_obj_t obj) {
     mcu_pin_obj_t *result = validate_obj_is_free_pin(obj);
@@ -97,9 +97,12 @@ STATIC void claim_pins(mp_obj_t seq) {
 //|   If doublebuffer is False, some memory is saved, but the display may
 //|   flicker during updates.
 //|
+//|   If a framebuffer is not passed in, one is allocated internally.  To
+//|   retrieve it, pass the protomatter object to memoryview().
+//|
 
 STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_bit_width, ARG_bit_depth, ARG_rgb_list, ARG_addr_list,
+    enum { ARG_width, ARG_bit_depth, ARG_rgb_list, ARG_addr_list,
         ARG_clock_pin, ARG_latch_pin, ARG_oe_pin, ARG_doublebuffer, ARG_framebuffer };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_width, MP_ARG_INT | MP_ARG_REQUIRED },
@@ -122,85 +125,39 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
             m_new_ll_obj(protomatter_protomatter_obj_t);
     self->base.type = &protomatter_Protomatter_type;
 
-    validate_pins(MP_QSTR_rgb_pins, self->rgb_pins, MP_ARRAY_SIZE(self->rgb_pins), args[ARG_rgb_list].u_obj, &self->rgb_count);
-    validate_pins(MP_QSTR_addr_pins, self->addr_pins, MP_ARRAY_SIZE(self->addr_pins), args[ARG_addr_list].u_obj, &self->addr_count);
-    self->clock_pin = validate_pin(args[ARG_clock_pin].u_obj);
-    self->oe_pin = validate_pin(args[ARG_oe_pin].u_obj);
-    self->latch_pin = validate_pin(args[ARG_latch_pin].u_obj);
+    uint8_t rgb_count, addr_count;
+    uint8_t rgb_pins[MP_ARRAY_SIZE(self->rgb_pins)];
+    uint8_t addr_pins[MP_ARRAY_SIZE(self->addr_pins)];
+    uint8_t clock_pin = validate_pin(args[ARG_clock_pin].u_obj);
+    uint8_t latch_pin = validate_pin(args[ARG_latch_pin].u_obj);
+    uint8_t oe_pin = validate_pin(args[ARG_oe_pin].u_obj);
 
-    self->timer = common_hal_protomatter_timer_allocate();
-    if (self->timer == NULL) {
-        mp_raise_ValueError(translate("No timer available"));
+    validate_pins(MP_QSTR_rgb_pins, rgb_pins, MP_ARRAY_SIZE(self->rgb_pins), args[ARG_rgb_list].u_obj, &rgb_count);
+    validate_pins(MP_QSTR_addr_pins, addr_pins, MP_ARRAY_SIZE(self->addr_pins), args[ARG_addr_list].u_obj, &addr_count);
+
+    mp_obj_t framebuffer = args[ARG_framebuffer].u_obj;
+    if (framebuffer == mp_const_none) {
+        int width = args[ARG_width].u_int;
+        int bufsize = 2 * width * rgb_count / 3 * (1 << addr_count);
+        framebuffer = mp_obj_new_bytearray_of_zeros(bufsize);
     }
 
-    self->width = args[ARG_bit_width].u_int;
-    self->bufsize = 2 * args[ARG_bit_width].u_int * self->rgb_count / 3 * (1 << self->addr_count);
+    common_hal_protomatter_protomatter_construct(self,
+        args[ARG_width].u_int,
+        args[ARG_bit_depth].u_int,
+        rgb_count, rgb_pins,
+        addr_count, addr_pins,
+        clock_pin, latch_pin, oe_pin,
+        args[ARG_doublebuffer].u_bool,
+        framebuffer, NULL);
+
     claim_pins(args[ARG_rgb_list].u_obj);
     claim_pins(args[ARG_addr_list].u_obj);
     common_hal_mcu_pin_claim(args[ARG_clock_pin].u_obj);
     common_hal_mcu_pin_claim(args[ARG_oe_pin].u_obj);
     common_hal_mcu_pin_claim(args[ARG_latch_pin].u_obj);
 
-    self->framebuffer = args[ARG_framebuffer].u_obj;
-    if (self->framebuffer == mp_const_none) {
-        self->framebuffer = mp_obj_new_bytearray_of_zeros(self->bufsize);
-    }
-    mp_get_buffer_raise(self->framebuffer, &self->bufinfo, MP_BUFFER_READ);
-    // verify that the matrix is big enough
-    mp_get_index(mp_obj_get_type(self->framebuffer), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
-
-    ProtomatterStatus stat = _PM_init(&self->core,
-        args[ARG_bit_width].u_int, args[ARG_bit_depth].u_int,
-        self->rgb_count/6, self->rgb_pins,
-        self->addr_count, self->addr_pins,
-        self->clock_pin, self->latch_pin, self->oe_pin,
-        args[ARG_doublebuffer].u_bool, self->timer);
-
-    if (stat == PROTOMATTER_OK) {
-        _PM_protoPtr = &self->core;
-        common_hal_mcu_disable_interrupts();
-        common_hal_protomatter_timer_enable(self->timer);
-        stat = _PM_begin(&self->core);
-        _PM_convert_565(&self->core, self->bufinfo.buf, self->width);
-        common_hal_mcu_enable_interrupts();
-        _PM_swapbuffer_maybe(&self->core);
-    }
-
-    if (stat != PROTOMATTER_OK) {
-        // XXX this deinit() actually makes crashy-crashy
-        // can trigger it by sending inappropriate pins
-        protomatter_protomatter_deinit(self);
-        switch (stat) {
-        case PROTOMATTER_ERR_PINS:
-            mp_raise_ValueError(translate("Invalid pin"));
-            break;
-        case PROTOMATTER_ERR_ARG:
-            mp_raise_ValueError(translate("Invalid argument"));
-            break;
-        case PROTOMATTER_ERR_MALLOC: /// should have already been signaled as NLR
-        default:
-            mp_raise_msg_varg(&mp_type_RuntimeError,
-                translate("Protomatter internal error #%d"), (int)stat);
-            break;
-        }
-    }
-
-    self->paused = 0;
-
     return MP_OBJ_FROM_PTR(self);
-}
-
-STATIC void free_pin(uint8_t *pin) {
-    if (*pin != COMMON_HAL_MCU_NO_PIN) {
-        common_hal_mcu_pin_reset_number(*pin);
-    }
-    *pin = COMMON_HAL_MCU_NO_PIN;
-}
-
-STATIC void free_pin_seq(uint8_t *seq, int count) {
-    for (int i=0; i<count; i++) {
-        free_pin(&seq[i]);
-    }
 }
 
 //|   .. method:: deinit
@@ -211,23 +168,10 @@ STATIC void free_pin_seq(uint8_t *seq, int count) {
 //|
 STATIC mp_obj_t protomatter_protomatter_deinit(mp_obj_t self_in) {
     protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
-    if (self->timer) {
-        common_hal_protomatter_timer_free(self->timer);
-        self->timer = 0;
-    }
-
-    free_pin_seq(self->rgb_pins, self->rgb_count);
-    free_pin_seq(self->addr_pins, self->addr_count);
-    free_pin(&self->clock_pin);
-    free_pin(&self->latch_pin);
-    free_pin(&self->oe_pin);
-
-    if (self->core.rgbPins) {
-        _PM_free(&self->core);
-    }
-
+    common_hal_protomatter_protomatter_deinit(self);
     return mp_const_none;
 }
+
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_deinit_obj, protomatter_protomatter_deinit);
 
 static void check_for_deinit(protomatter_protomatter_obj_t *self) {
@@ -269,25 +213,6 @@ const mp_obj_property_t protomatter_protomatter_paused_obj = {
               (mp_obj_t)&mp_const_none_obj},
 };
 
-//|   .. attribute:: framebuffer
-//|
-//|     Retrieve the framebuffer object.  Modify this object and then
-//|     call swapbuffers to update the display.
-//|
-STATIC mp_obj_t protomatter_protomatter_get_framebuffer(mp_obj_t self_in) {
-    protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
-    check_for_deinit(self);
-    return self->framebuffer;
-}
-MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_get_framebuffer_obj, protomatter_protomatter_get_framebuffer);
-
-const mp_obj_property_t protomatter_protomatter_framebuffer_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&protomatter_protomatter_get_framebuffer_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
-};
-
 //|   .. method:: write(buf)
 //|
 //|     Transmits the color data in the buffer to the pixels so that they are shown.
@@ -310,7 +235,6 @@ MP_DEFINE_CONST_FUN_OBJ_1(protomatter_protomatter_swapbuffers_obj, protomatter_p
 
 STATIC const mp_rom_map_elem_t protomatter_protomatter_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&protomatter_protomatter_deinit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_framebuffer), MP_ROM_PTR(&protomatter_protomatter_framebuffer_obj) },
     { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&protomatter_protomatter_paused_obj) },
     { MP_ROM_QSTR(MP_QSTR_swapbuffers), MP_ROM_PTR(&protomatter_protomatter_swapbuffers_obj) },
 };
@@ -338,9 +262,20 @@ STATIC const framebuffer_p_t protomatter_protomatter_proto = {
     .swapbuffers = protomatter_protomatter_swapbuffers_void,
 };
 
+STATIC mp_int_t protomatter_protomatter_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_uint_t flags) {
+    protomatter_protomatter_obj_t *self = (protomatter_protomatter_obj_t*)self_in;
+    // a readonly framebuffer would be unusual but not impossible
+    if((flags & MP_BUFFER_WRITE) && !(self->bufinfo.typecode & MP_OBJ_ARRAY_TYPECODE_FLAG_RW)) {
+        return 1;
+    }
+    *bufinfo = self->bufinfo;
+    return 0;
+}
+
 const mp_obj_type_t protomatter_Protomatter_type = {
     { &mp_type_type },
     .name = MP_QSTR_Protomatter,
+    .buffer_p = { .get_buffer = protomatter_protomatter_get_buffer, },
     .make_new = protomatter_protomatter_make_new,
     .protocol = &protomatter_protomatter_proto,
     .locals_dict = (mp_obj_dict_t*)&protomatter_protomatter_locals_dict,

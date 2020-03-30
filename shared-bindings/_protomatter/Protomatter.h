@@ -42,8 +42,13 @@ typedef struct {
     uint8_t addr_pins[10];
     uint8_t clock_pin, latch_pin, oe_pin;
     uint8_t rgb_count, addr_count;
+    uint8_t bit_depth;
     bool core_is_initialized;
     bool paused;
+    bool doublebuffer;
 } protomatter_protomatter_obj_t;
+
+void common_hal_protomatter_protomatter_construct(protomatter_protomatter_obj_t* self, int width, int bit_depth, uint8_t rgb_count, uint8_t* rgb_pins, uint8_t addr_count, uint8_t* addr_pins, uint8_t clock_pin, uint8_t latch_pin, uint8_t oe_pin, bool doublebuffer, mp_obj_t framebuffer, void* timer);
+void common_hal_protomatter_protomatter_deinit(protomatter_protomatter_obj_t*);
 
 #endif
