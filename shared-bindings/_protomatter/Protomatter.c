@@ -49,17 +49,15 @@ STATIC uint8_t validate_pin(mp_obj_t obj) {
     return common_hal_mcu_pin_number(result);
 }
 
-STATIC uint8_t *validate_pins(mp_obj_t seq, uint8_t *count_out) {
+STATIC void validate_pins(qstr what, uint8_t* pin_nos, mp_int_t max_pins, mp_obj_t seq, uint8_t *count_out) {
     mp_int_t len = MP_OBJ_SMALL_INT_VALUE(mp_obj_len(seq));
-    for (mp_int_t i=0; i<len; i++) {
-        validate_obj_is_free_pin(mp_obj_subscr(seq, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
+    if (len > max_pins) {
+        mp_raise_ValueError_varg(translate("At most %d %q may be specified"), max_pins, what);
     }
     *count_out = len;
-    uint8_t *pin_nos = m_new(uint8_t, len);
     for (mp_int_t i=0; i<len; i++) {
-            pin_nos[i] = common_hal_mcu_pin_number(mp_obj_subscr(seq, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
+        pin_nos[i] = validate_pin(mp_obj_subscr(seq, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
     }
-    return pin_nos;
 }
 
 STATIC void claim_pins(mp_obj_t seq) {
@@ -124,8 +122,8 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
             m_new_ll_obj(protomatter_protomatter_obj_t);
     self->base.type = &protomatter_Protomatter_type;
 
-    self->rgb_pins = validate_pins(args[ARG_rgb_list].u_obj, &self->rgb_count);
-    self->addr_pins = validate_pins(args[ARG_addr_list].u_obj, &self->addr_count);
+    validate_pins(MP_QSTR_rgb_pins, self->rgb_pins, MP_ARRAY_SIZE(self->rgb_pins), args[ARG_rgb_list].u_obj, &self->rgb_count);
+    validate_pins(MP_QSTR_addr_pins, self->addr_pins, MP_ARRAY_SIZE(self->addr_pins), args[ARG_addr_list].u_obj, &self->addr_count);
     self->clock_pin = validate_pin(args[ARG_clock_pin].u_obj);
     self->oe_pin = validate_pin(args[ARG_oe_pin].u_obj);
     self->latch_pin = validate_pin(args[ARG_latch_pin].u_obj);
@@ -199,21 +197,10 @@ STATIC void free_pin(uint8_t *pin) {
     *pin = COMMON_HAL_MCU_NO_PIN;
 }
 
-STATIC void free_pin_seq(uint8_t **seq, int count) {
-    if (!*seq) {
-        return;
-    }
-
+STATIC void free_pin_seq(uint8_t *seq, int count) {
     for (int i=0; i<count; i++) {
-        uint8_t pin = (*seq)[i];
-        if (pin != COMMON_HAL_MCU_NO_PIN) {
-            common_hal_mcu_pin_reset_number(pin);
-        }
-        (*seq)[i] = COMMON_HAL_MCU_NO_PIN;
+        free_pin(&seq[i]);
     }
-
-    m_free(*seq);
-    *seq = NULL;
 }
 
 //|   .. method:: deinit
@@ -229,8 +216,8 @@ STATIC mp_obj_t protomatter_protomatter_deinit(mp_obj_t self_in) {
         self->timer = 0;
     }
 
-    free_pin_seq(&self->rgb_pins, self->rgb_count);
-    free_pin_seq(&self->addr_pins, self->addr_count);
+    free_pin_seq(self->rgb_pins, self->rgb_count);
+    free_pin_seq(self->addr_pins, self->addr_count);
     free_pin(&self->clock_pin);
     free_pin(&self->latch_pin);
     free_pin(&self->oe_pin);
