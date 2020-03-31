@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: circuitpython-cn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-20 17:57-0500\n"
+"POT-Creation-Date: 2020-03-31 09:43-0500\n"
 "PO-Revision-Date: 2019-04-13 10:10-0700\n"
 "Last-Translator: hexthat\n"
 "Language-Team: Chinese Hanyu Pinyin\n"
@@ -328,6 +328,10 @@ msgstr "Shùzǔ bìxū bāohán bàn zìshù (type 'H')"
 msgid "Array values should be single bytes."
 msgstr "Shùzǔ zhí yīnggāi shì dāngè zì jié."
 
+#: shared-bindings/_protomatter/Protomatter.c
+msgid "At most %d %q may be specified"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Attempted heap allocation when MicroPython VM not running."
 msgstr "MicroPython VM zài wèi yùnxíng shí chángshì fēnpèi duī."
@@ -345,6 +349,7 @@ msgstr ""
 "huò shūrù REPL jìnyòng.\n"
 
 #: shared-module/displayio/Display.c
+#: shared-module/displayio/FramebufferDisplay.c
 msgid "Below minimum frame rate"
 msgstr "Dī yú zuìdī zhèng sùlǜ"
 
@@ -361,6 +366,7 @@ msgid "Both pins must support hardware interrupts"
 msgstr "Liǎng gè yǐn jiǎo dōu bìxū zhīchí yìngjiàn zhōngduàn"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness must be 0-1.0"
 msgstr "Liàngdù bìxū wèi 0-1.0"
 
@@ -369,6 +375,7 @@ msgid "Brightness must be between 0 and 255"
 msgstr "Liàngdù bìxū jiè yú 0 dào 255 zhī jiān"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness not adjustable"
 msgstr "Liàngdù wúfǎ tiáozhěng"
 
@@ -383,10 +390,12 @@ msgid "Buffer incorrect size. Should be %d bytes."
 msgstr "Huǎnchōng qū dàxiǎo bù zhèngquè. Yīnggāi shì %d zì jié."
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is not a bytearray."
 msgstr "Huǎnchōng qū bùshì bytearray"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is too small"
 msgstr "Huǎnchōng qū tài xiǎo"
 
@@ -636,11 +645,13 @@ msgid "DigitalInOut not supported on given pin"
 msgstr "Gěi dìng de yǐn jiǎo bù zhīchí DigitalInOut"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display must have a 16 bit colorspace."
 msgstr "Xiǎnshì bìxū jùyǒu 16 wèi yánsè kōngjiān."
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display rotation must be in 90 degree increments"
 msgstr "Xiǎnshì xuánzhuǎn bìxū 90 dù jiā xīn"
 
@@ -758,6 +769,7 @@ msgstr "Hánshù xūyào suǒdìng"
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Group already used"
 msgstr "Jítuán yǐjīng shǐyòngguò"
 
@@ -848,7 +860,7 @@ msgstr "Wúxiào de SPI yǐn jiǎo xuǎnzé"
 msgid "Invalid UART pin selection"
 msgstr "Wúxiào de UART yǐn jiǎo xuǎnzé"
 
-#: py/moduerrno.c
+#: py/moduerrno.c shared-module/_protomatter/Protomatter.c
 msgid "Invalid argument"
 msgstr "Wúxiào de cānshù"
 
@@ -897,12 +909,13 @@ msgid "Invalid number of bits"
 msgstr "Wèi shù wúxiào"
 
 #: shared-bindings/bitbangio/SPI.c shared-bindings/busio/SPI.c
+#: shared-bindings/displayio/FourWire.c
 msgid "Invalid phase"
 msgstr "Jiēduàn wúxiào"
 
 #: ports/atmel-samd/common-hal/audioio/AudioOut.c
 #: ports/atmel-samd/common-hal/touchio/TouchIn.c
-#: shared-bindings/pulseio/PWMOut.c
+#: shared-bindings/pulseio/PWMOut.c shared-module/_protomatter/Protomatter.c
 msgid "Invalid pin"
 msgstr "Wúxiào de yǐn jiǎo"
 
@@ -928,6 +941,7 @@ msgid "Invalid pins for PWMOut"
 msgstr ""
 
 #: shared-bindings/bitbangio/SPI.c shared-bindings/busio/SPI.c
+#: shared-bindings/displayio/FourWire.c
 msgid "Invalid polarity"
 msgstr "Wúxiào liǎng jí zhí"
 
@@ -1099,6 +1113,10 @@ msgstr "Shèbèi shàng méiyǒu kònggé"
 msgid "No such file/directory"
 msgstr "Méiyǒu cǐ lèi wénjiàn/mùlù"
 
+#: shared-module/_protomatter/Protomatter.c
+msgid "No timer available"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Nordic Soft Device failure assertion."
 msgstr "Nordic ruǎn shèbèi gùzhàng shēngmíng."
@@ -1195,6 +1213,11 @@ msgstr "Qiánzhuì huǎnchōng qū bìxū zài duī shàng"
 #: main.c
 msgid "Press any key to enter the REPL. Use CTRL-D to reload."
 msgstr "Àn xià rènhé jiàn jìnrù REPL. Shǐyòng CTRL-D chóngxīn jiāzài."
+
+#: shared-module/_protomatter/Protomatter.c
+#, c-format
+msgid "Protomatter internal error #%d"
+msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
 msgid "Pull not used when direction is output."
@@ -1395,13 +1418,11 @@ msgstr "Píng pū kuāndù bìxū huàfēn wèi tú kuāndù"
 msgid "Too many channels in sample."
 msgstr "Chōuyàng zhōng de píndào tài duō."
 
-#: shared-bindings/displayio/FourWire.c shared-bindings/displayio/I2CDisplay.c
-#: shared-bindings/displayio/ParallelBus.c
+#: shared-module/displayio/__init__.c
 msgid "Too many display busses"
 msgstr "Xiǎnshì zǒngxiàn tài duōle"
 
-#: shared-bindings/displayio/Display.c
-#: shared-bindings/displayio/EPaperDisplay.c
+#: shared-module/displayio/__init__.c
 msgid "Too many displays"
 msgstr "Xiǎnshì tài duō"
 

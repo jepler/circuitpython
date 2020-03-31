@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-03-20 17:57-0500\n"
+"POT-Creation-Date: 2020-03-31 09:43-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -323,6 +323,10 @@ msgstr ""
 msgid "Array values should be single bytes."
 msgstr ""
 
+#: shared-bindings/_protomatter/Protomatter.c
+msgid "At most %d %q may be specified"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Attempted heap allocation when MicroPython VM not running."
 msgstr ""
@@ -340,6 +344,7 @@ msgstr ""
 "menjalankannya atau masuk ke REPL untukmenonaktifkan.\n"
 
 #: shared-module/displayio/Display.c
+#: shared-module/displayio/FramebufferDisplay.c
 msgid "Below minimum frame rate"
 msgstr ""
 
@@ -356,6 +361,7 @@ msgid "Both pins must support hardware interrupts"
 msgstr "Kedua pin harus mendukung hardware interrut"
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness must be 0-1.0"
 msgstr ""
 
@@ -364,6 +370,7 @@ msgid "Brightness must be between 0 and 255"
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Brightness not adjustable"
 msgstr ""
 
@@ -378,10 +385,12 @@ msgid "Buffer incorrect size. Should be %d bytes."
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is not a bytearray."
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Buffer is too small"
 msgstr ""
 
@@ -636,11 +645,13 @@ msgid "DigitalInOut not supported on given pin"
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display must have a 16 bit colorspace."
 msgstr ""
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Display rotation must be in 90 degree increments"
 msgstr ""
 
@@ -758,6 +769,7 @@ msgstr ""
 
 #: shared-bindings/displayio/Display.c
 #: shared-bindings/displayio/EPaperDisplay.c
+#: shared-bindings/displayio/FramebufferDisplay.c
 msgid "Group already used"
 msgstr ""
 
@@ -846,7 +858,7 @@ msgstr ""
 msgid "Invalid UART pin selection"
 msgstr ""
 
-#: py/moduerrno.c
+#: py/moduerrno.c shared-module/_protomatter/Protomatter.c
 msgid "Invalid argument"
 msgstr ""
 
@@ -895,12 +907,13 @@ msgid "Invalid number of bits"
 msgstr ""
 
 #: shared-bindings/bitbangio/SPI.c shared-bindings/busio/SPI.c
+#: shared-bindings/displayio/FourWire.c
 msgid "Invalid phase"
 msgstr ""
 
 #: ports/atmel-samd/common-hal/audioio/AudioOut.c
 #: ports/atmel-samd/common-hal/touchio/TouchIn.c
-#: shared-bindings/pulseio/PWMOut.c
+#: shared-bindings/pulseio/PWMOut.c shared-module/_protomatter/Protomatter.c
 msgid "Invalid pin"
 msgstr "Pin tidak valid"
 
@@ -926,6 +939,7 @@ msgid "Invalid pins for PWMOut"
 msgstr ""
 
 #: shared-bindings/bitbangio/SPI.c shared-bindings/busio/SPI.c
+#: shared-bindings/displayio/FourWire.c
 msgid "Invalid polarity"
 msgstr ""
 
@@ -1097,6 +1111,10 @@ msgstr ""
 msgid "No such file/directory"
 msgstr ""
 
+#: shared-module/_protomatter/Protomatter.c
+msgid "No timer available"
+msgstr ""
+
 #: supervisor/shared/safe_mode.c
 msgid "Nordic Soft Device failure assertion."
 msgstr ""
@@ -1190,6 +1208,11 @@ msgid "Press any key to enter the REPL. Use CTRL-D to reload."
 msgstr ""
 "Tekan tombol apa saja untuk masuk ke dalam REPL. Gunakan CTRL+D untuk reset "
 "(Reload)"
+
+#: shared-module/_protomatter/Protomatter.c
+#, c-format
+msgid "Protomatter internal error #%d"
+msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
 msgid "Pull not used when direction is output."
@@ -1385,13 +1408,11 @@ msgstr ""
 msgid "Too many channels in sample."
 msgstr "Terlalu banyak channel dalam sampel"
 
-#: shared-bindings/displayio/FourWire.c shared-bindings/displayio/I2CDisplay.c
-#: shared-bindings/displayio/ParallelBus.c
+#: shared-module/displayio/__init__.c
 msgid "Too many display busses"
 msgstr ""
 
-#: shared-bindings/displayio/Display.c
-#: shared-bindings/displayio/EPaperDisplay.c
+#: shared-module/displayio/__init__.c
 msgid "Too many displays"
 msgstr ""
 
