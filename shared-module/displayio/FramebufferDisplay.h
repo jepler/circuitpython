@@ -68,12 +68,14 @@ mp_obj_t common_hal_displayio_framebufferdisplay_get_framebuffer(displayio_frame
 
 typedef void (*framebuffer_get_bufinfo_fun)(mp_obj_t, mp_buffer_info_t *bufinfo);
 typedef void (*framebuffer_swapbuffers_fun)(mp_obj_t);
+typedef void (*framebuffer_deinit_fun)(mp_obj_t);
 typedef void (*framebuffer_set_brightness_fun)(mp_obj_t, mp_float_t);
 
 typedef struct _framebuffer_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_framebuffer
     framebuffer_get_bufinfo_fun get_bufinfo;
     framebuffer_swapbuffers_fun swapbuffers;
+    framebuffer_deinit_fun deinit;
     framebuffer_set_brightness_fun set_brightness;
 } framebuffer_p_t;
 

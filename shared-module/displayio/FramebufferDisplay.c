@@ -324,6 +324,7 @@ void release_framebufferdisplay(displayio_framebufferdisplay_obj_t* self) {
     } else if (self->backlight_inout.base.type == &digitalio_digitalinout_type) {
         common_hal_digitalio_digitalinout_deinit(&self->backlight_inout);
     }
+    self->framebuffer_protocol->deinit(self->framebuffer);
 }
 
 void reset_framebufferdisplay(displayio_framebufferdisplay_obj_t* self) {

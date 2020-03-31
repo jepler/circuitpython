@@ -33,6 +33,7 @@
 #include "py/runtime.h"
 
 #include "common-hal/_protomatter/Protomatter.h"
+#include "shared-module/_protomatter/allocator.h"
 #include "shared-bindings/_protomatter/Protomatter.h"
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/__init__.h"
@@ -61,18 +62,27 @@ void common_hal_protomatter_protomatter_construct(protomatter_protomatter_obj_t 
     self->width = width;
     self->bufsize = 2 * width * rgb_count / 3 * (1 << addr_count);
 
+    common_hal_protomatter_protomatter_reconstruct(self, framebuffer);
+}
+
+void common_hal_protomatter_protomatter_reconstruct(protomatter_protomatter_obj_t* self, mp_obj_t framebuffer) {
     if (framebuffer) {
+        self->framebuffer = framebuffer;
         framebuffer = mp_obj_new_bytearray_of_zeros(self->bufsize);
-    }
-    self->framebuffer = framebuffer;
-    mp_get_buffer_raise(self->framebuffer, &self->bufinfo, MP_BUFFER_READ);
-    if (mp_get_buffer(self->framebuffer, &self->bufinfo, MP_BUFFER_RW)) {
-        self->bufinfo.typecode = 'H' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW;
+        mp_get_buffer_raise(self->framebuffer, &self->bufinfo, MP_BUFFER_READ);
+        if (mp_get_buffer(self->framebuffer, &self->bufinfo, MP_BUFFER_RW)) {
+            self->bufinfo.typecode = 'H' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW;
+        } else {
+            self->bufinfo.typecode = 'H';
+        }
+        // verify that the matrix is big enough
+        mp_get_index(mp_obj_get_type(self->framebuffer), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
     } else {
-        self->bufinfo.typecode = 'H';
+        self->framebuffer = NULL;
+        self->bufinfo.buf = _PM_allocator_impl(self->bufsize);
+        self->bufinfo.len = self->bufsize;
+        self->bufinfo.typecode = 'H' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW;
     }
-    // verify that the matrix is big enough
-    mp_get_index(mp_obj_get_type(self->framebuffer), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize-1), false);
 
     ProtomatterStatus stat = _PM_init(&self->core,
         self->width, self->bit_depth, 

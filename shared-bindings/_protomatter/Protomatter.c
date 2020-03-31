@@ -61,10 +61,15 @@ STATIC void validate_pins(qstr what, uint8_t* pin_nos, mp_int_t max_pins, mp_obj
     }
 }
 
-STATIC void claim_pins(mp_obj_t seq) {
+STATIC void claim_pin_nr(mp_obj_t pin) {
+    common_hal_mcu_pin_claim(pin);
+    common_hal_never_reset_pin(pin);
+}
+
+STATIC void claim_pins_nr(mp_obj_t seq) {
     mp_int_t len = MP_OBJ_SMALL_INT_VALUE(mp_obj_len(seq));
     for (mp_int_t i=0; i<len; i++) {
-        common_hal_mcu_pin_claim(mp_obj_subscr(seq, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
+        claim_pin_nr(mp_obj_subscr(seq, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
     }
 }
 
@@ -151,11 +156,11 @@ STATIC mp_obj_t protomatter_protomatter_make_new(const mp_obj_type_t *type, size
         args[ARG_doublebuffer].u_bool,
         framebuffer, NULL);
 
-    claim_pins(args[ARG_rgb_list].u_obj);
-    claim_pins(args[ARG_addr_list].u_obj);
-    common_hal_mcu_pin_claim(args[ARG_clock_pin].u_obj);
-    common_hal_mcu_pin_claim(args[ARG_oe_pin].u_obj);
-    common_hal_mcu_pin_claim(args[ARG_latch_pin].u_obj);
+    claim_pins_nr(args[ARG_rgb_list].u_obj);
+    claim_pins_nr(args[ARG_addr_list].u_obj);
+    claim_pin_nr(args[ARG_clock_pin].u_obj);
+    claim_pin_nr(args[ARG_oe_pin].u_obj);
+    claim_pin_nr(args[ARG_latch_pin].u_obj);
 
     return MP_OBJ_FROM_PTR(self);
 }
@@ -251,6 +256,10 @@ STATIC void protomatter_protomatter_swapbuffers_void(mp_obj_t self_in) {
     protomatter_protomatter_swapbuffers(self_in);
 }
 
+STATIC void protomatter_protomatter_deinit_void(mp_obj_t self_in) {
+    protomatter_protomatter_deinit(self_in);
+}
+
 STATIC void protomatter_protomatter_set_brightness(mp_obj_t self_in, mp_float_t value) {
     protomatter_protomatter_set_paused(self_in, mp_obj_new_bool(value <= 0));
 }
@@ -260,6 +269,7 @@ STATIC const framebuffer_p_t protomatter_protomatter_proto = {
     .get_bufinfo = protomatter_protomatter_get_bufinfo,
     .set_brightness = protomatter_protomatter_set_brightness,
     .swapbuffers = protomatter_protomatter_swapbuffers_void,
+    .deinit = protomatter_protomatter_deinit_void,
 };
 
 STATIC mp_int_t protomatter_protomatter_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_uint_t flags) {

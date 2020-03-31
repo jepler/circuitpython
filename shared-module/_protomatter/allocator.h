@@ -8,7 +8,7 @@
 #define _PM_ALLOCATOR _PM_allocator_impl
 #define _PM_FREE _PM_free_impl
 
-static void *_PM_allocator_impl(size_t sz) {
+static inline void *_PM_allocator_impl(size_t sz) {
     supervisor_allocation *allocation = allocate_memory(align32_size(sz), true);    
     if (allocation) {
         return allocation->ptr;
@@ -17,7 +17,7 @@ static void *_PM_allocator_impl(size_t sz) {
     }
 }
 
-static void _PM_free_impl(void *ptr_in) {
+static inline void _PM_free_impl(void *ptr_in) {
     supervisor_allocation *allocation = allocation_from_ptr(ptr_in);
     
     if (allocation) {

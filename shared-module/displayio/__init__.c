@@ -48,7 +48,7 @@ void displayio_background(void) {
         if (displays[i].display.base.type == &displayio_display_type) {
             displayio_display_background(&displays[i].display);
         } else if (displays[i].framebuffer_display.base.type == &displayio_framebufferdisplay_type) {
-            // displayio_framebufferdisplay_background(&displays[i].framebuffer_display);
+            displayio_framebufferdisplay_background(&displays[i].framebuffer_display);
         } else if (displays[i].epaper_display.base.type == &displayio_epaperdisplay_type) {
             displayio_epaperdisplay_background(&displays[i].epaper_display);
         }
@@ -69,6 +69,8 @@ void common_hal_displayio_release_displays(void) {
             release_display(&displays[i].display);
         } else if (display_type == &displayio_epaperdisplay_type) {
             release_epaperdisplay(&displays[i].epaper_display);
+        } else if (display_type == &displayio_framebufferdisplay_type) {
+            release_framebufferdisplay(&displays[i].framebuffer_display);
         }
         displays[i].display.base.type = &mp_type_NoneType;
     }
@@ -145,8 +147,7 @@ void reset_displays(void) {
             }
         } else if (displays[i].protomatter.base.type == &protomatter_Protomatter_type) {
             protomatter_protomatter_obj_t * pm = &displays[i].protomatter;
-            (void) pm;
-            // TODO: what action needs to be taken here?
+            common_hal_protomatter_protomatter_reconstruct(pm, NULL);
         } else {
             // Not an active display bus.
             continue;
@@ -161,6 +162,10 @@ void reset_displays(void) {
         } else if (displays[i].epaper_display.base.type == &displayio_epaperdisplay_type) {
             displayio_epaperdisplay_obj_t* display = &displays[i].epaper_display;
             common_hal_displayio_epaperdisplay_show(display, NULL);
+        } else if (displays[i].framebuffer_display.base.type == &displayio_framebufferdisplay_type) {
+            displayio_framebufferdisplay_obj_t* display = &displays[i].framebuffer_display;
+            display->auto_refresh = true;
+            common_hal_displayio_framebufferdisplay_show(display, NULL);
         }
     }
 }
