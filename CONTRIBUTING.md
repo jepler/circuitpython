@@ -21,6 +21,7 @@ As CircuitPython grows, there are more and more ways to contribute. Here are som
 * Test the latest libraries and CircuitPython versions with your projects and file issues for any bugs you find.
 * Contribute Python code to CircuitPython libraries that support new devices or features of an existing device.
 * Contribute C code to CircuitPython which fixes an open issue or adds a new feature.
+* Contribute [translations](https://circuitpython.readthedocs.io/en/latest/TRANSLATING.html) of CircuitPython into a language you speak or write.
 
 ## Getting started with C
 CircuitPython developer Dan Halbert (@dhalbert) has written up build instructions using native build
