@@ -210,6 +210,9 @@ endif
 ifeq ($(CIRCUITPY_SAMD),1)
 SRC_PATTERNS += samd/%
 endif
+ifeq ($(CIRCUITPY_SDCARDIO),1)
+SRC_PATTERNS += _sdcardio/%
+endif
 ifeq ($(CIRCUITPY_STAGE),1)
 SRC_PATTERNS += _stage/%
 endif
@@ -377,6 +380,8 @@ SRC_SHARED_MODULE_ALL = \
 	fontio/__init__.c \
 	framebufferio/FramebufferDisplay.c \
 	framebufferio/__init__.c \
+	_sdcardio/SPISDCard.c \
+	_sdcardio/__init__.c \
 	gamepad/GamePad.c \
 	gamepad/__init__.c \
 	gamepadshift/GamePadShift.c \
