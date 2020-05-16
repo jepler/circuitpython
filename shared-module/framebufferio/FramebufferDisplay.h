@@ -60,7 +60,10 @@ void framebufferio_framebufferdisplay_collect_ptrs(framebufferio_framebufferdisp
 
 mp_obj_t common_hal_framebufferio_framebufferdisplay_get_framebuffer(framebufferio_framebufferdisplay_obj_t* self);
 
+void framebufferio_framebufferio_put_simple_pixel_span(mp_obj_t framebuffer, framebufferio_framebufferdisplay_obj_t *display, const displayio_area_t *subrectangle, uint32_t *buffer);
+
 typedef void (*framebuffer_get_bufinfo_fun)(mp_obj_t, mp_buffer_info_t *bufinfo);
+typedef void (*framebuffer_put_pixel_span_fun)(mp_obj_t, framebufferio_framebufferdisplay_obj_t *, const displayio_area_t *subrectangle, uint32_t *buffer);
 typedef void (*framebuffer_swapbuffers_fun)(mp_obj_t);
 typedef void (*framebuffer_deinit_fun)(mp_obj_t);
 typedef bool (*framebuffer_set_brightness_fun)(mp_obj_t, mp_float_t);
@@ -76,6 +79,7 @@ typedef int (*framebuffer_get_native_frames_per_second_fun)(mp_obj_t);
 typedef struct _framebuffer_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_framebuffer
     framebuffer_get_bufinfo_fun get_bufinfo;
+    framebuffer_put_pixel_span_fun put_pixel_span;
     framebuffer_swapbuffers_fun swapbuffers;
     framebuffer_deinit_fun deinit;
     framebuffer_get_width_fun get_width;

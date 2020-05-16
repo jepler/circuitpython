@@ -138,6 +138,21 @@ STATIC const displayio_area_t* _get_refresh_areas(framebufferio_framebufferdispl
     return NULL;
 }
 
+void framebufferio_framebufferio_put_simple_pixel_span(mp_obj_t framebuffer, framebufferio_framebufferdisplay_obj_t *display, const displayio_area_t *subrectangle, uint32_t *buffer) {
+        // COULDDO: this arithmetic only supports multiple-of-8 bpp
+        int depth = display->core.colorspace.depth;
+        int width = display->core.width;
+        uint8_t *dest = display->bufinfo.buf + (subrectangle->y1 * width + subrectangle->x1) * (depth / 8);
+        uint8_t *src = (uint8_t*)buffer;
+        size_t rowsize = (subrectangle->x2 - subrectangle->x1) * (depth / 8);
+        size_t rowstride = width * (depth/8);
+        for (uint16_t i = subrectangle->y1; i < subrectangle->y2; i++) {
+            memcpy(dest, src, rowsize);
+            dest += rowstride;
+            src += rowsize;
+        }
+}
+
 STATIC bool _refresh_area(framebufferio_framebufferdisplay_obj_t* self, const displayio_area_t* area) {
     uint16_t buffer_size = 128; // In uint32_ts
 
@@ -196,17 +211,7 @@ STATIC bool _refresh_area(framebufferio_framebufferdisplay_obj_t* self, const di
         memset(buffer, 0, buffer_size * sizeof(buffer[0]));
 
         displayio_display_core_fill_area(&self->core, &subrectangle, mask, buffer);
-
-        // COULDDO: this arithmetic only supports multiple-of-8 bpp
-        uint8_t *dest = self->bufinfo.buf + (subrectangle.y1 * self->core.width + subrectangle.x1) * (self->core.colorspace.depth / 8);
-        uint8_t *src = (uint8_t*)buffer;
-        size_t rowsize = (subrectangle.x2 - subrectangle.x1) * (self->core.colorspace.depth / 8);
-        size_t rowstride = self->core.width * (self->core.colorspace.depth/8);
-        for (uint16_t i = subrectangle.y1; i < subrectangle.y2; i++) {
-            memcpy(dest, src, rowsize);
-            dest += rowstride;
-            src += rowsize;
-        }
+        self->framebuffer_protocol->put_pixel_span(self->framebuffer, self, &subrectangle, buffer);
 
         // TODO(tannewt): Make refresh displays faster so we don't starve other
         // background tasks.

@@ -395,6 +395,7 @@ STATIC int rgbmatrix_rgbmatrix_get_native_frames_per_second_proto(mp_obj_t self_
 STATIC const framebuffer_p_t rgbmatrix_rgbmatrix_proto = {
     MP_PROTO_IMPLEMENT(MP_QSTR_protocol_framebuffer)
     .get_bufinfo = rgbmatrix_rgbmatrix_get_bufinfo,
+    .put_pixel_span = framebufferio_framebufferio_put_simple_pixel_span,
     .set_brightness = rgbmatrix_rgbmatrix_set_brightness_proto,
     .get_brightness = rgbmatrix_rgbmatrix_get_brightness_proto,
     .get_width = rgbmatrix_rgbmatrix_get_width_proto,
