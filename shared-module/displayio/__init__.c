@@ -191,8 +191,12 @@ void reset_displays(void) {
 #if CIRCUITPY_FRAMEBUFFERIO
         } else if (displays[i].framebuffer_display.base.type == &framebufferio_framebufferdisplay_type) {
             framebufferio_framebufferdisplay_obj_t* display = &displays[i].framebuffer_display;
-            display->auto_refresh = true;
-            common_hal_framebufferio_framebufferdisplay_show(display, NULL);
+            if(display->framebuffer_protocol->can_survive_reset) {
+                display->auto_refresh = true;
+                common_hal_framebufferio_framebufferdisplay_show(display, NULL);
+            } else {
+                memset(display, 0, sizeof(*display));
+            }
 #endif
         }
     }

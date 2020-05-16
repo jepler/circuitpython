@@ -78,6 +78,7 @@ typedef int (*framebuffer_get_native_frames_per_second_fun)(mp_obj_t);
 
 typedef struct _framebuffer_p_t {
     MP_PROTOCOL_HEAD // MP_QSTR_protocol_framebuffer
+    bool can_survive_reset;
     framebuffer_get_bufinfo_fun get_bufinfo;
     framebuffer_put_pixel_span_fun put_pixel_span;
     framebuffer_swapbuffers_fun swapbuffers;
