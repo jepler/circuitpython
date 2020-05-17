@@ -27,10 +27,10 @@ CFLAGS = $(INC) $(CWARN) -std=gnu99 -DUNIX $(CFLAGS_MOD) $(COPT) $(CFLAGS_EXTRA)
 
 # Debugging/Optimization
 ifdef DEBUG
-CFLAGS += -g
-COPT = -O0
+CFLAGS += -ggdb3
+COPT = -Og
 else
-COPT = -Os -fdata-sections -ffunction-sections -DNDEBUG
+COPT = -ggdb3 -Os -fdata-sections -ffunction-sections -DNDEBUG
 # _FORTIFY_SOURCE is a feature in gcc/glibc which is intended to provide extra
 # security for detecting buffer overflows. Some distros (Ubuntu at the very least)
 # have it enabled by default.
