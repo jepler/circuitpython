@@ -25,7 +25,7 @@ INC += -I$(BUILD)
 # compiler settings
 CWARN = -Wall -Werror
 CWARN += -Wpointer-arith -Wuninitialized
-CFLAGS = $(INC) $(CWARN) -std=gnu99 $(CFLAGS_MOD) $(COPT) $(CFLAGS_EXTRA)
+CFLAGS = $(INC) $(CWARN) -std=gnu99 $(CFLAGS_MOD) $(COPT) $(CFLAGS_EXTRA) -ggdb3
 CFLAGS += -fdata-sections -ffunction-sections -fno-asynchronous-unwind-tables
 
 # Build a static executable.
@@ -37,8 +37,7 @@ endif
 
 # Debugging/Optimization
 ifdef DEBUG
-CFLAGS += -g
-COPT = -O0
+COPT = -Og
 else
 COPT = -Os #-DNDEBUG
 endif
