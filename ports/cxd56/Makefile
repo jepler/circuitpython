@@ -102,6 +102,7 @@ CFLAGS += \
 	-D_estack=__stack \
 	-c \
 	-Os \
+	-ggdb3 \
 	-pipe \
 	-std=gnu11 \
 	-mcpu=cortex-m4 \
@@ -141,6 +142,10 @@ LDFLAGS = \
 	-L$(BUILD) \
 
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_CXD56 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=512 $(CFLAGS_MOD)
+
+ifeq ($(DEBUG),1)
+CFLAGS += -Og
+endif
 
 SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
                           $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
