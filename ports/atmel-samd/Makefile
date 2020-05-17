@@ -98,39 +98,37 @@ CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_
 endif
 
 #Debugging/Optimization
+# -finline-limit can shrink the image size.
+# -finline-limit=80 or so is similar to not having it on.
+# There is no simple default value, though.
+
+# Do a default shrink for small builds.
+ifndef CFLAGS_INLINE_LIMIT
+  ifeq ($(CIRCUITPY_FULL_BUILD),0)
+    CFLAGS_INLINE_LIMIT = 50
+  endif
+endif
+
+ifdef CFLAGS_INLINE_LIMIT
+  CFLAGS += -finline-limit=$(CFLAGS_INLINE_LIMIT)
+endif
+
+CFLAGS += -flto -flto-partition=none
+
+ifeq ($(CIRCUITPY_FULL_BUILD),0)
+  CFLAGS += --param inline-unit-growth=15 --param max-inline-insns-auto=20
+endif
+
+ifdef CFLAGS_BOARD
+  CFLAGS += $(CFLAGS_BOARD)
+endif
+
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
-  # You may want to disable -flto if it interferes with debugging.
-  CFLAGS += -flto -flto-partition=none
+  CFLAGS += -Og
   # You may want to enable these flags to make setting breakpoints easier.
   # CFLAGS += -fno-inline -fno-ipa-sra
   ifeq ($(CHIP_FAMILY), samd21)
     CFLAGS += -DENABLE_MICRO_TRACE_BUFFER
-  endif
-else
-  # -finline-limit can shrink the image size.
-  # -finline-limit=80 or so is similar to not having it on.
-  # There is no simple default value, though.
-
-  # Do a default shrink for small builds.
-  ifndef CFLAGS_INLINE_LIMIT
-    ifeq ($(CIRCUITPY_FULL_BUILD),0)
-      CFLAGS_INLINE_LIMIT = 50
-    endif
-  endif
-
-  ifdef CFLAGS_INLINE_LIMIT
-    CFLAGS += -finline-limit=$(CFLAGS_INLINE_LIMIT)
-  endif
-
-  CFLAGS += -flto -flto-partition=none
-
-  ifeq ($(CIRCUITPY_FULL_BUILD),0)
-    CFLAGS += --param inline-unit-growth=15 --param max-inline-insns-auto=20
-  endif
-
-  ifdef CFLAGS_BOARD
-    CFLAGS += $(CFLAGS_BOARD)
   endif
 endif
 
