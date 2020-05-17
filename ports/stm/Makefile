@@ -81,7 +81,7 @@ INC += -I../../supervisor/shared/usb
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-	CFLAGS += -ggdb
+	CFLAGS += -Og -ggdb-3
 	# You may want to enable these flags to make setting breakpoints easier.
 	CFLAGS += -fno-inline -fno-ipa-sra
 else
