@@ -75,19 +75,19 @@ INC += \
 
 # NDEBUG disables assert() statements. This reduces code size pretty dramatically, per tannewt.
 
-CFLAGS += -Os -DNDEBUG
 
 # TinyUSB defines
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_MIMXRT10XX -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
+  CFLAGS += -ggdb3 -Og
   # You may want to disable -flto if it interferes with debugging.
   # CFLAGS += -flto -flto-partition=none
   # You may want to enable these flags to make setting breakpoints easier.
   CFLAGS += -fno-inline -fno-ipa-sra
 else
+  CFLAGS += -Os -DNDEBUG
   #CFLAGS += -flto -flto-partition=none
 endif
 
