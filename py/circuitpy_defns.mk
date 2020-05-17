@@ -28,6 +28,7 @@
 # Common compile warnings.
 
 BASE_CFLAGS = \
+	-ggdb3 \
 	-fsingle-precision-constant \
 	-fno-strict-aliasing \
 	-Wdouble-promotion \
