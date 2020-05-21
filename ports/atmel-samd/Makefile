@@ -221,6 +221,7 @@ SRC_C = \
 	audio_dma.c \
 	background.c \
 	bindings/samd/Clock.c \
+	bindings/samd/Reference.c \
 	bindings/samd/__init__.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/pins.c \

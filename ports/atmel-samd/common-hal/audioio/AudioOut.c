@@ -54,6 +54,8 @@
 #include "samd/pins.h"
 #include "samd/timers.h"
 
+#include "bindings/samd/Reference.h"
+
 #ifdef SAMD21
 static void ramp_value(uint16_t start, uint16_t end) {
     start = DAC->DATA.reg;
@@ -200,7 +202,6 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
         DAC->DACCTRL[0].reg = DAC_DACCTRL_CCTRL_CC100K |
                               DAC_DACCTRL_ENABLE |
                               DAC_DACCTRL_LEFTADJ;
-        DAC->CTRLB.reg = DAC_CTRLB_REFSEL_VREFPU;
         #endif
     }
     #ifdef SAMD51
@@ -209,7 +210,13 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
         DAC->DACCTRL[1].reg = DAC_DACCTRL_CCTRL_CC100K |
                               DAC_DACCTRL_ENABLE |
                               DAC_DACCTRL_LEFTADJ;
-        DAC->CTRLB.reg = DAC_CTRLB_REFSEL_VREFPU;
+    }
+    #endif
+    #ifdef SAMD51
+    DAC->CTRLB.bit.REFSEL = dac_reference_get_default_value();
+    if(dac_reference_get_default_value() == ADC_REFCTRL_REFSEL_INTREF_Val) {
+        SUPC->VREF.bit.ONDEMAND = 0;
+        SUPC->VREF.bit.RUNSTDBY = 1;
     }
     #endif
 

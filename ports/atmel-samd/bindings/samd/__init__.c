@@ -29,6 +29,9 @@
 #include "py/runtime.h"
 
 #include "bindings/samd/Clock.h"
+#ifdef SAMD51
+#include "bindings/samd/Reference.h"
+#endif
 
 //| :mod:`samd` --- SAMD implementation settings
 //| =================================================
@@ -61,7 +64,15 @@ const mp_obj_module_t samd_clock_module = {
 
 STATIC const mp_rom_map_elem_t samd_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_samd) },
-    { MP_ROM_QSTR(MP_QSTR_clock),  MP_ROM_PTR(&samd_clock_module) },
+    { MP_ROM_QSTR(MP_QSTR_clock), MP_ROM_PTR(&samd_clock_module) },
+#ifdef SAMD51
+    { MP_ROM_QSTR(MP_QSTR_ReferenceVoltage), MP_ROM_PTR(&reference_voltage_type) },
+    { MP_ROM_QSTR(MP_QSTR_DacReference), MP_ROM_PTR(&dac_reference_type) },
+    { MP_ROM_QSTR(MP_QSTR_dac_default_reference_get), MP_ROM_PTR(&dac_reference_get_obj) },
+    { MP_ROM_QSTR(MP_QSTR_dac_default_reference_set), MP_ROM_PTR(&dac_reference_set_obj) },
+    { MP_ROM_QSTR(MP_QSTR_reference_voltage_get), MP_ROM_PTR(&reference_voltage_get_obj) },
+    { MP_ROM_QSTR(MP_QSTR_reference_voltage_set), MP_ROM_PTR(&reference_voltage_set_obj) },
+#endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(samd_module_globals, samd_module_globals_table);
