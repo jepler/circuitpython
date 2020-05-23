@@ -100,15 +100,136 @@ def translate(translation_file, i18ns):
 def frequent_ngrams(corpus, sz, n):
     return collections.Counter(corpus[i:i+sz] for i in range(len(corpus)-sz)).most_common(n)
 
+def max_overlap(translation, ngrams):
+    for sz in range(33, 1, -1):
+        for i in range(0, len(translation) - sz):
+            needle = translation[i:i+sz]
+            idx = ngrams.find(needle)
+            if idx != -1:
+                return idx, len(needle), needle
+    return 0, 0, ''
+
 def ngrams_to_pua(translation, ngrams):
-    for i, g in enumerate(ngrams):
-        translation = translation.replace(g, chr(0xe000 + i))
+    while True:
+        idx, sz, needle = max_overlap(translation, ngrams)
+        if sz > 1:
+            translation = translation.replace(needle, chr(0xe000 + ((sz-2) << 8) + idx))
+        else:
+            break
     return translation
 
 def pua_to_ngrams(compressed, ngrams):
-    return "".join(ngrams[ord(c) - 0xe000] if (u'\ue000' <= c <= u'\uf8ff') else c for c in compressed)
+    def decode_one_element(c):
+        co = ord(c)
+        if co < 0xe000 or co > 0xf8ff:
+            return c
+        idx = co & 0xff
+        sz = 2 + ((co & 0x1f00) >> 8)
+        return ngrams[idx:idx+sz]
 
-def compute_huffman_coding(translations, qstrs, compression_filename):
+    return "".join(decode_one_element(c) for c in compressed)
+
+class EncodingData:
+    def __init__(self, lengths, values, ngramdata, huffman_data_size):
+        values_type = "uint16_t" if max(ord(u) for u in values) > 255 else "uint8_t"
+        values_size = 2 if max(ord(u) for u in values) > 255 else 1
+        ngrams_type = "uint16_t" if ngramdata and max(ord(u) for u in "".join(ngramdata)) > 255 else "uint8_t"
+        ngrams_size = 2 if ngramdata and max(ord(u) for u in ngramdata) > 255 else 1
+        est_size = len(lengths) + values_size * len(values) + ngrams_size * len(ngramdata) + huffman_data_size
+        self.lengths = lengths
+        self.values_type = values_type
+        self.values_size = values_size
+        self.values = values
+        self.ngrams_type = ngrams_type
+        self.ngrams_size = ngrams_size
+        self.ngramdata = ngramdata
+        self.est_size = est_size
+
+    def __lt__(self, other):
+        return self.est_size < other.est_size
+
+    def print(self):
+        print("// estimated total memory size", self.est_size)
+        print("// ngram memory size", self.ngrams_size)
+        print("// values", self.values, "lengths", len(self.lengths), self.lengths)
+        print("//", repr(self.ngramdata))
+
+    def write(self, f):
+        f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, self.lengths))))
+        f.write("const {} values[] = {{ {} }};\n".format(self.values_type, ", ".join(str(ord(u)) for u in self.values)))
+        f.write("const {} ngrams[] = {{ {} }};\n".format(self.ngrams_type, ", ".join(str(ord(u)) for u in self.ngramdata)))
+
+def overlap(s1, s2):
+    minlen = min(len(s1), len(s2))
+    for i in range(minlen, 0, -1):
+        if s1[:i] == s2[-i:]:
+            return i, s1, s2
+    return 0, '', ''
+
+def find_overlap_start(forest, ngram):
+    if not forest: return 0, ''
+    p, q, r = max(overlap(fi, ngram) for fi in forest)
+    return p, q
+
+def find_overlap_end(forest, ngram):
+    if not forest: return 0, ''
+    p, q, r = max(overlap(ngram, fi) for fi in forest)
+    return p, r
+
+def best_ngram(corpus):
+    histogram = collections.Counter()
+    for message in corpus.split('\0'):
+        for i in range(len(message) - 2):
+            for j in range(i+2, len(message)):
+                histogram[message[i:j]] += 1
+
+    histogram = [(k, v * len(k)) for k, v in histogram.items() if v > 1]
+    if histogram:
+        histogram.sort(key=lambda x: x[1])
+        return histogram.pop()[0]
+    return ''
+
+def find_best_dictionary(corpus, sz=64):
+    forest = []
+    corpus = "\0".join(corpus)
+     
+    1 + sz
+    while sum(len(i) for i in forest) < sz:
+        ngram = best_ngram(corpus)
+        if ngram == '':
+            break
+
+        if any(ngram in fi for fi in forest):
+            # It could already be formed
+            corpus = corpus.replace(ngram, '\0')
+            continue
+            
+        max_overlap_start, needle_start = find_overlap_start(forest, ngram)
+        max_overlap_end, needle_end = find_overlap_end(forest, ngram)
+
+        if max_overlap_start + max_overlap_end == len(ngram) and needle_start != needle_end:
+            # We can merge two items in the forest into one, and we get
+            # this ngram as a result
+            forest.remove(needle_start)
+            forest.remove(needle_end)
+            forest.append(needle_start + needle_end)
+        elif max_overlap_start == max_overlap_end == 0:
+            # Doesn't overlap with anything in the forest
+            if len(ngram) + sum(len(fi) for fi in forest) < sz:
+                forest.append(ngram)
+        elif max_overlap_start > max_overlap_end:
+            if len(ngram) - max_overlap_start + sum(len(fi) for fi in forest) < sz:
+                forest.remove(needle_start)
+                forest.append(needle_start + ngram[max_overlap_start:])
+        else:
+            # max_overlap_end >= max_overlap_start
+            if len(ngram) - max_overlap_end + sum(len(fi) for fi in forest) < sz:
+                forest.remove(needle_end)
+                forest.append(ngram[max_overlap_end:] + needle_end)
+        corpus = corpus.replace(ngram, '\0')
+    return "".join(forest)
+
+def compute_huffman_coding(translations, qstrs, dict_sz):
     all_strings = [x[1] for x in translations]
 
     # go through each qstr and print it out
@@ -116,8 +237,8 @@ def compute_huffman_coding(translations, qstrs, compression_filename):
         all_strings.append(qstr)
 
     all_strings_concat = "".join(all_strings)
-    ngrams = [i[0] for i in frequent_ngrams(all_strings_concat, 2, 32)]
-    all_strings_concat = ngrams_to_pua(all_strings_concat, ngrams)
+    ngramsdata = find_best_dictionary(all_strings, dict_sz)
+    all_strings_concat = "".join(ngrams_to_pua(s, ngramsdata) for s in all_strings)
     counts = collections.Counter(all_strings_concat)
     cb = huffman.codebook(counts.items())
     values = []
@@ -135,23 +256,16 @@ def compute_huffman_coding(translations, qstrs, compression_filename):
             renumbered <<= (l - last_l)
         canonical[ch] = '{0:0{width}b}'.format(renumbered, width=l)
         s = C_ESCAPES.get(ch, ch)
-        print("//", ord(ch), s, counts[ch], canonical[ch], renumbered)
+        #print("//", ord(ch), s, counts[ch], canonical[ch], renumbered)
         renumbered += 1
         last_l = l
     lengths = bytearray()
-    print("// length count", length_count)
     for i in range(1, max(length_count) + 2):
         lengths.append(length_count.get(i, 0))
-    print("// values", values, "lengths", len(lengths), lengths)
-    ngramdata = [ord(ni) for i in ngrams for ni in i]
-    print("// estimated total memory size", len(lengths) + 2*len(values) + 2 * len(ngramdata) + sum((len(cb[u]) + 7)//8 for u in all_strings_concat))
-    print("//", values, lengths)
-    values_type = "uint16_t" if max(ord(u) for u in values) > 255 else "uint8_t"
-    with open(compression_filename, "w") as f:
-        f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
-        f.write("const {} values[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(u)) for u in values)))
-        f.write("const uint16_t ngrams[] = {{ {} }};\n".format(", ".join(str(u) for u in ngramdata)))
-    return (values, lengths), ngrams
+    ngramdata = [ord(i) for i in ngramsdata]
+    huffman_data_size = sum((len(cb[u]) + 7)//8 for u in all_strings_concat)
+    result = EncodingData(lengths, values, ngramsdata, huffman_data_size)
+    return result
 
 def decompress(encoding_table, length, encoded, ngrams):
     values, lengths = encoding_table
@@ -403,7 +517,12 @@ if __name__ == "__main__":
     qcfgs, qstrs, i18ns = parse_input_headers(args.infiles)
     if args.translation:
         translations = translate(args.translation, i18ns)
-        encoding_table, ngrams = compute_huffman_coding(translations, qstrs, args.compression_filename)
+        best_encoding = min(compute_huffman_coding(translations, qstrs, i) for i in range(8, 96, 4))
+        best_encoding.print()
+        with open(args.compression_filename, "w") as f:
+            best_encoding.write(f)
+        encoding_table = (best_encoding.values, best_encoding.lengths)
+        ngrams = best_encoding.ngramdata
         print_qstr_data(encoding_table, qcfgs, qstrs, translations, ngrams)
     else:
         print_qstr_enums(qstrs)

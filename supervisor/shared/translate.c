@@ -51,9 +51,12 @@ STATIC int put_utf8(char *buf, int u) {
         *buf   = 0b10000000 | (u & 0b00111111);
         return 2;
     } else if(u >= 0xe000 && u <= 0xf8ff) {
-        int n = (u - 0xe000) * 2;
-        int ret = put_utf8(buf, ngrams[n]);
-        return ret + put_utf8(buf + ret, ngrams[n+1]);
+        int idx = u & 0xff;
+        int sz = ((u >> 8) & 0x1f) + 1;
+        int ret = 0;
+        for(; sz--;)
+            ret += put_utf8(buf, ngrams[idx++]);
+        return ret;
     } else { // u <= 0xffff)
         *buf++ = 0b11000000 | (u >> 12);
         *buf   = 0b10000000 | ((u >> 6) & 0b00111111);
