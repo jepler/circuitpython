@@ -21,12 +21,14 @@ if "BOARDS" in os.environ:
 
 sha, version = build_info.get_version_info()
 
-languages = build_info.get_languages()
+all_languages = build_info.get_languages()
 exit_status = 0
 for board in build_boards:
     bin_directory = "../bin/{}/".format(board)
     os.makedirs(bin_directory, exist_ok=True)
     board_info = all_boards[board]
+
+    languages = build_info.get_board_languages(board, all_languages)
 
     for language in languages:
         bin_directory = "../bin/{board}/{language}".format(board=board, language=language)

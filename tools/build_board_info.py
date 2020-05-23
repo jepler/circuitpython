@@ -67,12 +67,23 @@ aliases_by_board = {
     "pewpew10": ["pewpew13"]
 }
 
+monolingual_boards = set((
+    'escornabot_makech',
+    'meowmeow',
+    'pyruler',
+    'trinket_m0_haxpress',
+))
+
 def get_languages():
     languages = []
     for f in os.scandir("../locale"):
         if f.name.endswith(".po"):
             languages.append(f.name[:-3])
     return languages
+
+def get_board_languages(board, all_languages):
+    if board in monolingual_boards: return ['en_US']
+    return all_languages
 
 def get_board_mapping():
     boards = {}
