@@ -1,5 +1,5 @@
 from datetime import datetime
-from setuptools import setup
+from setuptools import setup, sic
 from pathlib import Path
 import subprocess
 import re
@@ -19,7 +19,7 @@ if len(pieces) > 2:
     # Merge the commit count and build to the pre-release identifier.
     pieces[-2] += ".dev." + pieces[-1]
     pieces.pop()
-version = "-".join(pieces)
+version = sic("-".join(pieces))
 
 setup(
     name="circuitpython-stubs",
