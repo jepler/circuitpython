@@ -223,6 +223,7 @@ stubs:
 	@mkdir -p circuitpython-stubs
 	@$(PYTHON) tools/extract_pyi.py shared-bindings/ $(STUBDIR)
 	@$(PYTHON) tools/extract_pyi.py ports/atmel-samd/bindings $(STUBDIR)
+	@touch $(STUBDIR)/__init__.py
 	@$(PYTHON) setup.py -q sdist
 
 update-frozen-libraries:
