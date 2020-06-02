@@ -307,6 +307,7 @@ SRC_COMMON_HAL_ALL = \
 	rotaryio/__init__.c \
 	rtc/RTC.c \
 	rtc/__init__.c \
+	_sdcardio/SDIOSDCard.c \
 	supervisor/Runtime.c \
 	supervisor/__init__.c \
 	watchdog/WatchDogMode.c \

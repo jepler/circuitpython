@@ -41,7 +41,7 @@
 //| 
 //|     Controls an SD card over SPI.  This built-in module has higher read
 //|     performance than the library adafruit_sdcard, but it is only compatible with
-//|     `busio.SPI`, not `bitbangio.SPI`.  Usually an SDCard object is used
+//|     `busio.SPI`, not `bitbangio.SPI`.  Usually an SPISDCard object is used
 //|     with ``storage.VfsFat`` to allow file I/O to an SD card."""
 //| 
 //|     def __init__(bus=None, cs=None, baudrate=8000000):
@@ -52,6 +52,10 @@
 //|         :param int baudrate: The SPI data rate to use after card setup
 //|         :param busio.SDIO sdio: The SDIO bus.  Mutually exclusive with spi and cs.
 //| 
+//|         Note that during detection and configuration, a hard-coded low baudrate is used.
+//|         Data transfers use the specified baurate (rounded down to one that is supported by
+//|         the microcontroller)
+//|
 //|         Example usage:
 //| 
 //|         .. code-block:: python
@@ -68,12 +72,11 @@
 //|             os.listdir('/sd')"""
 
 STATIC mp_obj_t sdcardio_sdcard_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_spi, ARG_cs, ARG_baudrate, ARG_sdio, NUM_ARGS };
+    enum { ARG_spi, ARG_cs, ARG_baudrate, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_spi, MP_ARG_OBJ, {.u_obj = mp_const_none } },
         { MP_QSTR_cs, MP_ARG_OBJ, {.u_obj = mp_const_none } },
         { MP_QSTR_baudrate, MP_ARG_INT, {.u_int = 8000000} },
-        { MP_QSTR_sdio, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_int = 8000000} },
     };
     MP_STATIC_ASSERT( MP_ARRAY_SIZE(allowed_args) == NUM_ARGS );
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];

@@ -32,11 +32,30 @@
 
 #include "shared-bindings/_sdcardio/SPISDCard.h"
 
+#if CIRCUITPY_SDCARDIO_SDIO
+#include "shared-bindings/_sdcardio/SDIOSDCard.h"
+#else
+STATIC mp_obj_t sdcardio_sdiosdcard_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    mp_raise_NotImplementedError(translate("No SDIO bus available"));
+}
+
+STATIC const mp_rom_map_elem_t sdcardio_sdiosdcard_locals_dict_table[] = {
+};
+STATIC MP_DEFINE_CONST_DICT(sdcardio_sdiosdcard_locals_dict, sdcardio_sdiosdcard_locals_dict_table);
+const mp_obj_type_t sdcardio_sdiosdcard_type = {
+   { &mp_type_type },
+   .name = MP_QSTR_SDIO,
+   .make_new = sdcardio_sdiosdcard_make_new,
+   .locals_dict = (mp_obj_dict_t*)&sdcardio_sdiosdcard_locals_dict,
+};
+#endif
+
 //| """Low-level routines for SD card I/O"""
 
 STATIC const mp_rom_map_elem_t sdcardio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR__sdcardio) },
     { MP_ROM_QSTR(MP_QSTR_SPISDCard), MP_ROM_PTR(&sdcardio_SPISDCard_type) },
+    { MP_ROM_QSTR(MP_QSTR_SDIOSDCard), MP_ROM_PTR(&sdcardio_sdiosdcard_type) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(sdcardio_module_globals, sdcardio_module_globals_table);
