@@ -209,6 +209,11 @@ void common_hal_audiomp3_mp3file_construct(audiomp3_mp3file_obj_t* self,
 }
 
 void common_hal_audiomp3_mp3file_set_file(audiomp3_mp3file_obj_t* self, pyb_file_obj_t* file) {
+    if (self->file) {
+        mp_obj_t args[2];
+        mp_load_method(self->file, MP_QSTR_close, args);
+        mp_call_method_n_kw(0, 0, args);
+    }
     self->file = file;
     f_lseek(&self->file->fp, 0);
     self->inbuf_offset = self->inbuf_length;
