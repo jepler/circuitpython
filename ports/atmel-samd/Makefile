@@ -105,7 +105,7 @@ endif
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
+  CFLAGS += -g3
   # You may want to disable -flto if it interferes with debugging.
   CFLAGS += -flto -flto-partition=none
   # You may want to enable these flags to make setting breakpoints easier.
@@ -242,6 +242,14 @@ SRC_ASF += \
 
 endif
 
+ifeq ($(CIRCUITPY_SDCARDIO_SDIO),1)
+SRC_ASF += \
+	hal/src/hal_mci_sync.c \
+	hpl/sdhc/hpl_sdhc.c \
+
+$(BUILD)/asf4/$(CHIP_FAMILY)/hpl/sdhc/hpl_sdhc.o: CFLAGS += -Wno-cast-align
+endif
+
 SRC_ASF := $(addprefix asf4/$(CHIP_FAMILY)/, $(SRC_ASF))
 
 SRC_C = \
@@ -286,6 +294,9 @@ SRC_C = \
 	supervisor/shared/memory.c \
 	timer_handler.c \
 
+ifeq ($(CIRCUITPY_SDCARDIO_SDIO),1)
+SRC_C += ports/atmel-samd/sd_mmc/sd_mmc.c
+endif
 
 ifeq ($(CIRCUITPY_NETWORK),1)
 CFLAGS += -DMICROPY_PY_NETWORK=1
@@ -342,6 +353,10 @@ endif
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 
+SRC_QSTR += $(HEADER_BUILD)/sdiodata.h
+$(HEADER_BUILD)/sdiodata.h: $(TOP)/tools/mksdiodata.py | $(HEADER_BUILD)
+	$(Q)$(PYTHON3) $< > $@
+
 SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED)
 # Sources that only hold QSTRs after pre-processing.
 SRC_QSTR_PREPROCESSOR += peripherals/samd/$(CHIP_FAMILY)/clocks.c
@@ -366,4 +381,8 @@ include $(TOP)/py/mkrules.mk
 # Print out the value of a make variable.
 # https://stackoverflow.com/questions/16467718/how-to-print-out-a-variable-in-makefile
 print-%:
-	@echo $* = $($*)
+	@bash -c 'printf "%q " $* = $($*)'
+	@echo
+
+preprocess-%.c: %.c
+	@$(CC) $(CFLAGS) -$ "$*.c"
