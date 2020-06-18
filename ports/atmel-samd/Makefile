@@ -97,6 +97,12 @@ CFLAGS += -Os -DNDEBUG
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
 endif
 
+ifeq ($(CHIP_FAMILY), same54)
+CFLAGS += -Os -DNDEBUG
+# TinyUSB defines
+CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
+endif
+
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
   CFLAGS += -ggdb
@@ -152,7 +158,16 @@ CFLAGS += \
 	-mcpu=cortex-m4 \
 	-mfloat-abi=hard \
 	-mfpu=fpv4-sp-d16 \
-	-DSAMD51
+	-DSAM_D5X_E5X -DSAMD51
+endif
+ifeq ($(CHIP_FAMILY), same54)
+CFLAGS += \
+	-mthumb \
+	-mabi=aapcs-linux \
+	-mcpu=cortex-m4 \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-DSAM_D5X_E5X -DSAME54
 endif
 
 
@@ -169,6 +184,9 @@ ifeq ($(CHIP_FAMILY), samd21)
 LDFLAGS += -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/
 BOOTLOADER_SIZE := 0x2000
 else ifeq ($(CHIP_FAMILY), samd51)
+LDFLAGS += -mthumb -mcpu=cortex-m4
+BOOTLOADER_SIZE := 0x4000
+else ifeq ($(CHIP_FAMILY), same54)
 LDFLAGS += -mthumb -mcpu=cortex-m4
 BOOTLOADER_SIZE := 0x4000
 endif
@@ -207,6 +225,15 @@ SRC_ASF += \
 else ifeq ($(CHIP_FAMILY), samd51)
 SRC_ASF += \
 	hal/src/hal_rand_sync.c \
+	hpl/core/hpl_core_m4.c \
+	hpl/mclk/hpl_mclk.c \
+	hpl/osc32kctrl/hpl_osc32kctrl.c \
+	hpl/oscctrl/hpl_oscctrl.c \
+	hpl/trng/hpl_trng.c \
+
+else ifeq ($(CHIP_FAMILY), same54)
+SRC_ASF += \
+    hal/src/hal_rand_sync.c \
 	hpl/core/hpl_core_m4.c \
 	hpl/mclk/hpl_mclk.c \
 	hpl/osc32kctrl/hpl_osc32kctrl.c \
