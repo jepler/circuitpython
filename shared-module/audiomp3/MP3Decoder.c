@@ -249,7 +249,13 @@ void common_hal_audiomp3_mp3file_set_file(audiomp3_mp3file_obj_t* self, mp_obj_t
         self->readinto_m[0] = 0;
         f_lseek(&file_obj->fp, 0);
     } else {
-        mp_load_method(file, MP_QSTR_readinto, self->readinto_m);
+        mp_load_method_maybe(file, MP_QSTR_recv_into, self->readinto_m);
+        if (!self->readinto[0]) {
+            // So that the error will state that there is no `readinto`
+            // method.  The coder will only be able to learn via docs
+            // that recv_into is also supported.
+            mp_load_method(file, MP_QSTR_readinto, self->readinto_m);
+        }
     }
     self->file = file;
     self->inbuf_offset = self->inbuf_length;
