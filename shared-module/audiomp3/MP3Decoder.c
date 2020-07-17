@@ -31,7 +31,9 @@
 #include <string.h>
 #include <math.h>
 
+#include "py/binary.h"
 #include "py/mperrno.h"
+#include "py/objarray.h"
 #include "py/runtime.h"
 
 #include "shared-module/audiomp3/MP3Decoder.h"
@@ -39,6 +41,27 @@
 #include "lib/mp3/src/mp3common.h"
 
 #define MAX_BUFFER_LEN (MAX_NSAMP * MAX_NGRAN * MAX_NCHAN * sizeof(int16_t))
+
+STATIC int mp3file_readinto(audiomp3_mp3file_obj_t *self, void *buf, size_t count) {
+    if (self->readinto_m[0]) {
+        mp_obj_array_t ar = {{&mp_type_bytearray}, BYTEARRAY_TYPECODE, 0, count, buf};
+        self->readinto_m[2] = &ar;
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            mp_obj_t ret = mp_call_method_n_kw(1, 0, self->readinto_m);
+            nlr_pop();
+            return MP_OBJ_SMALL_INT_VALUE(ret);
+        } else {
+            return -1;
+        }
+    }
+    pyb_file_obj_t *file_obj = self->file;
+    UINT bytes_read = 0;
+    if (f_read(&file_obj->fp, buf, count, &bytes_read) != FR_OK) {
+        return -1;
+    }
+    return bytes_read;
+}
 
 /** Fill the input buffer if it is less than half full.
  *
@@ -64,10 +87,10 @@ STATIC bool mp3file_update_inbuf(audiomp3_mp3file_obj_t* self) {
             self->inbuf_length - self->inbuf_offset);
         self->inbuf_offset = 0;
 
-        UINT to_read = end_of_buffer - new_end_of_data;
-        UINT bytes_read = 0;
+        int to_read = end_of_buffer - new_end_of_data;
         memset(new_end_of_data, 0, to_read);
-        if (f_read(&self->file->fp, new_end_of_data, to_read, &bytes_read) != FR_OK) {
+        int bytes_read = mp3file_readinto(self, new_end_of_data, to_read);
+        if (bytes_read < 0) {
             self->eof = true;
             mp_raise_OSError(MP_EIO);
         }
@@ -119,8 +142,20 @@ STATIC void mp3file_skip_id3v2(audiomp3_mp3file_obj_t* self) {
     CONSUME(self, to_consume);
     size -= to_consume;
 
-    // Next, seek in the file after the header
-    f_lseek(&self->file->fp, f_tell(&self->file->fp) + size);
+    if (self->readinto_m[0]) {
+        // We have no choice but to read the whole header
+        to_consume = MIN(size, BYTES_LEFT(self));
+        while(to_consume) {
+            CONSUME(self, to_consume);
+            size -= to_consume;
+            mp3file_update_inbuf(self);
+            to_consume = MIN(size, BYTES_LEFT(self));
+        }
+    } else {
+        // It's a file so we can seek after the header
+        pyb_file_obj_t *file_obj = self->file;
+        f_lseek(&file_obj->fp, f_tell(&file_obj->fp) + size);
+    }
     return;
 }
 
@@ -155,7 +190,7 @@ STATIC bool mp3file_get_next_frame_info(audiomp3_mp3file_obj_t* self, MP3FrameIn
 }
 
 void common_hal_audiomp3_mp3file_construct(audiomp3_mp3file_obj_t* self,
-                                           pyb_file_obj_t* file,
+                                           mp_obj_t file,
                                            uint8_t *buffer,
                                            size_t buffer_size) {
     // XXX Adafruit_MP3 uses a 2kB input buffer and two 4kB output buffers.
@@ -208,9 +243,15 @@ void common_hal_audiomp3_mp3file_construct(audiomp3_mp3file_obj_t* self,
     common_hal_audiomp3_mp3file_set_file(self, file);
 }
 
-void common_hal_audiomp3_mp3file_set_file(audiomp3_mp3file_obj_t* self, pyb_file_obj_t* file) {
+void common_hal_audiomp3_mp3file_set_file(audiomp3_mp3file_obj_t* self, mp_obj_t file) {
+    if (MP_OBJ_IS_TYPE(file, &mp_type_fileio)) {
+        pyb_file_obj_t *file_obj = self->file;
+        self->readinto_m[0] = 0;
+        f_lseek(&file_obj->fp, 0);
+    } else {
+        mp_load_method(file, MP_QSTR_readinto, self->readinto_m);
+    }
     self->file = file;
-    f_lseek(&self->file->fp, 0);
     self->inbuf_offset = self->inbuf_length;
     self->eof = 0;
     self->other_channel = -1;
@@ -275,9 +316,14 @@ void audiomp3_mp3file_reset_buffer(audiomp3_mp3file_obj_t* self,
     if (single_channel && channel == 1) {
         return;
     }
+    if (self->readinto_m[0]) {
+        // As it's a stream, we can't reset
+        return;
+    }
     // We don't reset the buffer index in case we're looping and we have an odd number of buffer
     // loads
-    f_lseek(&self->file->fp, 0);
+    pyb_file_obj_t *file_obj = self->file;
+    f_lseek(&file_obj->fp, 0);
     self->inbuf_offset = self->inbuf_length;
     self->eof = 0;
     self->other_channel = -1;

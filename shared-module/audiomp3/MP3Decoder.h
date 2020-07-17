@@ -44,7 +44,7 @@ typedef struct {
     uint32_t frame_buffer_size;
 
     uint32_t sample_rate;
-    pyb_file_obj_t* file;
+    mp_obj_t file;
 
     uint8_t buffer_index;
     uint8_t channel_count;
@@ -52,6 +52,10 @@ typedef struct {
 
     int8_t other_channel;
     int8_t other_buffer_index;
+
+    // For pyb_file_obj_t, readinto_m[0] is NULL and f_read / f_lseek
+    // are used.  Otherwise, it's a stream and we can read but not seek.
+    mp_obj_t readinto_m[3];
 } audiomp3_mp3file_obj_t;
 
 // These are not available from Python because it may be called in an interrupt.
