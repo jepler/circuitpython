@@ -6,6 +6,7 @@
 
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import sh
@@ -13,10 +14,11 @@ import base64
 from datetime import date
 from sh.contrib import git
 
-sys.path.append("../docs")
+BASEDIR = pathlib.Path(__file__).parent.parent
+sys.path.append(str(BASEDIR / "docs"))
 import shared_bindings_matrix
 
-sys.path.append("adabot")
+sys.path.append(str(BASEDIR / "tools/adabot"))
 import adabot.github_requests as github
 
 SUPPORTED_PORTS = ["atmel-samd", "cxd56", "esp32s2", "litex", "mimxrt10xx", "nrf", "stm"]
@@ -33,6 +35,20 @@ BIN_DFU = ('bin', 'dfu')
 # Example:
 # https://downloads.circuitpython.org/bin/trinket_m0/en_US/adafruit-circuitpython-trinket_m0-en_US-5.0.0-rc.0.uf2
 DOWNLOAD_BASE_URL = "https://downloads.circuitpython.org/bin"
+
+ARM = 'arm'
+RISCV = 'riscv'
+BASE = 'base'
+
+arch_by_port = {
+    "nrf": ARM,
+    "atmel-samd": ARM,
+    "stm": ARM,
+    "cxd56": ARM,
+    "mimxrt10xx": ARM,
+    "litex": RISCV,
+    "esp32s2": BASE
+}
 
 # Default extensions
 extension_by_port = {
@@ -79,7 +95,7 @@ aliases_by_board = {
 
 def get_languages():
     languages = []
-    for f in os.scandir("../locale"):
+    for f in os.scandir(BASEDIR / "locale"):
         if f.name.endswith(".po"):
             languages.append(f.name[:-3])
     return languages
@@ -87,7 +103,7 @@ def get_languages():
 def get_board_mapping():
     boards = {}
     for port in SUPPORTED_PORTS:
-        board_path = os.path.join("../ports", port, "boards")
+        board_path = os.path.join(BASEDIR / "ports", port, "boards")
         for board_path in os.scandir(board_path):
             if board_path.is_dir():
                 board_files = os.listdir(board_path.path)
@@ -261,7 +277,7 @@ def generate_download_info():
     board_mapping = get_board_mapping()
 
     for port in SUPPORTED_PORTS:
-        board_path = os.path.join("../ports", port, "boards")
+        board_path = os.path.join(BASEDIR / "ports", port, "boards")
         for board_path in os.scandir(board_path):
             if board_path.is_dir():
                 board_files = os.listdir(board_path.path)

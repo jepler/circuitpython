@@ -43,12 +43,12 @@ jobs:
         gcc --version
         python3 --version
     - name: Build mpy-cross
-      run: make -C mpy-cross -j2
+      run: make -C mpy-cross -j $(nproc)
     - name: Build unix port
       run: |
-        make -C ports/unix deplibs -j2
-        make -C ports/unix -j2
-        make -C ports/unix coverage -j2
+        make -C ports/unix deplibs -j $(nproc)
+        make -C ports/unix -j $(nproc)
+        make -C ports/unix coverage -j $(nproc)
     - name: Test all
       run: MICROPY_CPYTHON3=python3.8 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1
       working-directory: tests
@@ -68,7 +68,7 @@ jobs:
       run: MICROPY_CPYTHON3=python3.8 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests -j1 --via-mpy -d basics float
       working-directory: tests
     - name: Stubs
-      run: make stubs -j2
+      run: make stubs -j $(nproc)
     - uses: actions/upload-artifact@v2
       with:
         name: stubs
@@ -85,21 +85,21 @@ jobs:
       run: python3 -u ci_new_boards_check.py
       working-directory: tools
     - name: Build mpy-cross.static-raspbian
-      run: make -C mpy-cross -j2 -f Makefile.static-raspbian
+      run: make -C mpy-cross -j $(nproc) -f Makefile.static-raspbian
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: mpy-cross.static-raspbian
         path: mpy-cross/mpy-cross.static-raspbian
 
     - name: Build mpy-cross.static
-      run: make -C mpy-cross -j2 -f Makefile.static
+      run: make -C mpy-cross -j $(nproc) -f Makefile.static
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: mpy-cross.static-amd64-linux
         path: mpy-cross/mpy-cross.static
 
     - name: Build mpy-cross.static-mingw
-      run: make -C mpy-cross -j2 -f Makefile.static-mingw
+      run: make -C mpy-cross -j $(nproc) -f Makefile.static-mingw
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: mpy-cross.static-x64-windows
@@ -129,7 +129,7 @@ jobs:
     - name: CircuitPython version
       run: git describe --dirty --tags
     - name: Build mpy-cross
-      run: make -C mpy-cross -j2
+      run: make -C mpy-cross -j $(nproc)
     - uses: actions/upload-artifact@v1.0.0
       with:
         name: mpy-cross-macos-catalina
@@ -287,31 +287,15 @@ jobs:
         - "xinabox_cs11"
 
     steps:
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: Install deps
-      run: |
-        sudo apt-get install -y gettext
-        pip install requests sh click setuptools awscli
-        wget https://adafruit-circuit-python.s3.amazonaws.com/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-        sudo tar -C /usr --strip-components=1 -xaf gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-    - name: Versions
-      run: |
-        gcc --version
-        arm-none-eabi-gcc --version
-        python3 --version
     - uses: actions/checkout@v2.2.0
       with:
         submodules: true
         fetch-depth: 0
     - run: git fetch --recurse-submodules=no https://github.com/adafruit/circuitpython refs/tags/*:refs/tags/*
     - name: mpy-cross
-      run: make -C mpy-cross -j2
+      run: make docker-build-mpy-cross -j $(nproc)
     - name: build
-      run: python3 -u build_release_files.py
-      working-directory: tools
+      run: docker run --user `id -u`:`id -g` --mount type=bind,source=`pwd`,destination=/build jepler/circuitpython-build:arm-latest env BOARDS="$BOARDS" ./tools/build_release_files.py
       env:
         BOARDS: ${{ matrix.board }}
     - uses: actions/upload-artifact@v1.0.0
@@ -335,31 +319,15 @@ jobs:
         - "fomu"
 
     steps:
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: Install deps
-      run: |
-        sudo apt-get install -y gettext
-        pip install requests sh click setuptools awscli
-        wget https://static.dev.sifive.com/dev-tools/riscv64-unknown-elf-gcc-8.3.0-2019.08.0-x86_64-linux-centos6.tar.gz
-        sudo tar -C /usr --strip-components=1 -xaf riscv64-unknown-elf-gcc-8.3.0-2019.08.0-x86_64-linux-centos6.tar.gz
-    - name: Versions
-      run: |
-        gcc --version
-        riscv64-unknown-elf-gcc --version
-        python3 --version
     - uses: actions/checkout@v2.2.0
       with:
         submodules: true
         fetch-depth: 0
     - run: git fetch --recurse-submodules=no https://github.com/adafruit/circuitpython refs/tags/*:refs/tags/*
     - name: mpy-cross
-      run: make -C mpy-cross -j2
+      run: make docker-build-mpy-cross -j $(nproc)
     - name: build
-      run: python3 -u build_release_files.py
-      working-directory: tools
+      run: docker run --user `id -u`:`id -g` --mount type=bind,source=`pwd`,destination=/build jepler/circuitpython-build:riscv-latest env BOARDS="$BOARDS" ./tools/build_release_files.py
       env:
         BOARDS: ${{ matrix.board }}
     - uses: actions/upload-artifact@v1.0.0
@@ -428,15 +396,13 @@ jobs:
         cmake --version
       shell: bash
       env:
-        IDF_PATH: ${{ github.workspace }}/ports/esp32s2/esp-idf
-        IDF_TOOLS_PATH: ${{ github.workspace }}/.idf_tools
+        IDF_PATH: /build/ports/esp32s2/esp-idf
+        IDF_TOOLS_PATH: /build/.idf_tools
     - name: mpy-cross
-      run: make -C mpy-cross -j2
+      run: make docker-build-mpy-cross -j $(nproc)
     - name: build
       run: |
-        source $IDF_PATH/export.sh
-        python3 -u build_release_files.py
-      working-directory: tools
+        docker run --user `id -u`:`id -g` --mount type=bind,source=`pwd`,destination=/build jepler:circuitpython-build/base-latest env BOARDS="$BOARDS" sh -c 'source $IDF_PATH/export.sh && ./tools/build_release_files.py'
       shell: bash
       env:
         IDF_PATH: ${{ github.workspace }}/ports/esp32s2/esp-idf

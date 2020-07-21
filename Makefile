@@ -293,3 +293,21 @@ clean-nrf:
 
 clean-stm:
 	$(MAKE) -C ports/stm BOARD=feather_stm32f405_express clean
+
+DOCKER_RUN = docker run --user `id -u`:`id -g` --mount type=bind,source=`pwd`,destination=/build
+BUILD_ARGS ?=
+docker-build-mpy-cross:
+	$(DOCKER_RUN) jepler/circuitpython-build:base-latest make -C mpy-cross $(BUILD_ARGS)
+
+docker-build-arm:
+	$(DOCKER_RUN) jepler/circuitpython-build:arm-latest make -C ports/$(PORT) $(BUILD_ARGS)
+
+docker-build-riscv:
+	$(DOCKER_RUN) jepler/circuitpython-build:riscv-latest make -C ports/$(PORT) $(BUILD_ARGS)
+
+docker-build-unix:
+	$(DOCKER_RUN) jepler/circuitpython-build:base-latest make -C ports/unix $(BUILD_ARGS)
+
+TEST_UNIX = ./run-tests
+docker-test-unix:
+	$(DOCKER_RUN) jepler/circuitpython-build:base-latest sh -c 'cd tests && $(TEST_UNIX)'
