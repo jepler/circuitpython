@@ -71,8 +71,12 @@ bool common_hal_busio_spi_deinited(busio_spi_obj_t *self) {
     return self->spi_dev == NULL;
 }
 
-bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     uint8_t mode;
+
+    if (lsb_first) {
+        return false;
+    }
 
     self->frequency = baudrate;
     SPI_SETFREQUENCY(self->spi_dev, baudrate);
