@@ -36,6 +36,12 @@
 
 #define MAX_BAUDRATE (common_hal_mcu_get_clock_frequency() / 48)
 
+STATIC uint8_t bitrev(uint8_t n) {
+    uint8_t r = 0;
+    for(int i=0;i<8;i++) r |= ((n>>i) & 1)<<(7-i);
+    return r;
+}
+
 void shared_module_bitbangio_spi_construct(bitbangio_spi_obj_t *self,
         const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
         const mcu_pin_obj_t * miso) {
@@ -90,7 +96,7 @@ void shared_module_bitbangio_spi_deinit(bitbangio_spi_obj_t *self) {
 }
 
 void shared_module_bitbangio_spi_configure(bitbangio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     self->delay_half = 500000 / baudrate;
     // round delay_half up so that: actual_baudrate <= requested_baudrate
     if (500000 % baudrate != 0) {
@@ -99,6 +105,7 @@ void shared_module_bitbangio_spi_configure(bitbangio_spi_obj_t *self,
 
     self->polarity = polarity;
     self->phase = phase;
+    self->lsb_first = lsb_first;
 }
 
 bool shared_module_bitbangio_spi_try_lock(bitbangio_spi_obj_t *self) {
@@ -127,30 +134,11 @@ bool shared_module_bitbangio_spi_write(bitbangio_spi_obj_t *self, const uint8_t 
     }
     uint32_t delay_half = self->delay_half;
 
-    // only MSB transfer is implemented
-
-    // If a port defines MICROPY_PY_MACHINE_SPI_MIN_DELAY, and the configured
-    // delay_half is equal to this value, then the software SPI implementation
-    // will run as fast as possible, limited only by CPU speed and GPIO time.
-    #ifdef MICROPY_PY_MACHINE_SPI_MIN_DELAY
-    if (delay_half <= MICROPY_PY_MACHINE_SPI_MIN_DELAY) {
-        for (size_t i = 0; i < len; ++i) {
-            uint8_t data_out = data[i];
-            for (int j = 0; j < 8; ++j, data_out <<= 1) {
-                common_hal_digitalio_digitalinout_set_value(&self->mosi, (data_out >> 7) & 1);
-                common_hal_digitalio_digitalinout_set_value(&self->clock, 1 - self->polarity);
-                common_hal_digitalio_digitalinout_set_value(&self->clock, self->polarity);
-            }
-            if (dest != NULL) {
-                dest[i] = data_in;
-            }
-        }
-        return true;
-    }
-    #endif
-
     for (size_t i = 0; i < len; ++i) {
         uint8_t data_out = data[i];
+        if (self->lsb_first) {
+            data_out = bitrev(data_out);
+        }
         for (int j = 0; j < 8; ++j, data_out <<= 1) {
             common_hal_digitalio_digitalinout_set_value(&self->mosi, (data_out >> 7) & 1);
             if (self->phase == 0) {
@@ -176,42 +164,24 @@ bool shared_module_bitbangio_spi_write(bitbangio_spi_obj_t *self, const uint8_t 
 }
 
 // Reads in len bytes while outputting zeroes.
-bool shared_module_bitbangio_spi_read(bitbangio_spi_obj_t *self, uint8_t *data, size_t len) {
+bool shared_module_bitbangio_spi_read(bitbangio_spi_obj_t *self, uint8_t *data, size_t len, uint8_t write_data) {
     if (len > 0 && !self->has_miso) {
         mp_raise_ValueError(translate("Cannot read without MISO pin."));
     }
 
     uint32_t delay_half = self->delay_half;
 
-    // only MSB transfer is implemented
-
-    // If a port defines MICROPY_PY_MACHINE_SPI_MIN_DELAY, and the configured
-    // delay_half is equal to this value, then the software SPI implementation
-    // will run as fast as possible, limited only by CPU speed and GPIO time.
-    #ifdef MICROPY_PY_MACHINE_SPI_MIN_DELAY
-    if (delay_half <= MICROPY_PY_MACHINE_SPI_MIN_DELAY) {
-        // Clock out zeroes while we read.
-        if (self->has_mosi) {
-            common_hal_digitalio_digitalinout_set_value(&self->mosi, false);
-        }
-        for (size_t i = 0; i < len; ++i) {
-            uint8_t data_in = 0;
-            for (int j = 0; j < 8; ++j, data_out <<= 1) {
-                common_hal_digitalio_digitalinout_set_value(&self->clock, 1 - self->polarity);
-                data_in = (data_in << 1) | common_hal_digitalio_digitalinout_get_value(&self->miso);
-                common_hal_digitalio_digitalinout_set_value(&self->clock, self->polarity);
-            }
-            data[i] = data_in;
-        }
-        return true;
-    }
-    #endif
     if (self->has_mosi) {
         common_hal_digitalio_digitalinout_set_value(&self->mosi, false);
     }
+    if (self->lsb_first) {
+        write_data = bitrev(write_data);
+    }
     for (size_t i = 0; i < len; ++i) {
+        uint8_t data_out = write_data;
         uint8_t data_in = 0;
-        for (int j = 0; j < 8; ++j) {
+        for (int j = 0; j < 8; ++j, data_out <<= 1) {
+            common_hal_digitalio_digitalinout_set_value(&self->mosi, (data_out >> 7) & 1);
             if (self->phase == 0) {
                 common_hal_mcu_delay_us(delay_half);
                 common_hal_digitalio_digitalinout_set_value(&self->clock, 1 - self->polarity);
@@ -227,6 +197,9 @@ bool shared_module_bitbangio_spi_read(bitbangio_spi_obj_t *self, uint8_t *data, 
                 common_hal_digitalio_digitalinout_set_value(&self->clock, self->polarity);
                 common_hal_mcu_delay_us(delay_half);
             }
+        }
+        if (self->lsb_first) {
+            data_in = bitrev(data_in);
         }
         data[i] = data_in;
 
@@ -246,35 +219,12 @@ bool shared_module_bitbangio_spi_transfer(bitbangio_spi_obj_t *self, const uint8
     }
     uint32_t delay_half = self->delay_half;
 
-    // only MSB transfer is implemented
-
-    // If a port defines MICROPY_PY_MACHINE_SPI_MIN_DELAY, and the configured
-    // delay_half is equal to this value, then the software SPI implementation
-    // will run as fast as possible, limited only by CPU speed and GPIO time.
-    #ifdef MICROPY_PY_MACHINE_SPI_MIN_DELAY
-    if (delay_half <= MICROPY_PY_MACHINE_SPI_MIN_DELAY) {
-        for (size_t i = 0; i < len; ++i) {
-            uint8_t data_out = dout[i];
-            uint8_t data_in = 0;
-            for (int j = 0; j < 8; ++j, data_out <<= 1) {
-                common_hal_digitalio_digitalinout_set_value(&self->mosi, (data_out >> 7) & 1);
-                common_hal_digitalio_digitalinout_set_value(&self->clock, 1 - self->polarity);
-                data_in = (data_in << 1) | common_hal_digitalio_digitalinout_get_value(&self->miso);
-                common_hal_digitalio_digitalinout_set_value(&self->clock, self->polarity);
-            }
-            din[i] = data_in;
-
-            if (dest != NULL) {
-                dest[i] = data_in;
-            }
-        }
-        return true;
-    }
-    #endif
-
     for (size_t i = 0; i < len; ++i) {
         uint8_t data_out = dout[i];
         uint8_t data_in = 0;
+        if (self->lsb_first) {
+            data_out = bitrev(data_out);
+        }
         for (int j = 0; j < 8; ++j, data_out <<= 1) {
             common_hal_digitalio_digitalinout_set_value(&self->mosi, (data_out >> 7) & 1);
             if (self->phase == 0) {
@@ -292,6 +242,9 @@ bool shared_module_bitbangio_spi_transfer(bitbangio_spi_obj_t *self, const uint8
                 common_hal_digitalio_digitalinout_set_value(&self->clock, self->polarity);
                 common_hal_mcu_delay_us(delay_half);
             }
+        }
+        if (self->lsb_first) {
+            data_in = bitrev(data_in);
         }
         din[i] = data_in;
 

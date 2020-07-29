@@ -55,6 +55,7 @@ typedef struct {
     bool has_mosi:1;
     uint8_t polarity:1;
     uint8_t phase:1;
+    bool lsb_first:1;
     volatile bool locked:1;
 } bitbangio_spi_obj_t;
 

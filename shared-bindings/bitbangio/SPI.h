@@ -44,7 +44,7 @@ extern void shared_module_bitbangio_spi_deinit(bitbangio_spi_obj_t *self);
 extern bool shared_module_bitbangio_spi_deinited(bitbangio_spi_obj_t *self);
 
 extern void shared_module_bitbangio_spi_configure(bitbangio_spi_obj_t *self,
-    uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits);
+    uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first);
 
 extern bool shared_module_bitbangio_spi_try_lock(bitbangio_spi_obj_t *self);
 extern bool shared_module_bitbangio_spi_has_lock(bitbangio_spi_obj_t *self);
@@ -54,7 +54,7 @@ extern void shared_module_bitbangio_spi_unlock(bitbangio_spi_obj_t *self);
 extern bool shared_module_bitbangio_spi_write(bitbangio_spi_obj_t *self, const uint8_t *data, size_t len);
 
 // Reads in len bytes while outputting zeroes.
-extern bool shared_module_bitbangio_spi_read(bitbangio_spi_obj_t *self, uint8_t *data, size_t len);
+extern bool shared_module_bitbangio_spi_read(bitbangio_spi_obj_t *self, uint8_t *data, size_t len, uint8_t write_value);
 
 // Transfer out len bytes while reading len bytes
 extern bool shared_module_bitbangio_spi_transfer(bitbangio_spi_obj_t *self, const uint8_t *dout, uint8_t *din, size_t len);
