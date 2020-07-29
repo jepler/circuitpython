@@ -43,7 +43,7 @@ extern void common_hal_busio_spi_construct(busio_spi_obj_t *self,
 extern void common_hal_busio_spi_deinit(busio_spi_obj_t *self);
 extern bool common_hal_busio_spi_deinited(busio_spi_obj_t *self);
 
-extern bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits);
+extern bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first);
 
 extern bool common_hal_busio_spi_try_lock(busio_spi_obj_t *self);
 extern bool common_hal_busio_spi_has_lock(busio_spi_obj_t *self);

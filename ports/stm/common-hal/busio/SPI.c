@@ -279,10 +279,10 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     //This resets the SPI, so check before updating it redundantly
     if (baudrate == self->baudrate && polarity== self->polarity
-        && phase == self->phase && bits == self->bits) {
+        && phase == self->phase && bits == self->bits && lsb_first == self->lsb_first) {
         return true;
     }
 
@@ -292,6 +292,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     self->handle.Init.DataSize = (bits == 16) ? SPI_DATASIZE_16BIT : SPI_DATASIZE_8BIT;
     self->handle.Init.CLKPolarity = (polarity) ? SPI_POLARITY_HIGH : SPI_POLARITY_LOW;
     self->handle.Init.CLKPhase = (phase) ? SPI_PHASE_2EDGE : SPI_PHASE_1EDGE;
+    self->handle.Init.FirstBit = (lsb_first) ? SPI_FIRSTBIT_LSB : SPI_FIRSTBIT_MSB;
 
     self->handle.Init.BaudRatePrescaler = stm32_baud_to_spi_div(baudrate, &self->prescaler,
                                             get_busclock(self->handle.Instance));
@@ -305,6 +306,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     self->polarity = polarity;
     self->phase = phase;
     self->bits = bits;
+    self->lsb_first = lsb_first;
     return true;
 }
 

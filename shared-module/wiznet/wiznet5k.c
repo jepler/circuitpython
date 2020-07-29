@@ -396,7 +396,8 @@ mp_obj_t wiznet5k_create(busio_spi_obj_t *spi_in, const mcu_pin_obj_t *cs_in, co
         10000000,  // BAUDRATE 10MHz
         1, // HIGH POLARITY
         1, // SECOND PHASE TRANSITION
-        8 // 8 BITS
+        8, // 8 BITS
+        false // MSB first
     );
 
     common_hal_digitalio_digitalinout_construct(&wiznet5k_obj.cs, cs_in);

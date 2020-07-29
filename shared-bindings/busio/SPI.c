@@ -142,7 +142,7 @@ STATIC void check_for_deinit(busio_spi_obj_t *self) {
     }
 }
 
-//|     def configure(self, *, baudrate: int = 100000, polarity: int = 0, phase: int = 0, bits: int = 8) -> None:
+//|     def configure(self, *, baudrate: int = 100000, polarity: int = 0, phase: int = 0, bits: int = 8, lsb_first: bool = False) -> None:
 //|         """Configures the SPI bus. The SPI object must be locked.
 //|
 //|         :param int baudrate: the desired clock rate in Hertz. The actual clock rate may be higher or lower
@@ -152,6 +152,7 @@ STATIC void check_for_deinit(busio_spi_obj_t *self) {
 //|         :param int phase: the edge of the clock that data is captured. First (0)
 //|           or second (1). Rising or falling depends on clock polarity.
 //|         :param int bits: the number of bits per word
+//|         :param bool lsb_first: True to transfer the least significant bit of each byte first.  False (the default) to transfer the most significant bit of each byte first.
 //|
 //|         .. note:: On the SAMD21, it is possible to set the baudrate to 24 MHz, but that
 //|            speed is not guaranteed to work. 12 MHz is the next available lower speed, and is
@@ -167,12 +168,13 @@ STATIC void check_for_deinit(busio_spi_obj_t *self) {
 //|
 
 STATIC mp_obj_t busio_spi_configure(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_baudrate, ARG_polarity, ARG_phase, ARG_bits };
+    enum { ARG_baudrate, ARG_polarity, ARG_phase, ARG_bits, ARG_lsb_first };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_baudrate, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 100000} },
         { MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
+        { MP_QSTR_lsb_first, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
     };
     busio_spi_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
@@ -194,7 +196,7 @@ STATIC mp_obj_t busio_spi_configure(size_t n_args, const mp_obj_t *pos_args, mp_
     }
 
     if (!common_hal_busio_spi_configure(self, args[ARG_baudrate].u_int,
-                                           polarity, phase, bits)) {
+                                           polarity, phase, bits, args[ARG_lsb_first].u_bool)) {
         mp_raise_OSError(MP_EIO);
     }
     return mp_const_none;

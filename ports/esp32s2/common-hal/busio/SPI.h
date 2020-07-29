@@ -53,6 +53,7 @@ typedef struct {
     uint8_t polarity;
     uint8_t phase;
     uint8_t bits;
+    bool lsb_first;
     bool has_lock;
     bool connected_through_gpio;
 } busio_spi_obj_t;

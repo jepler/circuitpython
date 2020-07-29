@@ -137,10 +137,10 @@ void rgb_led_status_init() {
         shared_module_bitbangio_spi_try_lock(&status_apa102);
         // Use 1MHz for clock rate. Some APA102's are spec'd 800kHz-1200kHz,
         // though many can run much faster. bitbang will probably run slower.
-        shared_module_bitbangio_spi_configure(&status_apa102, 1000000, 0, 0, 8);
+        shared_module_bitbangio_spi_configure(&status_apa102, 1000000, 0, 0, 8, false);
         #else
         common_hal_busio_spi_try_lock(&status_apa102);
-        common_hal_busio_spi_configure(&status_apa102, 1000000, 0, 0, 8);
+        common_hal_busio_spi_configure(&status_apa102, 1000000, 0, 0, 8, false);
         #endif
     #endif
 

@@ -232,7 +232,7 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
 
     LPSPI_Enable(self->spi, false);
     uint32_t tcrPrescaleValue;
@@ -241,7 +241,8 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
 
     if ((polarity == common_hal_busio_spi_get_polarity(self)) &&
         (phase == common_hal_busio_spi_get_phase(self)) &&
-        (bits == ((self->spi->TCR & LPSPI_TCR_FRAMESZ_MASK) >> LPSPI_TCR_FRAMESZ_SHIFT)) + 1) {
+        (bits == ((self->spi->TCR & LPSPI_TCR_FRAMESZ_MASK) >> LPSPI_TCR_FRAMESZ_SHIFT)) + 1 &&
+        (lsb_first == !!(self->spi->TCR & LPSPI_TCR_LSBF_MASK))) {
         return true;
     }
 
@@ -252,7 +253,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     config.cpol = polarity;
     config.cpha = phase;
     config.bitsPerFrame = bits;
-
+    config.direction = lsb_first ? kLPSPI_LsbFirst : kLPSPI_MsbFirst;
     LPSPI_Deinit(self->spi);
     LPSPI_MasterInit(self->spi, &config, LPSPI_MASTER_CLK_FREQ);
 

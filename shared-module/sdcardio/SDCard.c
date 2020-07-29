@@ -53,7 +53,7 @@ STATIC bool lock_and_configure_bus(sdcardio_sdcard_obj_t *self) {
     if (!common_hal_busio_spi_try_lock(self->bus)) {
         return false;
     }
-    common_hal_busio_spi_configure(self->bus, self->baudrate, 0, 0, 8);
+    common_hal_busio_spi_configure(self->bus, self->baudrate, 0, 0, 8, false);
     common_hal_digitalio_digitalinout_set_value(&self->cs, false);
     return true;
 }

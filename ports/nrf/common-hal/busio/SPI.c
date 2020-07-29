@@ -208,7 +208,7 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
     reset_pin_number(self->MISO_pin_number);
 }
 
-bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     // nrf52 does not support 16 bit
     if (bits != 8) {
       return false;
@@ -225,7 +225,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, ui
         mode = (phase) ? NRF_SPIM_MODE_1 : NRF_SPIM_MODE_0;
     }
 
-    nrf_spim_configure(self->spim_peripheral->spim.p_reg, mode, NRF_SPIM_BIT_ORDER_MSB_FIRST);
+    nrf_spim_configure(self->spim_peripheral->spim.p_reg, mode, lsb_first ? NRF_SPIM_BIT_ORDER_MSB_FIRST : NRF_SPIM_BIT_ORDER_LSB_FIRST);
 
     return true;
 }

@@ -259,7 +259,7 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     uint8_t baud_reg_value = samd_peripherals_spi_baudrate_to_baud_reg_value(baudrate);
 
     void * hw = self->spi_desc.dev.prvt;
@@ -267,7 +267,8 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     if (hri_sercomspi_get_CTRLA_CPHA_bit(hw) == phase &&
         hri_sercomspi_get_CTRLA_CPOL_bit(hw) == polarity &&
         hri_sercomspi_read_CTRLB_CHSIZE_bf(hw) == ((uint32_t)bits - 8) &&
-        hri_sercomspi_read_BAUD_BAUD_bf(hw) == baud_reg_value) {
+        hri_sercomspi_read_BAUD_BAUD_bf(hw) == baud_reg_value &&
+        hri_sercomspi_get_CTRLA_DORD_bit(hw) == lsb_first) {
         return true;
     }
 
@@ -275,6 +276,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     spi_m_sync_disable(&self->spi_desc);
     hri_sercomspi_wait_for_sync(hw, SERCOM_SPI_SYNCBUSY_MASK);
 
+    hri_sercomspi_write_CTRLA_DORD_bit(hw, lsb_first);
     hri_sercomspi_write_CTRLA_CPHA_bit(hw, phase);
     hri_sercomspi_write_CTRLA_CPOL_bit(hw, polarity);
     hri_sercomspi_write_CTRLB_CHSIZE_bf(hw, bits - 8);

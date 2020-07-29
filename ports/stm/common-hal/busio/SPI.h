@@ -47,6 +47,7 @@ typedef struct {
     uint8_t polarity;
     uint8_t phase;
     uint8_t bits;
+    bool lsb_first;
 } busio_spi_obj_t;
 
 void spi_reset(void);

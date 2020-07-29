@@ -209,7 +209,7 @@ void common_hal_busio_spi_construct(busio_spi_obj_t *self,
 
     hal->io_mode = SPI_LL_IO_MODE_NORMAL;
 
-    common_hal_busio_spi_configure(self, 250000, 0, 0, 8);
+    common_hal_busio_spi_configure(self, 250000, 0, 0, 8, false);
 }
 
 void common_hal_busio_spi_never_reset(busio_spi_obj_t *self) {
@@ -246,11 +246,13 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits, bool lsb_first) {
     if (baudrate == self->target_frequency &&
         polarity == self->polarity &&
         phase == self->phase &&
-        bits == self->bits) {
+        bits == self->bits &&
+        lsb_first == self->lsb_first
+    ) {
         return true;
     }
     self->hal_context.mode = polarity << 1 | phase;
@@ -258,7 +260,10 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     self->phase = phase;
     self->bits = bits;
     self->target_frequency = baudrate;
+    self->lsb_first = lsb_first;
     self->hal_context.timing_conf = &self->timing_conf;
+    self->hal_context.tx_lsbfirst = lsb_first;
+    self->hal_context.rx_lsbfirst = lsb_first;
     esp_err_t result =  spi_hal_get_clock_conf(&self->hal_context,
                                                self->target_frequency,
                                                128 /* duty_cycle */,

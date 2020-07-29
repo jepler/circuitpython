@@ -106,7 +106,7 @@ bool common_hal_displayio_fourwire_begin_transaction(mp_obj_t obj) {
         return false;
     }
     common_hal_busio_spi_configure(self->bus, self->frequency, self->polarity,
-                                   self->phase, 8);
+                                   self->phase, 8, false);
     common_hal_digitalio_digitalinout_set_value(&self->chip_select, false);
     return true;
 }

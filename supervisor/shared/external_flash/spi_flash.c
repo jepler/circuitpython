@@ -103,7 +103,7 @@ bool spi_flash_write_data(uint32_t address, uint8_t* data, uint32_t data_length)
     // Write the SPI flash write address into the bytes following the command byte.
     address_to_bytes(address, request + 1);
     flash_enable();
-    common_hal_busio_spi_configure(&supervisor_flash_spi_bus, spi_flash_baudrate, 0, 0, 8);
+    common_hal_busio_spi_configure(&supervisor_flash_spi_bus, spi_flash_baudrate, 0, 0, 8, false);
     bool status = common_hal_busio_spi_write(&supervisor_flash_spi_bus, request, 4);
     if (status) {
         status = common_hal_busio_spi_write(&supervisor_flash_spi_bus, data, data_length);
@@ -122,7 +122,7 @@ bool spi_flash_read_data(uint32_t address, uint8_t* data, uint32_t data_length) 
     // Write the SPI flash write address into the bytes following the command byte.
     address_to_bytes(address, request + 1);
     flash_enable();
-    common_hal_busio_spi_configure(&supervisor_flash_spi_bus, spi_flash_baudrate, 0, 0, 8);
+    common_hal_busio_spi_configure(&supervisor_flash_spi_bus, spi_flash_baudrate, 0, 0, 8, false);
     bool status = common_hal_busio_spi_write(&supervisor_flash_spi_bus, request, command_length);
     if (status) {
         status = common_hal_busio_spi_read(&supervisor_flash_spi_bus, data, data_length, 0xff);
