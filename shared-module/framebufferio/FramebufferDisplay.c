@@ -40,6 +40,152 @@
 #include <stdint.h>
 #include <string.h>
 
+typedef struct {
+    mp_obj_base_t base;
+    mp_obj_t m_deinit[2];
+    mp_obj_t m_get_brightness[2];
+    mp_obj_t m_get_auto_brightness[2];
+    mp_obj_t m_get_buffer[2];
+    mp_obj_t m_get_bytes_per_cell[2];
+    mp_obj_t m_get_color_depth[2];
+    mp_obj_t m_get_height[2];
+    mp_obj_t m_get_native_frames_per_second[2];
+    mp_obj_t m_get_width[2];
+    mp_obj_t m_set_brightness[3];
+    mp_obj_t m_set_auto_brightness[3];
+    mp_obj_t m_swapbuffers[2];
+} framebufferio_shim_obj_t;
+
+void framebufferio_shim_deinit(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_deinit[0]) {
+        mp_call_method_n_kw(0, 0, self->m_deinit);
+    }
+}
+
+bool framebufferio_shim_get_auto_brightness(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_auto_brightness[0]) {
+        return mp_obj_is_true(mp_call_method_n_kw(0, 0, self->m_get_auto_brightness));
+    }
+    return false;
+}
+
+mp_float_t framebufferio_shim_get_brightness(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_brightness[0]) {
+        return mp_obj_get_float(mp_call_method_n_kw(0, 0, self->m_get_brightness));
+    }
+    return -1;
+}
+
+void framebufferio_shim_get_bufinfo(void *self_in, mp_buffer_info_t *bufinfo) {
+    framebufferio_shim_obj_t *self = self_in;
+    mp_obj_t info = mp_call_method_n_kw(0, 0, self->m_get_buffer);
+    mp_get_buffer_raise(info, bufinfo, MP_BUFFER_WRITE);
+}
+
+int framebufferio_shim_get_bytes_per_cell(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_bytes_per_cell[0]) {
+        return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_bytes_per_cell));
+    }
+    return 1;
+}
+
+int framebufferio_shim_get_color_depth(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_color_depth[0]) {
+        return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_color_depth));
+    }
+    return 16;
+}
+
+int framebufferio_shim_get_height(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_height));
+}
+
+int framebufferio_shim_get_native_frames_per_second(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_native_frames_per_second[0]) {
+        return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_native_frames_per_second));
+    }
+    return 60;
+}
+
+
+int framebufferio_shim_get_width(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_width));
+}
+
+bool framebufferio_shim_set_auto_brightness(void *self_in, bool auto_brightness) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_set_auto_brightness[0]) {
+        self->m_set_auto_brightness[2] = mp_obj_new_bool(auto_brightness);
+        return mp_obj_is_true(mp_call_method_n_kw(1, 0, self->m_set_auto_brightness));
+    }
+    return false;
+}
+
+
+bool framebufferio_shim_set_brightness(void *self_in, mp_float_t brightness) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_set_brightness) {
+        self->m_set_brightness[2] = mp_obj_new_float(brightness);
+        return mp_obj_is_true(mp_call_method_n_kw(0, 0, self->m_set_brightness));
+    }
+    return false;
+}
+
+
+void framebufferio_shim_swapbuffers(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    mp_call_method_n_kw(0, 0, self->m_swapbuffers);
+}
+
+STATIC const framebuffer_p_t framebufferio_shim_proto = {
+    MP_PROTO_IMPLEMENT(MP_QSTR_protocol_framebuffer)
+    .deinit = framebufferio_shim_deinit,
+    .get_auto_brightness = framebufferio_shim_get_auto_brightness,
+    .get_brightness = framebufferio_shim_get_brightness,
+    .get_bufinfo = framebufferio_shim_get_bufinfo,
+    .get_bytes_per_cell = framebufferio_shim_get_bytes_per_cell,
+    .get_color_depth = framebufferio_shim_get_color_depth,
+    .get_height = framebufferio_shim_get_height,
+    .get_native_frames_per_second = framebufferio_shim_get_native_frames_per_second,
+    .get_width = framebufferio_shim_get_width,
+    .set_auto_brightness = framebufferio_shim_set_auto_brightness,
+    .set_brightness = framebufferio_shim_set_brightness,
+    .swapbuffers = framebufferio_shim_swapbuffers,
+};
+
+STATIC mp_obj_type_t framebufferio_shim_type = {
+    { &mp_type_type },
+    .name = MP_QSTR_framebuffer_shim,
+    // .buffer_p = { .get_buffer = framebufferio_shim_get_buffer, },
+    .protocol = &framebufferio_shim_proto,
+};
+
+STATIC void framebufferio_shim_construct(framebufferio_shim_obj_t *self, mp_obj_t *obj) {
+    self->base.type = &framebufferio_shim_type;
+    // mandatory methods
+    mp_load_method(obj, MP_QSTR_get_buffer, self->m_get_buffer);
+    mp_load_method(obj, MP_QSTR_get_height, self->m_get_height);
+    mp_load_method(obj, MP_QSTR_get_width, self->m_get_width);
+    mp_load_method(obj, MP_QSTR_swapbuffers, self->m_swapbuffers);
+
+    // optional methods
+    mp_load_method_maybe(obj, MP_QSTR_deinit, self->m_deinit);
+    mp_load_method_maybe(obj, MP_QSTR_get_brightness, self->m_get_brightness);
+    mp_load_method_maybe(obj, MP_QSTR_get_bytes_per_cell, self->m_get_bytes_per_cell);
+    mp_load_method_maybe(obj, MP_QSTR_get_color_depth, self->m_get_color_depth);
+    mp_load_method_maybe(obj, MP_QSTR_get_native_frames_per_second, self->m_get_native_frames_per_second);
+    mp_load_method_maybe(obj, MP_QSTR_set_auto_brightness, self->m_set_auto_brightness);
+    mp_load_method_maybe(obj, MP_QSTR_set_brightness, self->m_set_brightness);
+}
+
 void common_hal_framebufferio_framebufferdisplay_construct(framebufferio_framebufferdisplay_obj_t* self,
         mp_obj_t framebuffer,
         uint16_t rotation,
@@ -47,7 +193,13 @@ void common_hal_framebufferio_framebufferdisplay_construct(framebufferio_framebu
     // Turn off auto-refresh as we init.
     self->auto_refresh = false;
     self->framebuffer = framebuffer;
-    self->framebuffer_protocol = mp_proto_get_or_throw(MP_QSTR_protocol_framebuffer, framebuffer);
+    self->framebuffer_protocol = mp_proto_get(MP_QSTR_protocol_framebuffer, framebuffer);
+    if (!self->framebuffer_protocol) {
+        framebufferio_shim_obj_t *shim = m_new_obj(framebufferio_shim_obj_t);
+        framebufferio_shim_construct(shim, framebuffer);
+        self->framebuffer = shim;
+        self->framebuffer_protocol = mp_proto_get_or_throw(MP_QSTR_protocol_framebuffer, shim);
+    }
 
     uint16_t ram_width = 0x100;
     uint16_t ram_height = 0x100;
@@ -323,6 +475,12 @@ void framebufferio_framebufferdisplay_collect_ptrs(framebufferio_framebufferdisp
 }
 
 void framebufferio_framebufferdisplay_reset(framebufferio_framebufferdisplay_obj_t* self) {
-    common_hal_framebufferio_framebufferdisplay_set_auto_refresh(self, true);
-    common_hal_framebufferio_framebufferdisplay_show(self, NULL);
+    if (self->framebuffer_protocol == &framebufferio_shim_proto) {
+        // A shim framebuffer cannot survive soft reset, because it refers to Python objects
+        // which no longer exist.  Instead, we must release it.
+        release_framebufferdisplay(self);
+    } else {
+        common_hal_framebufferio_framebufferdisplay_set_auto_refresh(self, true);
+        common_hal_framebufferio_framebufferdisplay_show(self, NULL);
+    }
 }
