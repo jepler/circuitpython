@@ -360,6 +360,7 @@ STATIC bool _refresh_area(framebufferio_framebufferdisplay_obj_t* self, const di
         displayio_display_core_fill_area(&self->core, &subrectangle, mask, buffer);
 
         uint8_t *buf = (uint8_t *)self->bufinfo.buf, *endbuf = buf + self->bufinfo.len;
+        (void)endbuf; // Hint to compiler that endbuf is "used" even if NDEBUG
 
         uint8_t *dest = self->bufinfo.buf + (subrectangle.y1 * self->core.width + subrectangle.x1) * self->core.colorspace.depth / 8;
         uint8_t *src = (uint8_t*)buffer;
