@@ -111,6 +111,7 @@ float scalbnf(float x, int n)
 	return x;
 }
 
+#if CIRCUITPY_FULL_BUILD
 /*****************************************************************************/
 /*****************************************************************************/
 // powf from musl-0.9.15
@@ -374,6 +375,90 @@ float powf(float x, float y)
 		SET_FLOAT_WORD(z, j);
 	return sn*z;
 }
+#else
+float powf(float x, float y) {
+	float z,ax;
+	float sn;
+	int32_t j,k,yisint;
+	int32_t hx,hy,ix,iy;
+
+	GET_FLOAT_WORD(hx, x);
+	GET_FLOAT_WORD(hy, y);
+	ix = hx & 0x7fffffff;
+	iy = hy & 0x7fffffff;
+
+	/* x**0 = 1, even if x is NaN */
+	if (iy == 0)
+		return 1.0f;
+	/* 1**y = 1, even if y is NaN */
+	if (hx == 0x3f800000)
+		return 1.0f;
+	/* NaN if either arg is NaN */
+	if (ix > 0x7f800000 || iy > 0x7f800000)
+		return x + y;
+
+	/* determine if y is an odd int when x < 0
+	 * yisint = 0       ... y is not an integer
+	 * yisint = 1       ... y is an odd int
+	 * yisint = 2       ... y is an even int
+	 */
+	yisint  = 0;
+	if (hx < 0) {
+		if (iy >= 0x4b800000)
+			yisint = 2; /* even integer y */
+		else if (iy >= 0x3f800000) {
+			k = (iy>>23) - 0x7f;         /* exponent */
+			j = iy>>(23-k);
+			if ((j<<(23-k)) == iy)
+				yisint = 2 - (j & 1);
+		}
+	}
+
+	/* special value of y */
+	if (iy == 0x7f800000) {  /* y is +-inf */
+		if (ix == 0x3f800000)      /* (-1)**+-inf is 1 */
+			return 1.0f;
+		else if (ix > 0x3f800000)  /* (|x|>1)**+-inf = inf,0 */
+			return hy >= 0 ? y : 0.0f;
+		else if (ix != 0)          /* (|x|<1)**+-inf = 0,inf if x!=0 */
+			return hy >= 0 ? 0.0f: -y;
+	}
+	if (iy == 0x3f800000)    /* y is +-1 */
+		return hy >= 0 ? x : 1.0f/x;
+	if (hy == 0x40000000)    /* y is 2 */
+		return x*x;
+	if (hy == 0x3f000000) {  /* y is  0.5 */
+		if (hx >= 0)     /* x >= +0 */
+			return sqrtf(x);
+	}
+
+	ax = fabsf(x);
+	/* special value of x */
+	if (ix == 0x7f800000 || ix == 0 || ix == 0x3f800000) { /* x is +-0,+-inf,+-1 */
+		z = ax;
+		if (hy < 0)  /* z = (1/|x|) */
+			z = 1.0f/z;
+		if (hx < 0) {
+			if (((ix-0x3f800000)|yisint) == 0) {
+				z = (z-z)/(z-z); /* (-1)**non-int is NaN */
+			} else if (yisint == 1)
+				z = -z;          /* (x<0)**odd = -(|x|**odd) */
+		}
+		return z;
+	}
+
+	sn = 1.0f; /* sign of result */
+	if (hx < 0) {
+		if (yisint == 0) /* (x<0)**(non-int) is NaN */
+			return (x-x)/(x-x);
+		if (yisint == 1) /* (x<0)**(odd int) */
+			sn = -1.0f;
+	}
+
+        return sn * expf(y * logf(ax));
+}
+#endif
+
 
 /*****************************************************************************/
 /*****************************************************************************/
