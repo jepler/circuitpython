@@ -51,6 +51,8 @@ typedef struct {
     mp_obj_t m_get_height[2];
     mp_obj_t m_get_native_frames_per_second[2];
     mp_obj_t m_get_width[2];
+    mp_obj_t m_get_first_pixel_offset[2];
+    mp_obj_t m_get_row_stride[2];
     mp_obj_t m_set_brightness[3];
     mp_obj_t m_set_auto_brightness[3];
     mp_obj_t m_swapbuffers[2];
@@ -120,6 +122,22 @@ int framebufferio_shim_get_width(void *self_in) {
     return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_width));
 }
 
+int framebufferio_shim_get_first_pixel_offset(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_first_pixel_offset[0]) {
+        return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_first_pixel_offset));
+    }
+    return 0;
+}
+
+int framebufferio_shim_get_row_stride(void *self_in) {
+    framebufferio_shim_obj_t *self = self_in;
+    if (self->m_get_row_stride[0]) {
+        return mp_obj_get_int(mp_call_method_n_kw(0, 0, self->m_get_row_stride));
+    }
+    return 0;
+}
+
 bool framebufferio_shim_set_auto_brightness(void *self_in, bool auto_brightness) {
     framebufferio_shim_obj_t *self = self_in;
     if (self->m_set_auto_brightness[0]) {
@@ -153,8 +171,10 @@ STATIC const framebuffer_p_t framebufferio_shim_proto = {
     .get_bufinfo = framebufferio_shim_get_bufinfo,
     .get_bytes_per_cell = framebufferio_shim_get_bytes_per_cell,
     .get_color_depth = framebufferio_shim_get_color_depth,
+    .get_first_pixel_offset = framebufferio_shim_get_first_pixel_offset,
     .get_height = framebufferio_shim_get_height,
     .get_native_frames_per_second = framebufferio_shim_get_native_frames_per_second,
+    .get_row_stride = framebufferio_shim_get_row_stride,
     .get_width = framebufferio_shim_get_width,
     .set_auto_brightness = framebufferio_shim_set_auto_brightness,
     .set_brightness = framebufferio_shim_set_brightness,
@@ -181,7 +201,9 @@ STATIC void framebufferio_shim_construct(framebufferio_shim_obj_t *self, mp_obj_
     mp_load_method_maybe(obj, MP_QSTR_get_brightness, self->m_get_brightness);
     mp_load_method_maybe(obj, MP_QSTR_get_bytes_per_cell, self->m_get_bytes_per_cell);
     mp_load_method_maybe(obj, MP_QSTR_get_color_depth, self->m_get_color_depth);
+    mp_load_method_maybe(obj, MP_QSTR_get_first_pixel_offset, self->m_get_first_pixel_offset);
     mp_load_method_maybe(obj, MP_QSTR_get_native_frames_per_second, self->m_get_native_frames_per_second);
+    mp_load_method_maybe(obj, MP_QSTR_get_row_stride, self->m_get_row_stride);
     mp_load_method_maybe(obj, MP_QSTR_set_auto_brightness, self->m_set_auto_brightness);
     mp_load_method_maybe(obj, MP_QSTR_set_brightness, self->m_set_brightness);
 }
@@ -222,6 +244,15 @@ void common_hal_framebufferio_framebufferdisplay_construct(framebufferio_framebu
         false // reverse_bytes_in_word
     );
 
+    self->first_pixel_offset = self->framebuffer_protocol->get_first_pixel_offset
+        ? self->framebuffer_protocol->get_first_pixel_offset(self->framebuffer)
+        : 0;
+    self->row_stride = self->framebuffer_protocol->get_row_stride
+        ? self->framebuffer_protocol->get_row_stride(self->framebuffer)
+        : 0;
+    if (self->row_stride == 0) {
+        self->row_stride = self->core.width * self->core.colorspace.depth/8;
+    }
     self->first_manual_refresh = !auto_refresh;
 
     self->native_frames_per_second = self->framebuffer_protocol->get_native_frames_per_second(self->framebuffer);
@@ -361,11 +392,13 @@ STATIC bool _refresh_area(framebufferio_framebufferdisplay_obj_t* self, const di
 
         uint8_t *buf = (uint8_t *)self->bufinfo.buf, *endbuf = buf + self->bufinfo.len;
         (void)endbuf; // Hint to compiler that endbuf is "used" even if NDEBUG
+        buf += self->first_pixel_offset;
 
-        uint8_t *dest = self->bufinfo.buf + (subrectangle.y1 * self->core.width + subrectangle.x1) * self->core.colorspace.depth / 8;
+        size_t rowstride = self->row_stride;
+        uint8_t *dest = buf + subrectangle.y1 * rowstride + subrectangle.x1 * self->core.colorspace.depth / 8;
         uint8_t *src = (uint8_t*)buffer;
         size_t rowsize = (subrectangle.x2 - subrectangle.x1) * self->core.colorspace.depth / 8;
-        size_t rowstride = self->core.width * self->core.colorspace.depth/8;
+
         for (uint16_t i = subrectangle.y1; i < subrectangle.y2; i++) {
             assert(dest >= buf && dest < endbuf && dest+rowsize <= endbuf);
             memcpy(dest, src, rowsize);
@@ -382,9 +415,9 @@ STATIC bool _refresh_area(framebufferio_framebufferdisplay_obj_t* self, const di
 
 STATIC void _refresh_display(framebufferio_framebufferdisplay_obj_t* self) {
     displayio_display_core_start_refresh(&self->core);
-    self->framebuffer_protocol->get_bufinfo(self->framebuffer, &self->bufinfo);
     const displayio_area_t* current_area = _get_refresh_areas(self);
     if (current_area) {
+        self->framebuffer_protocol->get_bufinfo(self->framebuffer, &self->bufinfo);
         while (current_area != NULL) {
             _refresh_area(self, current_area);
             current_area = current_area->next;
