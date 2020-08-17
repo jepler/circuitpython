@@ -149,7 +149,7 @@ STATIC mp_obj_t bitbangio_spi_configure(size_t n_args, const mp_obj_t *pos_args,
         { MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
-        { MP_QSTR_lsb_first, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_int = false} },
+        { MP_QSTR_lsb_first, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
     };
     bitbangio_spi_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
