@@ -225,7 +225,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self, uint32_t baudrate, ui
         mode = (phase) ? NRF_SPIM_MODE_1 : NRF_SPIM_MODE_0;
     }
 
-    nrf_spim_configure(self->spim_peripheral->spim.p_reg, mode, lsb_first ? NRF_SPIM_BIT_ORDER_MSB_FIRST : NRF_SPIM_BIT_ORDER_LSB_FIRST);
+    nrf_spim_configure(self->spim_peripheral->spim.p_reg, mode, lsb_first ? NRF_SPIM_BIT_ORDER_LSB_FIRST : NRF_SPIM_BIT_ORDER_MSB_FIRST);
 
     return true;
 }
