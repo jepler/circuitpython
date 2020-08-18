@@ -35,8 +35,8 @@
 
 #include "supervisor/memory.h"
 
-#define SHARPMEM_BIT_WRITECMD_LSB (0x80)
-#define SHARPMEM_BIT_VCOM_LSB (0x40)
+#define SHARPMEM_BIT_WRITECMD (0x01)
+#define SHARPMEM_BIT_VCOM (0x02)
 
 static inline void *hybrid_alloc(size_t sz) {
     if (gc_alloc_possible()) {
@@ -59,12 +59,6 @@ static inline void hybrid_free(void *ptr_in) {
     }
 }
 
-STATIC uint8_t bitrev(uint8_t n) {
-    uint8_t r = 0;
-    for(int i=0;i<8;i++) r |= ((n>>i) & 1)<<(7-i);
-    return r;
-}
-
 int common_hal_sharpdisplay_framebuffer_get_width(sharpdisplay_framebuffer_obj_t *self) {
     return self->width;
 }
@@ -82,7 +76,7 @@ int common_hal_sharpdisplay_framebuffer_get_first_pixel_offset(sharpdisplay_fram
 }
 
 bool common_hal_sharpdisplay_framebuffer_get_reverse_pixels_in_byte(sharpdisplay_framebuffer_obj_t *self) {
-    return true;
+    return false;
 }
 
 bool common_hal_sharpdisplay_framebuffer_get_pixels_in_byte_share_row(sharpdisplay_framebuffer_obj_t *self) {
@@ -116,10 +110,10 @@ void common_hal_sharpdisplay_framebuffer_get_bufinfo(sharpdisplay_framebuffer_ob
         self->bufinfo.buf = hybrid_alloc(self->bufinfo.len);
 
         uint8_t *data = self->bufinfo.buf;
-        *data++ = SHARPMEM_BIT_WRITECMD_LSB;
+        *data++ = SHARPMEM_BIT_WRITECMD;
 
         for(int y=0; y<height; y++) {
-            *data = bitrev(y+1);
+            *data = y+1;
             data += row_stride;
         }
         self->full_refresh = true;
@@ -160,10 +154,10 @@ void common_hal_sharpdisplay_framebuffer_construct(sharpdisplay_framebuffer_obj_
     self->bufinfo.buf = gc_alloc(self->bufinfo.len, false, true);
 
     uint8_t *data = self->bufinfo.buf;
-    *data++ = SHARPMEM_BIT_WRITECMD_LSB;
+    *data++ = SHARPMEM_BIT_WRITECMD;
 
     for(int y=0; y<self->height; y++) {
-        *data = bitrev(y+1);
+        *data = y+1;
         data += row_stride;
     }
     self->full_refresh = true;
@@ -174,14 +168,14 @@ void common_hal_sharpdisplay_framebuffer_swapbuffers(sharpdisplay_framebuffer_ob
     if (!common_hal_busio_spi_try_lock(self->bus)) {
         return;
     }
-    common_hal_busio_spi_configure(self->bus, self->baudrate, 0, 0, 8);
+    common_hal_busio_spi_configure(self->bus, self->baudrate, 0, 0, 8, true);
 
     // set chip select high
     common_hal_digitalio_digitalinout_set_value(&self->chip_select, true);
 
     // output the toggling signal
     uint8_t *data = self->bufinfo.buf;
-    data[0] ^= SHARPMEM_BIT_VCOM_LSB;
+    data[0] ^= SHARPMEM_BIT_VCOM;
 
     common_hal_busio_spi_write(self->bus, data++, 1);
 
