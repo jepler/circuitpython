@@ -85,3 +85,7 @@ TAGS
 ####################
 .venv
 .env
+
+# Local customizations to the build
+####################
+**/makefile
