@@ -61,6 +61,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
+
 #include "py/mphal.h"
 #include "common-hal/microcontroller/Processor.h"
 
@@ -276,6 +278,9 @@ float common_hal_mcu_processor_get_temperature(void) {
 }
 
 float common_hal_mcu_processor_get_voltage(void) {
+#if MICROCONTROLLER_VOLTAGE_DISABLE
+    return NAN;
+#else
     struct adc_sync_descriptor adc;
 
     static Adc* adc_insts[] = ADC_INSTS;
@@ -295,7 +300,7 @@ float common_hal_mcu_processor_get_voltage(void) {
     // delay after setting the SUPC bits seems to fix things. This appears to be due to VREFOE
     // startup time. There is no synchronization bit to check.
     // See https://community.atmel.com/forum/samd51-using-intref-adc-voltage-reference
-    mp_hal_delay_ms(1);
+    mp_hal_delay_ms(1000);
 #endif
 
     adc_sync_set_resolution(&adc, ADC_CTRLB_RESSEL_12BIT_Val);
@@ -320,6 +325,7 @@ float common_hal_mcu_processor_get_voltage(void) {
     adc_sync_deinit(&adc);
     // Multiply by 4 to compensate for SCALEDIOVCC division by 4.
     return (reading / 4095.0f) * 4.0f;
+#endif
 }
 
 uint32_t common_hal_mcu_processor_get_frequency(void) {
