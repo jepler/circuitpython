@@ -46,6 +46,7 @@ int cp_enum_value(const mp_obj_type_t *type, mp_obj_t *obj) {
 }
 
 void cp_enum_obj_print_helper(uint16_t module, const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
+    (void) kind;
     cp_enum_obj_t *self = self_in;
     mp_printf(print, "%q.%q.%q", module, self->base.type->name, self->name);
 }
