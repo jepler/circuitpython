@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-11 13:30+0200\n"
+"POT-Creation-Date: 2020-09-16 12:19-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -92,7 +92,11 @@ msgstr ""
 msgid "%q must be a tuple of length 2"
 msgstr ""
 
-#: ports/atmel-samd/common-hal/sdioio/SDCard.c
+#: shared-bindings/_canio/Match.c
+msgid "%q out of range"
+msgstr ""
+
+#: ports/atmel-samd/common-hal/microcontroller/Pin.c
 msgid "%q pin invalid"
 msgstr ""
 
@@ -278,6 +282,10 @@ msgstr ""
 
 #: ports/nrf/common-hal/busio/I2C.c
 msgid "All I2C peripherals are in use"
+msgstr ""
+
+#: ports/atmel-samd/common-hal/_canio/Listener.c
+msgid "All RX FIFOs in use"
 msgstr ""
 
 #: ports/nrf/common-hal/busio/SPI.c
@@ -752,7 +760,7 @@ msgstr ""
 msgid "Error in regex"
 msgstr ""
 
-#: shared-bindings/_bleio/__init__.c shared-bindings/aesio/aes.c
+#: py/enum.c shared-bindings/_bleio/__init__.c shared-bindings/aesio/aes.c
 #: shared-bindings/busio/SPI.c shared-bindings/microcontroller/Pin.c
 #: shared-bindings/neopixel_write/__init__.c
 #: shared-bindings/terminalio/Terminal.c
@@ -1121,6 +1129,10 @@ msgstr ""
 #: shared-module/displayio/Shape.c
 #, c-format
 msgid "Maximum x value when mirrored is %d"
+msgstr ""
+
+#: shared-bindings/_canio/Message.c
+msgid "Messages limited to 8 bytes"
 msgstr ""
 
 #: supervisor/shared/safe_mode.c
@@ -2306,6 +2318,10 @@ msgstr ""
 msgid "exceptions must derive from BaseException"
 msgstr ""
 
+#: shared-bindings/_canio/CAN.c shared-bindings/_canio/Listener.c
+msgid "expected '%q' but got '%q'"
+msgstr ""
+
 #: py/objstr.c
 msgid "expected ':' after format specifier"
 msgstr ""
@@ -3141,6 +3157,10 @@ msgstr ""
 
 #: shared-bindings/displayio/Bitmap.c
 msgid "source palette too large"
+msgstr ""
+
+#: shared-bindings/_canio/Message.c
+msgid "specify size or data, but not both"
 msgstr ""
 
 #: py/objstr.c
