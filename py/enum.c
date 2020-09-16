@@ -29,7 +29,7 @@
 
 mp_obj_t cp_enum_find(const mp_obj_type_t *type, int value) {
     const mp_obj_dict_t *dict = type->locals_dict;
-    for (int i=0; i<dict->map.used; i++) {
+    for (size_t i=0; i<dict->map.used; i++) {
         const cp_enum_obj_t *v = dict->map.table[i].value;
         if (v->value == value) {
             return (mp_obj_t)v;
