@@ -1,9 +1,9 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Jeff Epler for Adafruit Industries
+ * Copyright (c) 2018 Noralf Trønnes
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,11 @@
  * THE SOFTWARE.
  */
 
-#include <stddef.h>
+#ifndef MICROPY_INCLUDED_NRF_COMMON_HAL_RTC_RTC_H
+#define MICROPY_INCLUDED_NRF_COMMON_HAL_RTC_RTC_H
 
-#include "common-hal/rgbmatrix/RGBMatrix.h"
-#include "timers.h"
+extern void rtc_init(void);
+extern void rtc_reset(void);
+extern void common_hal_rtc_init(void);
 
-#include STM32_HAL_H
-
-extern void _PM_IRQ_HANDLER(void);
-
-void *common_hal_rgbmatrix_timer_allocate() {
-    TIM_TypeDef * timer = stm_peripherals_find_timer();
-    stm_peripherals_timer_reserve(timer);
-    stm_peripherals_timer_never_reset(timer);
-    return timer;
-}
-
-void common_hal_rgbmatrix_timer_enable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    HAL_NVIC_EnableIRQ(stm_peripherals_timer_get_irqnum(tim));
-}
-
-void common_hal_rgbmatrix_timer_disable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    tim->DIER &= ~TIM_DIER_UIE;
-}
-
-void common_hal_rgbmatrix_timer_free(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    stm_peripherals_timer_free(tim);
-    common_hal_rgbmatrix_timer_disable(ptr);
-}
+#endif  // MICROPY_INCLUDED_NRF_COMMON_HAL_RTC_RTC_H

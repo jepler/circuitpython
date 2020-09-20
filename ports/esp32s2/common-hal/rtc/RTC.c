@@ -1,9 +1,9 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Jeff Epler for Adafruit Industries
+ * Copyright 2019 Sony Semiconductor Solutions Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,29 @@
  * THE SOFTWARE.
  */
 
-#include <stddef.h>
+#include <sys/time.h>
 
-#include "common-hal/rgbmatrix/RGBMatrix.h"
-#include "timers.h"
+#include "py/obj.h"
+#include "py/runtime.h"
+#include "soc/rtc_periph.h"
+#include "shared-bindings/rtc/RTC.h"
 
-#include STM32_HAL_H
-
-extern void _PM_IRQ_HANDLER(void);
-
-void *common_hal_rgbmatrix_timer_allocate() {
-    TIM_TypeDef * timer = stm_peripherals_find_timer();
-    stm_peripherals_timer_reserve(timer);
-    stm_peripherals_timer_never_reset(timer);
-    return timer;
+void common_hal_rtc_get_time(timeutils_struct_time_t *tm) {
+    struct timeval tv_now;
+    gettimeofday(&tv_now, NULL);
+    timeutils_seconds_since_2000_to_struct_time(tv_now.tv_sec, tm);
 }
 
-void common_hal_rgbmatrix_timer_enable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    HAL_NVIC_EnableIRQ(stm_peripherals_timer_get_irqnum(tim));
+void common_hal_rtc_set_time(timeutils_struct_time_t *tm) {
+    struct timeval tv_now = {0};
+    tv_now.tv_sec = timeutils_seconds_since_2000(tm->tm_year, tm->tm_mon, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    settimeofday(&tv_now, NULL);
 }
 
-void common_hal_rgbmatrix_timer_disable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    tim->DIER &= ~TIM_DIER_UIE;
+int common_hal_rtc_get_calibration(void) {
+    return 0;
 }
 
-void common_hal_rgbmatrix_timer_free(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    stm_peripherals_timer_free(tim);
-    common_hal_rgbmatrix_timer_disable(ptr);
+void common_hal_rtc_set_calibration(int calibration) {
+    mp_raise_NotImplementedError(translate("RTC calibration is not supported on this board"));
 }

@@ -1,9 +1,9 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Jeff Epler for Adafruit Industries
+ * Copyright (c) 2020 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,34 +24,24 @@
  * THE SOFTWARE.
  */
 
-#include <stddef.h>
+#include "boards/board.h"
+#include "mpconfigboard.h"
+#include "shared-bindings/microcontroller/Pin.h"
 
-#include "common-hal/rgbmatrix/RGBMatrix.h"
-#include "timers.h"
+void board_init(void) {
+    // USB
+    common_hal_never_reset_pin(&pin_GPIO19);
+    common_hal_never_reset_pin(&pin_GPIO20);
 
-#include STM32_HAL_H
-
-extern void _PM_IRQ_HANDLER(void);
-
-void *common_hal_rgbmatrix_timer_allocate() {
-    TIM_TypeDef * timer = stm_peripherals_find_timer();
-    stm_peripherals_timer_reserve(timer);
-    stm_peripherals_timer_never_reset(timer);
-    return timer;
+    // Debug UART
+    common_hal_never_reset_pin(&pin_GPIO43);
+    common_hal_never_reset_pin(&pin_GPIO44);
 }
 
-void common_hal_rgbmatrix_timer_enable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    HAL_NVIC_EnableIRQ(stm_peripherals_timer_get_irqnum(tim));
+bool board_requests_safe_mode(void) {
+    return false;
 }
 
-void common_hal_rgbmatrix_timer_disable(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    tim->DIER &= ~TIM_DIER_UIE;
-}
+void reset_board(void) {
 
-void common_hal_rgbmatrix_timer_free(void* ptr) {
-    TIM_TypeDef *tim = (TIM_TypeDef*)ptr;
-    stm_peripherals_timer_free(tim);
-    common_hal_rgbmatrix_timer_disable(ptr);
 }
