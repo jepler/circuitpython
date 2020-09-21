@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-09-17 12:45-0500\n"
+"POT-Creation-Date: 2020-09-20 19:24-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -974,6 +974,10 @@ msgstr ""
 
 #: shared-module/displayio/OnDiskBitmap.c
 msgid "Invalid BMP file"
+msgstr ""
+
+#: shared-bindings/wifi/Radio.c
+msgid "Invalid BSSID"
 msgstr ""
 
 #: ports/stm/common-hal/analogio/AnalogOut.c
@@ -3285,7 +3289,7 @@ msgid "tuple/list has wrong length"
 msgstr ""
 
 #: ports/atmel-samd/common-hal/busio/UART.c ports/nrf/common-hal/busio/UART.c
-#: shared-bindings/busio/UART.c
+#: shared-bindings/_canio/CAN.c shared-bindings/busio/UART.c
 msgid "tx and rx cannot both be None"
 msgstr ""
 
