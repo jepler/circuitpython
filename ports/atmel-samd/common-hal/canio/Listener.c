@@ -349,30 +349,44 @@ int common_hal_canio_listener_in_waiting(canio_listener_obj_t *self) {
     return self->hw->RXFS.bit.F0FL;
 }
 
-bool common_hal_canio_listener_receiveinto(canio_listener_obj_t *self, canio_message_obj_t *message) {
+mp_obj_t common_hal_canio_listener_receive(canio_listener_obj_t *self) {
     if (!common_hal_canio_listener_in_waiting(self)) {
         uint64_t deadline = supervisor_ticks_ms64() + self->timeout_ms;
         do {
             if (supervisor_ticks_ms64() > deadline) {
-                return false;
+                return mp_const_none;
             }
         } while (!common_hal_canio_listener_in_waiting(self));
     }
     int index = self->hw->RXFS.bit.F0GI;
-    canio_can_rx_fifo_t *hw_message = &self->fifo[index];
-    message->extended = hw_message->rxf0.bit.XTD;
-    if (message->extended) {
-        message->id = hw_message->rxf0.bit.ID;
+    if(self->fifo[index].rxf0.bit.RTR) {
+        canio_remote_transmission_request_obj_t *remote_transmission_request = m_new_obj(canio_remote_transmission_request_obj_t);
+        canio_can_rx_fifo_t *hw_remote_transmission_request = &self->fifo[index];
+        remote_transmission_request->base.type = &canio_remote_transmission_request_type;
+        remote_transmission_request->extended = hw_remote_transmission_request->rxf0.bit.XTD;
+        if (remote_transmission_request->extended) {
+            remote_transmission_request->id = hw_remote_transmission_request->rxf0.bit.ID;
+        } else {
+            remote_transmission_request->id = hw_remote_transmission_request->rxf0.bit.ID >> 18; // short ids are left-justified
+        }
+        remote_transmission_request->size = hw_remote_transmission_request->rxf1.bit.DLC;
+        self->hw->RXFA.bit.F0AI = index;
+        return remote_transmission_request;
     } else {
-        message->id = hw_message->rxf0.bit.ID >> 18; // short ids are left-justified
-    }
-    message->rtr = hw_message->rxf0.bit.RTR;
-    message->size = hw_message->rxf1.bit.DLC;
-    if (!message->rtr) {
+        canio_can_rx_fifo_t *hw_message = &self->fifo[index];
+        canio_message_obj_t *message = m_new_obj(canio_message_obj_t);
+        message->base.type = &canio_message_type;
+        message->extended = hw_message->rxf0.bit.XTD;
+        if (message->extended) {
+            message->id = hw_message->rxf0.bit.ID;
+        } else {
+            message->id = hw_message->rxf0.bit.ID >> 18; // short ids are left-justified
+        }
+        message->size = hw_message->rxf1.bit.DLC;
         memcpy(message->data, hw_message->data, message->size);
+        self->hw->RXFA.bit.F0AI = index;
+        return message;
     }
-    self->hw->RXFA.bit.F0AI = index;
-    return true;
 }
 
 void common_hal_canio_listener_deinit(canio_listener_obj_t *self) {

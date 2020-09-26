@@ -32,6 +32,7 @@
 #include "shared-bindings/canio/Listener.h"
 #include "shared-bindings/canio/Match.h"
 #include "shared-bindings/canio/Message.h"
+#include "shared-bindings/canio/RemoteTransmissionRequest.h"
 #include "shared-bindings/microcontroller/Pin.h"
 
 #include "py/objproperty.h"
@@ -330,16 +331,21 @@ STATIC const mp_obj_property_t canio_can_loopback_obj = {
 //|         """
 //|         ...
 //|
-STATIC mp_obj_t canio_can_send(mp_obj_t self_in, mp_obj_t message_in) {
+STATIC mp_obj_t canio_can_send(mp_obj_t self_in, mp_obj_t message_or_remote_transmission_request_in) {
     canio_can_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_canio_can_check_for_deinit(self);
-    mp_obj_type_t *message_type = mp_obj_get_type(message_in);
-    if (message_type != &canio_message_type && message_type != &canio_remote_transmission_request_type) {
-        mp_raise_TypeError_varg(translate("expected '%q' or '%q' but got '%q'"), MP_QSTR_Message, MP_QSTR_RemoteTransmissionRequest, message_type->name);
-    }
 
-    canio_message_obj_t *message = message_in;
-    common_hal_canio_can_send(self, message);
+    mp_obj_type_t *message_or_remote_transmission_request_type = mp_obj_get_type(message_or_remote_transmission_request_in);
+
+    if (message_or_remote_transmission_request_type == &canio_message_type) {
+        canio_message_obj_t *message = message_or_remote_transmission_request_in;
+        common_hal_canio_can_send_message(self, message);
+    } else if (message_or_remote_transmission_request_type == &canio_remote_transmission_request_type) {
+        canio_remote_transmission_request_obj_t *remote_transmission_request = message_or_remote_transmission_request_in;
+        common_hal_canio_can_send_remote_transmission_request(self, remote_transmission_request);
+    } else {
+        mp_raise_TypeError_varg(translate("expected '%q' or '%q' but got '%q'"), MP_QSTR_Message, MP_QSTR_RemoteTransmissionRequest, message_or_remote_transmission_request_type->name);
+    }
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_2(canio_can_send_obj, canio_can_send);

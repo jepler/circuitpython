@@ -328,7 +328,39 @@ static void maybe_auto_restart(canio_can_obj_t *self) {
     }
 }
 
-void common_hal_canio_can_send(canio_can_obj_t *self, canio_message_obj_t *message)
+void common_hal_canio_can_send_remote_transmission_request(canio_can_obj_t *self, canio_remote_transmission_request_obj_t *remote_transmission_request)
+{
+    maybe_auto_restart(self);
+
+    // We have just one dedicated TX buffer, use it!
+    canio_can_tx_buffer_t *ent = &self->state->tx_buffer[0];
+
+    ent->txb0.bit.ESI = false;
+    ent->txb0.bit.XTD = remote_transmission_request->extended;
+    ent->txb0.bit.RTR = true;
+    if (remote_transmission_request->extended) {
+        ent->txb0.bit.ID = remote_transmission_request->id;
+    } else {
+        ent->txb0.bit.ID = remote_transmission_request->id << 18; // short addresses are left-justified
+    }
+
+    ent->txb1.bit.MM = 0; // "remote_transmission_request marker"
+    ent->txb1.bit.EFC = 0; // don't store fifo events to event queue
+    ent->txb1.bit.FDF = 0; // Classic CAN format
+    ent->txb1.bit.BRS = 0; // No bit rate switching
+    ent->txb1.bit.DLC = remote_transmission_request->size;
+
+    // TX buffer add request
+    self->hw->TXBAR.reg = 1;
+
+    // wait 8ms (hard coded for now) for TX to occur
+    uint64_t deadline = port_get_raw_ticks(NULL) + 8;
+    while (port_get_raw_ticks(NULL) < deadline && !(self->hw->TXBTO.reg & 1)) {
+        RUN_BACKGROUND_TASKS;
+    }
+}
+
+void common_hal_canio_can_send_message(canio_can_obj_t *self, canio_message_obj_t *message)
 {
     maybe_auto_restart(self);
 
@@ -337,7 +369,7 @@ void common_hal_canio_can_send(canio_can_obj_t *self, canio_message_obj_t *messa
 
     ent->txb0.bit.ESI = false;
     ent->txb0.bit.XTD = message->extended;
-    ent->txb0.bit.RTR = message->rtr;
+    ent->txb0.bit.RTR = false;
     if (message->extended) {
         ent->txb0.bit.ID = message->id;
     } else {
@@ -350,9 +382,7 @@ void common_hal_canio_can_send(canio_can_obj_t *self, canio_message_obj_t *messa
     ent->txb1.bit.BRS = 0; // No bit rate switching
     ent->txb1.bit.DLC = message->size;
 
-    if (!message->rtr) {
-        memcpy(ent->data, message->data, message->size);
-    }
+    memcpy(ent->data, message->data, message->size);
 
     // TX buffer add request
     self->hw->TXBAR.reg = 1;

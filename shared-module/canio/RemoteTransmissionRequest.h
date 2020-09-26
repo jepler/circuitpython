@@ -30,4 +30,9 @@
 
 #include "shared-bindings/canio/Message.h"
 
-typedef canio_message_obj_t canio_remote_transmission_request_obj_t;
+typedef struct {
+    mp_obj_base_t base;
+    int id;
+    size_t size:4;
+    bool extended:1;
+} canio_remote_transmission_request_obj_t;

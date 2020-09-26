@@ -49,19 +49,7 @@ STATIC mp_obj_t canio_listener_receive(mp_obj_t self_in) {
     canio_listener_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_canio_listener_check_for_deinit(self);
 
-    canio_message_obj_t *message = m_new_obj(canio_message_obj_t);
-
-    if (common_hal_canio_listener_receiveinto(self, message)) {
-        if (message->rtr) {
-            message->base.type = &canio_remote_transmission_request_type;
-        } else {
-            message->base.type = &canio_message_type;
-        }
-        return message;
-    } else {
-        m_free(message); // message did not escape into vm
-    }
-    return mp_const_none;
+    return common_hal_canio_listener_receive(self);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(canio_listener_receive_obj, canio_listener_receive);
 

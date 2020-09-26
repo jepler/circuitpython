@@ -30,6 +30,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/canio/__init__.h"
 #include "shared-bindings/canio/Message.h"
+#include "shared-bindings/canio/RemoteTransmissionRequest.h"
 
 extern const mp_obj_type_t canio_can_type;
 
@@ -51,5 +52,6 @@ void common_hal_canio_can_auto_restart_set(canio_can_obj_t *self, bool auto_rest
 void common_hal_canio_can_check_for_deinit(canio_can_obj_t *self);
 void common_hal_canio_can_deinit(canio_can_obj_t *self);
 void common_hal_canio_can_restart(canio_can_obj_t *self);
-void common_hal_canio_can_send(canio_can_obj_t *self, canio_message_obj_t *message);
+void common_hal_canio_can_send_message(canio_can_obj_t *self, canio_message_obj_t *message);
+void common_hal_canio_can_send_remote_transmission_request(canio_can_obj_t *self, canio_remote_transmission_request_obj_t *remote_transmission_request);
 void common_hal_canio_reset(void);
