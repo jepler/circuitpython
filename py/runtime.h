@@ -31,6 +31,8 @@
 
 #include "supervisor/linker.h"
 
+MP_BEGIN_DECLS
+
 typedef enum {
     MP_VM_RETURN_NORMAL,
     MP_VM_RETURN_YIELD,
@@ -198,5 +200,7 @@ void mp_warning(const char *msg, ...);
 #else
 #define mp_warning(...)
 #endif
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_RUNTIME_H

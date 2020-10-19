@@ -27,7 +27,12 @@
 #ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H
 #define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H
 
+#include "py/mpconfig.h"
+
+MP_BEGIN_DECLS
+
 void raise_deinited_error(void);
 
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H

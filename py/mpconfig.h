@@ -1486,4 +1486,12 @@ typedef double mp_float_t;
 #endif
 #endif
 
+#ifdef __cplusplus
+#define MP_BEGIN_DECLS extern "C" {
+#define MP_END_DECLS }
+#else
+#define MP_BEGIN_DECLS
+#define MP_END_DECLS
+#endif
+
 #endif // MICROPY_INCLUDED_PY_MPCONFIG_H

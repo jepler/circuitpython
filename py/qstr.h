@@ -29,6 +29,8 @@
 #include "py/mpconfig.h"
 #include "py/misc.h"
 
+MP_BEGIN_DECLS
+
 // See qstrdefs.h for a list of qstr's that are available as constants.
 // Reference them as MP_QSTR_xxxx.
 //
@@ -73,5 +75,7 @@ const byte *qstr_data(qstr q, size_t *len);
 
 void qstr_pool_info(size_t *n_pool, size_t *n_qstr, size_t *n_str_data_bytes, size_t *n_total_bytes);
 void qstr_dump_data(void);
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_QSTR_H

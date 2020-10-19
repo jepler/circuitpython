@@ -44,7 +44,7 @@ SRC_BINDINGS_EXPANDED = $(addprefix shared-bindings/, $(SRC_BINDINGS)) \
                         $(addprefix common-hal/, $(SRC_BINDINGS))
 
 # Add the resulting objects to the full list
-OBJ += $(addprefix $(BUILD)/, $(SRC_BINDINGS_EXPANDED:.c=.o))
+OBJ += $(call TO_OBJS, $(SRC_BINDINGS_EXPANDED))
 # Add the sources for QSTR generation
 SRC_QSTR += $(SRC_C) $(SRC_BINDINGS_EXPANDED) $(STM_SRC_C)
 ```

@@ -2,6 +2,10 @@ ifneq ($(lastword a b),b)
 $(error These Makefiles require make 3.81 or newer)
 endif
 
+define TO_OBJS
+$(addprefix $(BUILD)/, $(patsubst %.cpp, %.o, $(patsubst %.c, %.o, $(1))))
+endef
+
 # Set TOP to be the path to get from the current directory (where make was
 # invoked) to the top of the tree. $(lastword $(MAKEFILE_LIST)) returns
 # the name of this makefile relative to where make was invoked.

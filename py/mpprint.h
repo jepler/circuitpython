@@ -28,6 +28,8 @@
 
 #include "py/mpconfig.h"
 
+MP_BEGIN_DECLS
+
 #define PF_FLAG_LEFT_ADJUST       (0x001)
 #define PF_FLAG_SHOW_SIGN         (0x002)
 #define PF_FLAG_SPACE_SIGN        (0x004)
@@ -70,5 +72,7 @@ int mp_printf(const mp_print_t *print, const char *fmt, ...);
 #ifdef va_start
 int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args);
 #endif
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_MPPRINT_H

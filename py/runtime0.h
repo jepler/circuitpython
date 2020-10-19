@@ -28,6 +28,8 @@
 
 #include "mpconfig.h"
 
+MP_BEGIN_DECLS
+
 // These must fit in 8 bits; see scope.h
 #define MP_SCOPE_FLAG_VARARGS      (0x01)
 #define MP_SCOPE_FLAG_VARKEYWORDS  (0x02)
@@ -198,5 +200,7 @@ typedef enum {
 } mp_fun_kind_t;
 
 extern void *const mp_fun_table[MP_F_NUMBER_OF];
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_RUNTIME0_H

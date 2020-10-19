@@ -32,7 +32,22 @@ $(BUILD)/%.o: %.s
 
 define compile_c
 $(STEPECHO) "CC $<"
-$(Q)$(CC) $(CFLAGS) -c -MD -o $@ $<
+$(Q)$(CC) $(CFLAGS) $(CFLAGS_ONLY) -c -MD -o $@ $<
+@# The following fixes the dependency file.
+@# See http://make.paulandlesley.org/autodep.html for details.
+@# Regex adjusted from the above to play better with Windows paths, etc.
+@$(CP) $(@:.o=.d) $(@:.o=.P); \
+  $(SED) -e 's/#.*//' -e 's/^.*:  *//' -e 's/ *\\$$//' \
+      -e '/^$$/ d' -e 's/$$/ :/' < $(@:.o=.d) >> $(@:.o=.P); \
+  $(RM) -f $(@:.o=.d)
+endef
+
+define compile_cpp
+$(STEPECHO) "CPP $<"
+$(info CFLAGS=$(CFLAGS))
+$(info CFLAGS_ONLY=$(CFLAGS_ONLY))
+$(info CXXFLAGS_ONLY=$(CXXFLAGS_ONLY))
+$(Q)$(CC) $(CFLAGS) $(CXXFLAGS_ONLY) -x c++ -fno-rtti -fno-exceptions -c -MD -o $@ $<
 @# The following fixes the dependency file.
 @# See http://make.paulandlesley.org/autodep.html for details.
 @# Regex adjusted from the above to play better with Windows paths, etc.
@@ -46,6 +61,10 @@ vpath %.c . $(TOP) $(USER_C_MODULES) $(DEVICES_MODULES)
 $(BUILD)/%.o: %.c
 	$(call compile_c)
 
+vpath %.cpp . $(TOP) $(USER_C_MODULES) $(DEVICES_MODULES)
+$(BUILD)/%.o: %.cpp
+	$(call compile_cpp)
+
 QSTR_GEN_EXTRA_CFLAGS += -DNO_QSTR
 
 # frozen.c and frozen_mpy.c are created in $(BUILD), so use our rule
@@ -56,10 +75,14 @@ $(BUILD)/%.o: %.c
 
 QSTR_GEN_EXTRA_CFLAGS += -I$(BUILD)/tmp
 
-vpath %.c . $(TOP) $(USER_C_MODULES) $(DEVICES_MODULES)
 $(BUILD)/%.pp: %.c
 	$(STEPECHO) "PreProcess $<"
 	$(Q)$(CC) $(CFLAGS) -E -Wp,-C,-dD,-dI -o $@ $<
+
+$(BUILD)/%.pp: %.cpp
+	$(STEPECHO) "PreProcess $<"
+	$(Q)$(CC) $(CFLAGS) -x c++ -fno-rtti -fno-exceptions -E -Wp,-C,-dD,-dI -o $@ $<
+
 
 # The following rule uses | to create an order only prerequisite. Order only
 # prerequisites only get built if they don't exist. They don't cause timestamp

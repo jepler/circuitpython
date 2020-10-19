@@ -27,14 +27,24 @@
 ###
 # Common compile warnings.
 
+BASE_CFLAGS_ONLY = \
+	-Wstrict-prototypes \
+	-Werror-implicit-function-declaration \
+	-Wnested-externs \
+
+BASE_CXXFLAGS_ONLY = \
+	-x c++ \
+	-std=gnu++17 \
+	-fno-rtti \
+	-fno-exceptions \
+	-Dregister= \
+
 BASE_CFLAGS = \
 	-fsingle-precision-constant \
 	-fno-strict-aliasing \
 	-Wdouble-promotion \
 	-Wimplicit-fallthrough=2 \
 	-Wno-endif-labels \
-	-Wstrict-prototypes \
-	-Werror-implicit-function-declaration \
 	-Wfloat-equal \
 	-Wundef \
 	-Wshadow \
@@ -42,7 +52,6 @@ BASE_CFLAGS = \
 	-Wsign-compare \
 	-Wmissing-format-attribute \
 	-Wno-deprecated-declarations \
-	-Wnested-externs \
 	-Wunreachable-code \
 	-Wcast-align \
 	-D__$(CHIP_VARIANT)__ \
@@ -399,7 +408,7 @@ $(filter $(SRC_PATTERNS), \
 )
 
 SRC_BINDINGS_ENUMS += \
-	util.c
+	util.cpp
 
 SRC_SHARED_MODULE_ALL = \
 	_bleio/Address.c \

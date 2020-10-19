@@ -36,6 +36,8 @@
 
 #include "mpconfig.h"
 
+MP_BEGIN_DECLS
+
 typedef unsigned char byte;
 typedef unsigned int uint;
 
@@ -228,5 +230,7 @@ extern mp_uint_t mp_verbose_flag;
 #endif
 #define MP_FLOAT_EXP_BIAS ((1 << (MP_FLOAT_EXP_BITS - 1)) - 1)
 #endif // MICROPY_PY_BUILTINS_FLOAT
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_MISC_H

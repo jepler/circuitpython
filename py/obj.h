@@ -36,6 +36,8 @@
 
 #include "supervisor/shared/translate.h"
 
+MP_BEGIN_DECLS
+
 // This is the definition of the opaque MicroPython object type.
 // All concrete objects have an encoding within this type and the
 // particular encoding is specified by MICROPY_OBJ_REPR.
@@ -912,5 +914,7 @@ mp_obj_t mp_seq_extract_slice(size_t len, const mp_obj_t *seq, mp_bound_slice_t 
     /*printf("memmove(%p, %p, %d)\n", dest + beg + len_adj, dest + beg, (dest_len - beg) * (item_sz));*/ \
     memmove(((char*)dest) + (beg + slice_len) * (item_sz), ((char*)dest) + (end) * (item_sz), ((dest_len) + (len_adj) - ((beg) + (slice_len))) * (item_sz)); \
     memmove(((char*)dest) + (beg) * (item_sz), slice, slice_len * (item_sz));
+
+MP_END_DECLS
 
 #endif // MICROPY_INCLUDED_PY_OBJ_H

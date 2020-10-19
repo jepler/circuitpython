@@ -155,7 +155,9 @@ else
   endif
 endif
 
-CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
+CFLAGS_ONLY += -std=gnu11 $(BASE_CFLAGS_ONLY)
+CXXFLAGS_ONLY += $(BASE_CXXFLAGS_ONLY)
+CFLAGS += $(INC) -Wall -Werror -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
 
 ifeq ($(CHIP_FAMILY), samd21)
 CFLAGS += \
@@ -380,14 +382,11 @@ SRC_COMMON_HAL_SHARED_MODULE_EXPANDED = $(sort $(SRC_COMMON_HAL_EXPANDED) $(SRC_
 
 SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s
 
-OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_ASF:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
+OBJ = $(PY_O) $(SUPERVISOR_O) $(call TO_OBJS,$(SRC_C) $(SRC_ASF) $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED) $(SRC_MOD))
 ifeq ($(INTERNAL_LIBM),1)
-OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
+OBJ += $(call TO_OBJS, $(SRC_LIBM))
 endif
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 
 SRC_QSTR += $(HEADER_BUILD)/sdiodata.h
 $(HEADER_BUILD)/sdiodata.h: tools/mksdiodata.py | $(HEADER_BUILD)
