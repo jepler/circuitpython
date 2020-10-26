@@ -39,17 +39,6 @@
 
 STATIC bool reserved_can;
 
-__attribute__((optimize("O0")))
-__attribute__((noinline))
-static void canio_set_acc_filter(twai_dev_t* hw, uint32_t code, uint32_t mask, bool single_filter)
-{
-    for (int i = 0; i < 4; i++) {
-        hw->acceptance_filter.acr[i].byte = ((code >> ((3-i) * 8)) & 0xFF);
-        hw->acceptance_filter.amr[i].byte = ((mask >> ((3-i) * 8)) & 0xFF);
-    }
-    hw->mode_reg.afm = single_filter;
-}
-
 twai_timing_config_t get_t_config(int baudrate) {
     switch(baudrate) {
     case 1000000:
@@ -165,34 +154,6 @@ void common_hal_canio_can_construct(canio_can_obj_t *self, mcu_pin_obj_t *tx, mc
     } else if (result != ESP_OK) {
         mp_raise_OSError_msg_varg(translate("twai_driver_install returned esp-idf error #%d"), (int)result);
     }
-
-    mp_printf(&mp_plat_print, "TWAI @ %p\n", &TWAI);
-#define PRINT_REG(x) \
-    mp_printf(&mp_plat_print, #x " = 0x%08x\n", TWAI.x.val);
-    PRINT_REG(mode_reg);
-    PRINT_REG(command_reg);
-    PRINT_REG(status_reg);
-    PRINT_REG(clock_divider_reg);
-
-    canio_set_acc_filter(&TWAI, self->f_config.acceptance_code,self->f_config.acceptance_mask, self->f_config.single_filter);
-
-    mp_printf(&mp_plat_print, "f_config.acceptance_code = 0x%08x\n", self->f_config.acceptance_code);
-    mp_printf(&mp_plat_print, "f_config.acceptance_mask = 0x%08x\n", self->f_config.acceptance_mask);
-    mp_printf(&mp_plat_print, "f_config.single_filter = 0x%08x\n", self->f_config.single_filter);
-    mp_printf(&mp_plat_print, "acceptance_filter.acr[] =");
-    for(int i=0; i<4; i++) {
-        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.acr[i].byte);
-        //TWAI.acceptance_filter.acr[i].byte = 0;
-        //mp_printf(&mp_plat_print, " [-> %02x]", TWAI.acceptance_filter.acr[i].byte);
-    }
-    mp_printf(&mp_plat_print, "\n");
-    mp_printf(&mp_plat_print, "acceptance_filter.amr[] =");
-    for(int i=0; i<4; i++) {
-        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.amr[i].byte);
-        //TWAI.acceptance_filter.acr[i].byte = 0xff;
-        //mp_printf(&mp_plat_print, " [-> %02x]", TWAI.acceptance_filter.acr[i].byte);
-    }
-    mp_printf(&mp_plat_print, "\n");
 
     result = twai_start();
     if (result != ESP_OK) {
