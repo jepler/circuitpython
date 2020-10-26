@@ -55,13 +55,7 @@ static void canio_set_acc_filter(twai_dev_t* hw, uint32_t code, uint32_t mask, b
     uint32_t mask_swapped = __builtin_bswap32(mask);
     for (int i = 0; i < 4; i++) {
         hw->acceptance_filter.acr[i].val = ((code_swapped >> (i * 8)) & 0xFF);
-//__asm__ volatile("memw; nop");
-//__asm__ volatile("memw; nop");
-//__asm__ volatile("memw; nop");
         hw->acceptance_filter.amr[i].val = ((mask_swapped >> (i * 8)) & 0xFF);
-//__asm__ volatile("memw; nop");
-//__asm__ volatile("memw; nop");
-//__asm__ volatile("memw; nop");
     }
     hw->mode_reg.afm = single_filter;
 }
@@ -98,17 +92,6 @@ void set_filters(canio_listener_obj_t *self, size_t nmatch, canio_match_obj_t **
             install_standard_filter(self, match);
         }
     }
-
-    mp_printf(&mp_plat_print, "acceptance_filter.acr[] =");
-    for(int i=0; i<4; i++) {
-        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.acr[i].byte);
-    }
-    mp_printf(&mp_plat_print, "\n");
-    mp_printf(&mp_plat_print, "acceptance_filter.amr[] =");
-    for(int i=0; i<4; i++) {
-        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.amr[i].byte);
-    }
-    mp_printf(&mp_plat_print, "\n");
 
     twai_ll_exit_reset_mode(&TWAI);
 }
@@ -173,8 +156,6 @@ mp_obj_t common_hal_canio_listener_receive(canio_listener_obj_t *self) {
     }
 
     bool rtr = self->message_in.rtr;
-mp_printf(&mp_plat_print, "rtr = %d\n", rtr);
-mp_printf(&mp_plat_print, "identifier = %d\n", self->message_in.identifier);
 
     int dlc = self->message_in.data_length_code;
     canio_message_obj_t *message = m_new_obj(canio_message_obj_t);
