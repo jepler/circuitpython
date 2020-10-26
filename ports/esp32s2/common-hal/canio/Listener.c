@@ -45,25 +45,27 @@
 #define FILTER32_IDE (1<<2)
 
 STATIC void install_standard_filter(canio_listener_obj_t *self, canio_match_obj_t *match) {
-    twai_ll_set_acc_filter(&TWAI, match->id << 21, ~(match->mask << 21), true);
+    twai_ll_set_acc_filter(&TWAI, match->id << 21, (match->mask << 21), true);
     self->extended = false;
     self->standard = true;
 }
 
 STATIC void install_extended_filter(canio_listener_obj_t *self, canio_match_obj_t *match) {
-    twai_ll_set_acc_filter(&TWAI, match->id << 3, ~(match->mask << 3), true);
+    twai_ll_set_acc_filter(&TWAI, match->id << 3, (match->mask << 3), true);
     self->extended = true;
     self->standard = false;
 }
 
 STATIC void install_all_match_filter(canio_listener_obj_t *self) {
-    twai_ll_set_acc_filter(&TWAI, 0u, ~0u, true);
+    twai_ll_set_acc_filter(&TWAI, 0u, 0u, true);
     self->extended = true;
     self->standard = true;
 }
 
 
 void set_filters(canio_listener_obj_t *self, size_t nmatch, canio_match_obj_t **matches) {
+    twai_ll_enter_reset_mode(&TWAI);
+
     if (!nmatch) {
         install_all_match_filter(self);
     } else {
@@ -74,6 +76,19 @@ void set_filters(canio_listener_obj_t *self, size_t nmatch, canio_match_obj_t **
             install_standard_filter(self, match);
         }
     }
+
+    mp_printf(&mp_plat_print, "acceptance_filter.acr[] =");
+    for(int i=0; i<4; i++) {
+        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.acr[i].byte);
+    }
+    mp_printf(&mp_plat_print, "\n");
+    mp_printf(&mp_plat_print, "acceptance_filter.amr[] =");
+    for(int i=0; i<4; i++) {
+        mp_printf(&mp_plat_print, " %02x", TWAI.acceptance_filter.amr[i].byte);
+    }
+    mp_printf(&mp_plat_print, "\n");
+
+    twai_ll_exit_reset_mode(&TWAI);
 }
 
 
@@ -90,7 +105,9 @@ void common_hal_canio_listener_construct(canio_listener_obj_t *self, canio_can_o
     self->can = can;
     self->pending = false;
 
-    set_filters(self, nmatch, matches);
+    // set_filters(self, nmatch, matches);
+    self->extended = self->standard = true;
+
     common_hal_canio_listener_set_timeout(self, timeout);
 }
 
@@ -134,6 +151,9 @@ mp_obj_t common_hal_canio_listener_receive(canio_listener_obj_t *self) {
     }
 
     bool rtr = self->message_in.rtr;
+mp_printf(&mp_plat_print, "rtr = %d\n", rtr);
+mp_printf(&mp_plat_print, "identifier = %d\n", self->message_in.identifier);
+
     int dlc = self->message_in.data_length_code;
     canio_message_obj_t *message = m_new_obj(canio_message_obj_t);
     message->base.type = rtr ? &canio_remote_transmission_request_type : &canio_message_type;
@@ -141,7 +161,7 @@ mp_obj_t common_hal_canio_listener_receive(canio_listener_obj_t *self) {
     message->id = self->message_in.identifier;
     message->size = dlc;
 
-    if (rtr) {
+    if (!rtr) {
         MP_STATIC_ASSERT(sizeof(self->message_in.data) == sizeof(message->data));
         memcpy(message->data, self->message_in.data, sizeof(message->data));
     }
