@@ -23,12 +23,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 #pragma once
 
-#include "esp_err.h"
-#include "py/mpconfig.h"
+#include "supervisor/background_callback.h"
+#include "common-hal/microcontroller/Pin.h"
 
-void raise_esp_error(esp_err_t err) NORETURN;
-void raise_esp_error_name(esp_err_t err, const char *name) NORETURN;
-#define ESP_CALL_RAISE(x) do { int res = (x); if(res != ESP_OK) raise_esp_error(res); } while(0)
-#define ESP_CALL_RAISE_NAME(name, x) do { int res = (x); if(res != ESP_OK) raise_esp_error_name(res, name); } while(0)
+#include "py/obj.h"
+
+#include "driver/i2s.h"
+
+// Some boards don't implement I2SOut, so suppress any routines from here.
+#if CIRCUITPY_AUDIOBUSIO_I2SOUT
+
+typedef struct {
+    mp_obj_base_t base;
+    mp_obj_t *sample;
+    bool left_justified;
+    bool loop;
+    bool paused;
+    bool playing;
+    bool stopping;
+    bool samples_signed;
+    int8_t bytes_per_sample;
+    int8_t instance;
+    uint16_t buffer_length;
+    uint8_t *sample_data, *sample_end;
+    const mcu_pin_obj_t *bit_clock;
+    const mcu_pin_obj_t *word_select;
+    const mcu_pin_obj_t *data;
+    i2s_config_t i2s_config;
+    i2s_pin_config_t i2s_pin_config;
+    background_callback_t callback;
+} audiobusio_i2sout_obj_t;
+
+#endif

@@ -85,3 +85,7 @@ void raise_esp_error(esp_err_t err) {
     }
     mp_raise_msg_varg(&mp_type_OSError, translate("%s error 0x%x"), group, err);
 }
+
+void raise_esp_error_name(esp_err_t err, const char *name) {
+    mp_raise_msg_varg(&mp_type_OSError, translate("%s error 0x%x"), name, err);
+}
