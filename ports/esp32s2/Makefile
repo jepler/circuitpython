@@ -173,6 +173,7 @@ SRC_C += \
 	background.c \
 	esp_error.c \
 	fatfs_port.c \
+	i2s_common.c \
 	mphalport.c \
 	bindings/espidf/__init__.c \
 	boards/$(BOARD)/board.c \

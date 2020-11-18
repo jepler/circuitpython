@@ -187,7 +187,7 @@ void reset_port(void) {
 #endif
 
 #if CIRCUITPY_AUDIOBUSIO
-    i2s_reset();
+    port_i2s_reset();
 #endif
 
 #if CIRCUITPY_AUDIOPWMIO

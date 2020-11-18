@@ -26,20 +26,35 @@
 
 #pragma once
 
+#include "py/obj.h"
+
 #include "supervisor/background_callback.h"
-#include "common-hal/microcontroller/Pin.h"
 
-#include "i2s_common.h"
-
-// Some boards don't implement I2SOut, so suppress any routines from here.
-#if CIRCUITPY_AUDIOBUSIO_I2SOUT
+#include "driver/i2s.h"
 
 typedef struct {
-    mp_obj_base_t base;
-    i2s_t peripheral;
-    const mcu_pin_obj_t *bit_clock;
-    const mcu_pin_obj_t *word_select;
-    const mcu_pin_obj_t *data;
-} audiobusio_i2sout_obj_t;
+    mp_obj_t *sample;
+    bool left_justified;
+    bool loop;
+    bool paused;
+    bool playing;
+    bool stopping;
+    bool samples_signed;
+    int8_t bytes_per_sample;
+    int8_t instance;
+    uint16_t buffer_length;
+    uint8_t *sample_data, *sample_end;
+    i2s_config_t i2s_config;
+    background_callback_t callback;
+} i2s_t;
 
-#endif
+
+void port_i2s_allocate_init(i2s_t *self, bool analog);
+void port_i2s_reset_instance(int i);
+void port_i2s_reset(void);
+void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop);
+void port_i2s_stop(i2s_t *self);
+bool port_i2s_playing(i2s_t *self);
+bool port_i2s_paused(i2s_t *self);
+void port_i2s_pause(i2s_t *self);
+void port_i2s_resume(i2s_t *self);
