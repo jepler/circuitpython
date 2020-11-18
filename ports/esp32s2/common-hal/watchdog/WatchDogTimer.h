@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2020 microDev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,20 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO___INIT___H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO___INIT___H
+#ifndef MICROPY_INCLUDED_ESP32S2_COMMON_HAL_WATCHDOG_WATCHDOGTIMER_H
+#define MICROPY_INCLUDED_ESP32S2_COMMON_HAL_WATCHDOG_WATCHDOGTIMER_H
 
 #include "py/obj.h"
+#include "shared-bindings/watchdog/WatchDogMode.h"
+#include "shared-bindings/watchdog/WatchDogTimer.h"
 
-typedef enum {
-    DISPLAY_COMMAND,
-    DISPLAY_DATA
-} display_byte_type_t;
+struct _watchdog_watchdogtimer_obj_t {
+  mp_obj_base_t base;
+  mp_float_t timeout;
+  watchdog_watchdogmode_t mode;
+};
 
-typedef enum {
-    CHIP_SELECT_UNTOUCHED,
-    CHIP_SELECT_TOGGLE_EVERY_BYTE
-} display_chip_select_behavior_t;
+// This needs to be called in order to disable the watchdog
+void watchdog_reset(void);
 
-typedef bool (*display_bus_bus_reset)(mp_obj_t bus);
-typedef bool (*display_bus_bus_free)(mp_obj_t bus);
-typedef bool (*display_bus_begin_transaction)(mp_obj_t bus);
-typedef void (*display_bus_send)(mp_obj_t bus, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length);
-typedef void (*display_bus_end_transaction)(mp_obj_t bus);
-
-void common_hal_displayio_release_displays(void);
-
-#endif  // MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO___INIT___H
+#endif // MICROPY_INCLUDED_ESP32S2_COMMON_HAL_WATCHDOG_WATCHDOGTIMER_H
