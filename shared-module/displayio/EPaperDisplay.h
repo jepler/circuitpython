@@ -27,6 +27,7 @@
 #ifndef MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_EPAPERDISPLAY_H
 #define MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_EPAPERDISPLAY_H
 
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/displayio/Group.h"
 
@@ -64,5 +65,6 @@ void release_epaperdisplay(displayio_epaperdisplay_obj_t* self);
 bool maybe_refresh_epaperdisplay(void);
 
 void displayio_epaperdisplay_collect_ptrs(displayio_epaperdisplay_obj_t* self);
+#endif
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_EPAPERDISPLAY_H

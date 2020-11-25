@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
 #include "shared-bindings/displayio/EPaperDisplay.h"
 
 #include "py/gc.h"
@@ -425,3 +426,4 @@ bool maybe_refresh_epaperdisplay(void) {
     // Return true if no ePaper displays are available to pretend it was updated.
     return true;
 }
+#endif

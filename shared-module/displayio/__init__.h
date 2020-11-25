@@ -59,7 +59,9 @@ typedef struct {
     union {
         mp_obj_base_t display_base;
         displayio_display_obj_t display;
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
         displayio_epaperdisplay_obj_t epaper_display;
+#endif
 #if CIRCUITPY_FRAMEBUFFERIO
         framebufferio_framebufferdisplay_obj_t framebuffer_display;
 #endif

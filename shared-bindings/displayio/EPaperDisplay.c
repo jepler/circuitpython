@@ -102,6 +102,7 @@
 //|         ...
 //|
 STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
     enum { ARG_display_bus, ARG_start_sequence, ARG_stop_sequence, ARG_width, ARG_height,
            ARG_ram_width, ARG_ram_height, ARG_colstart, ARG_rowstart, ARG_rotation,
            ARG_set_column_window_command, ARG_set_row_window_command, ARG_set_current_column_command,
@@ -183,8 +184,12 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
         );
 
     return self;
+#else
+    mp_raise_NotImplementedError(translate("EPaperDisplay not available"));
+#endif
 }
 
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
 // Helper to ensure we have the native super class instead of a subclass.
 static displayio_epaperdisplay_obj_t* native_display(mp_obj_t display_obj) {
     mp_obj_t native_display = mp_instance_cast_to_native_base(display_obj, &displayio_epaperdisplay_type);
@@ -346,10 +351,13 @@ STATIC const mp_rom_map_elem_t displayio_epaperdisplay_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_time_to_refresh), MP_ROM_PTR(&displayio_epaperdisplay_time_to_refresh_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(displayio_epaperdisplay_locals_dict, displayio_epaperdisplay_locals_dict_table);
+#endif
 
 const mp_obj_type_t displayio_epaperdisplay_type = {
     { &mp_type_type },
     .name = MP_QSTR_EPaperDisplay,
     .make_new = displayio_epaperdisplay_make_new,
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
     .locals_dict = (mp_obj_dict_t*)&displayio_epaperdisplay_locals_dict,
+#endif
 };

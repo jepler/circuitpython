@@ -34,6 +34,7 @@
 
 extern const mp_obj_type_t displayio_epaperdisplay_type;
 
+#if CIRCUITPY_DISPLAYIO_EPAPERDISPLAY
 #define DELAY 0x80
 
 #define NO_COMMAND 0x100
@@ -60,5 +61,6 @@ uint16_t common_hal_displayio_epaperdisplay_get_rotation(displayio_epaperdisplay
 void common_hal_displayio_epaperdisplay_set_rotation(displayio_epaperdisplay_obj_t* self, int rotation);
 
 mp_obj_t common_hal_displayio_epaperdisplay_get_bus(displayio_epaperdisplay_obj_t* self);
+#endif
 
 #endif // MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO_EPAPERDISPLAY_H
