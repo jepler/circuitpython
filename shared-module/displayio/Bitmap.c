@@ -30,19 +30,27 @@
 
 #include "py/runtime.h"
 
-void common_hal_displayio_bitmap_construct(displayio_bitmap_t *self, uint32_t width,
-    uint32_t height, uint32_t bits_per_value) {
-    uint32_t row_width = width * bits_per_value;
-    // align to size_t
-    uint8_t align_bits = 8 * sizeof(size_t);
-    if (row_width % align_bits != 0) {
-        self->stride = (row_width / align_bits + 1);
+#define ALIGN_BITS (CHAR_BIT * sizeof(size_t))
+size_t bitmap_stride(uint32_t width, uint32_t bytes_per_value) {
+    uint32_t row_width = width * bytes_per_value;
+    return (row_width + ALIGN_BITS - 1) / ALIGN_BITS;
+}
+
+size_t common_hal_displayio_bitmap_size(uint32_t width, uint32_t height, uint32_t bits_per_value) {
+    if (height == 0) {
+        return (width * bits_per_value + CHAR_BIT - 1) / CHAR_BIT;
     } else {
-        self->stride = row_width / align_bits;
+        return bitmap_stride(width, bits_per_value) * height;
     }
+}
+
+void common_hal_displayio_bitmap_construct_with_data(displayio_bitmap_t *self, uint32_t width,
+    uint32_t height, uint32_t bits_per_value, size_t *data) {
+    // align to size_t
+    self->stride = bitmap_stride(width, bits_per_value);
     self->width = width;
     self->height = height;
-    self->data = m_malloc(self->stride * height * sizeof(size_t), false);
+    self->data = data ? data : m_malloc(self->stride * height * sizeof(size_t), false);
     self->read_only = false;
     self->bits_per_value = bits_per_value;
 
@@ -57,7 +65,7 @@ void common_hal_displayio_bitmap_construct(displayio_bitmap_t *self, uint32_t wi
     self->x_shift = 0; // Used to divide the index by the number of pixels per word. Its used in a
                        // shift which effectively divides by 2 ** x_shift.
     uint32_t power_of_two = 1;
-    while (power_of_two < align_bits / bits_per_value ) {
+    while (power_of_two < ALIGN_BITS / bits_per_value ) {
         self->x_shift++;
         power_of_two <<= 1;
     }
@@ -68,6 +76,11 @@ void common_hal_displayio_bitmap_construct(displayio_bitmap_t *self, uint32_t wi
     self->dirty_area.x2 = width;
     self->dirty_area.y1 = 0;
     self->dirty_area.y2 = height;
+}
+
+void common_hal_displayio_bitmap_construct(displayio_bitmap_t *self, uint32_t width,
+    uint32_t height, uint32_t bits_per_value) {
+    common_hal_displayio_bitmap_construct_with_data(self, width, height, bits_per_value, NULL);
 }
 
 uint16_t common_hal_displayio_bitmap_get_height(displayio_bitmap_t *self) {

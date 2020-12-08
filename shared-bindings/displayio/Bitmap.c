@@ -125,6 +125,16 @@ const mp_obj_property_t displayio_bitmap_height_obj = {
 //|         This allows you to::
 //|
 //|           bitmap[0,1] = 3"""
+//| 
+//|         You can also use slice assignment to copy bits into the Bitmap.  This allows you to::
+//| 
+//|           bitmap[0:14] = b"\xaa\xaa"
+//|
+//|         In this representation, the first pixel appears in the most
+//|         significant bits of the first byte and proceed to the less
+//|         significant bits and subsequent bytes.  Even if the slice
+//|         spans multiple rows, there is no internal padding.  The buffer
+//|         may have arbitrary padding at the end."""
 //|         ...
 //|
 STATIC mp_obj_t bitmap_subscr(mp_obj_t self_in, mp_obj_t index_obj, mp_obj_t value_obj) {
@@ -137,37 +147,62 @@ STATIC mp_obj_t bitmap_subscr(mp_obj_t self_in, mp_obj_t index_obj, mp_obj_t val
     displayio_bitmap_t *self = MP_OBJ_TO_PTR(self_in);
 
     if (MP_OBJ_IS_TYPE(index_obj, &mp_type_slice)) {
-        // TODO(tannewt): Implement subscr after slices support start, stop and step tuples.
-        mp_raise_NotImplementedError(translate("Slices not supported"));
-        return mp_const_none;
-    }
-
-    uint16_t x = 0;
-    uint16_t y = 0;
-    if (MP_OBJ_IS_SMALL_INT(index_obj)) {
-        mp_int_t i = MP_OBJ_SMALL_INT_VALUE(index_obj);
+        mp_bound_slice_t slice;
         uint16_t width = common_hal_displayio_bitmap_get_width(self);
-        x = i % width;
-        y = i / width;
-    } else {
-        mp_obj_t* items;
-        mp_obj_get_array_fixed_n(index_obj, 2, &items);
-        x = mp_obj_get_int(items[0]);
-        y = mp_obj_get_int(items[1]);
-        if (x >= common_hal_displayio_bitmap_get_width(self) || y >= common_hal_displayio_bitmap_get_height(self)) {
-            mp_raise_IndexError(translate("pixel coordinates out of bounds"));
+        uint16_t height = common_hal_displayio_bitmap_get_height(self);
+        if (!mp_seq_get_fast_slice_indexes(width * height, index_obj, &slice)) {
+            mp_raise_NotImplementedError(translate("only slices with step=1 (aka None) are supported"));
         }
-    }
+        if (value_obj == MP_OBJ_SENTINEL) {
+            mp_raise_NotImplementedError(translate("Slices only support assignment"));
+        } 
+        displayio_bitmap_t fake_bitmap;
+        mp_buffer_info_t bufinfo;
+        mp_get_buffer_raise(value_obj, &bufinfo, MP_BUFFER_READ);
+        size_t slice_size = slice.stop - slice.start;
+        size_t bits_per_value = common_hal_displayio_bitmap_get_bits_per_value(self);
+        if(slice_size < common_hal_displayio_bitmap_size(slice_size, 0, bits_per_value)) {
+            mp_raise_ValueError(translate("too little data"));
+        }
+        common_hal_displayio_bitmap_construct_with_data(&fake_bitmap, slice_size, 1, bits_per_value, bufinfo.buf);
+        uint16_t x = slice.start % width;
+        uint16_t y = slice.start / width;
+        for(size_t src_idx = 0, dst_idx = slice.start; dst_idx != slice.stop; ++dst_idx, ++src_idx) {
+            mp_uint_t value = common_hal_displayio_bitmap_get_pixel(&fake_bitmap, src_idx, 0);
+            common_hal_displayio_bitmap_set_pixel(self, x, y, value);
+            if(++x == width) {
+                x = 0;
+                y++;
+            }
+        }
+    } else {
+        uint16_t x = 0;
+        uint16_t y = 0;
+        if (MP_OBJ_IS_SMALL_INT(index_obj)) {
+            mp_int_t i = MP_OBJ_SMALL_INT_VALUE(index_obj);
+            uint16_t width = common_hal_displayio_bitmap_get_width(self);
+            x = i % width;
+            y = i / width;
+        } else {
+            mp_obj_t* items;
+            mp_obj_get_array_fixed_n(index_obj, 2, &items);
+            x = mp_obj_get_int(items[0]);
+            y = mp_obj_get_int(items[1]);
+            if (x >= common_hal_displayio_bitmap_get_width(self) || y >= common_hal_displayio_bitmap_get_height(self)) {
+                mp_raise_IndexError(translate("pixel coordinates out of bounds"));
+            }
+        }
 
-    if (value_obj == MP_OBJ_SENTINEL) {
-        // load
-        return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_bitmap_get_pixel(self, x, y));
-    } else {
-        mp_uint_t value = (mp_uint_t)mp_obj_get_int(value_obj);
-        if ((value >> common_hal_displayio_bitmap_get_bits_per_value(self)) != 0) {
-            mp_raise_ValueError(translate("pixel value requires too many bits"));
+        if (value_obj == MP_OBJ_SENTINEL) {
+            // load
+            return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_bitmap_get_pixel(self, x, y));
+        } else {
+            mp_uint_t value = (mp_uint_t)mp_obj_get_int(value_obj);
+            if ((value >> common_hal_displayio_bitmap_get_bits_per_value(self)) != 0) {
+                mp_raise_ValueError(translate("pixel value requires too many bits"));
+            }
+            common_hal_displayio_bitmap_set_pixel(self, x, y, value);
         }
-        common_hal_displayio_bitmap_set_pixel(self, x, y, value);
     }
     return mp_const_none;
 }
