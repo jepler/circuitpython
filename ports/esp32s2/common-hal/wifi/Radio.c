@@ -31,6 +31,7 @@
 
 #include "common-hal/wifi/__init__.h"
 #include "lib/utils/interrupt_char.h"
+#include "py/gc.h"
 #include "py/runtime.h"
 #include "shared-bindings/ipaddress/IPv4Address.h"
 #include "shared-bindings/wifi/ScannedNetworks.h"
@@ -104,6 +105,10 @@ mp_obj_t common_hal_wifi_radio_start_scanning_networks(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_stop_scanning_networks(wifi_radio_obj_t *self) {
+    // Return early if self->current_scan is NULL to avoid hang
+    if (self->current_scan == NULL) {
+        return;
+    }
     // Free the memory used to store the found aps.
     wifi_scannednetworks_deinit(self->current_scan);
     self->current_scan = NULL;
@@ -138,9 +143,9 @@ wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t
     if (bssid_len > 0){
         memcpy(&config->sta.bssid, bssid, bssid_len);
         config->sta.bssid[bssid_len] = 0;
-        config->sta.bssid_set = 1;
+        config->sta.bssid_set = true;
     } else {
-        config->sta.bssid_set = 0;
+        config->sta.bssid_set = false;
     }
     // If channel is 0 (default/unset) and BSSID is not given, do a full scan instead of fast scan
     // This will ensure that the best AP in range is chosen automatically
@@ -261,4 +266,9 @@ mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address,
     esp_ping_delete_session(ping);
 
     return elapsed_time;
+}
+
+void common_hal_wifi_radio_gc_collect(wifi_radio_obj_t *self) {
+    // Only bother to scan the actual object references.
+    gc_collect_ptr(self->current_scan);
 }

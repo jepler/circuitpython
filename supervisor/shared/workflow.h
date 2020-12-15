@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2020 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,33 +24,9 @@
  * THE SOFTWARE.
  */
 
-// This file defines board specific functions.
+#pragma once
 
-#ifndef MICROPY_INCLUDED_MIMXRT10XX_BOARDS_BOARD_H
-#define MICROPY_INCLUDED_MIMXRT10XX_BOARDS_BOARD_H
+extern void supervisor_workflow_reset(void);
 
-#include <stdbool.h>
-
-#include "py/mpconfig.h"
-#include "fsl_common.h"
-#include "fsl_flexspi_nor_config.h"
-
-// Initializes board related state once on start up.
-void board_init(void);
-
-// Returns true if the user initiates safe mode in a board specific way.
-// Also add BOARD_USER_SAFE_MODE in mpconfigboard.h to explain the board specific
-// way.
-bool board_requests_safe_mode(void);
-
-// Reset the state of off MCU components such as neopixels.
-void reset_board(void);
-
-#define SEQUENCE(first, second, third, fourth) first, second, third, fourth
-#define TWO_EMPTY_STEPS 0x00000000
-#define EMPTY_SEQUENCE SEQUENCE(TWO_EMPTY_STEPS, TWO_EMPTY_STEPS, TWO_EMPTY_STEPS, TWO_EMPTY_STEPS)
-
-// FlexSPI configuration that stores command info.
-extern const flexspi_nor_config_t qspiflash_config;
-
-#endif  // MICROPY_INCLUDED_MIMXRT10XX_BOARDS_BOARD_H
+extern bool supervisor_workflow_connecting(void);
+extern bool supervisor_workflow_active(void);
