@@ -56,6 +56,7 @@ include $(TOP)/supervisor/supervisor.mk
 include $(TOP)/py/circuitpy_defns.mk
 
 CROSS_COMPILE = arm-none-eabi-
+CCSUFFIX = -10.2.1
 
 MCU_SERIES_LOWER = $(shell echo $(MCU_SERIES) | tr '[:upper:]' '[:lower:]')
 MCU_VARIANT_LOWER = $(shell echo $(MCU_VARIANT) | tr '[:upper:]' '[:lower:]')

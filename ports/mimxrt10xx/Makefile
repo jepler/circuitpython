@@ -55,6 +55,7 @@ include $(TOP)/supervisor/supervisor.mk
 include $(TOP)/py/circuitpy_defns.mk
 
 CROSS_COMPILE = arm-none-eabi-
+CCSUFFIX = -10.2.1
 
 INC += \
 	-I. \

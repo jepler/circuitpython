@@ -64,6 +64,7 @@ ifneq ($(SD), )
 endif
 
 CROSS_COMPILE = arm-none-eabi-
+CCSUFFIX = -10.2.1
 
 FATFS_DIR = lib/oofatfs
 

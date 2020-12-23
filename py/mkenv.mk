@@ -59,7 +59,8 @@ SED = sed
 NPROC = $(PYTHON3) -c 'import multiprocessing as mp; print(mp.cpu_count())'
 
 AS = $(CROSS_COMPILE)as
-CC = $(CROSS_COMPILE)gcc
+CCSUFFIX ?=
+CC = $(CROSS_COMPILE)gcc$(CCSUFFIX)
 CXX = $(CROSS_COMPILE)g++
 LD = $(CROSS_COMPILE)ld
 OBJCOPY = $(CROSS_COMPILE)objcopy
