@@ -15,6 +15,6 @@ repos:
     hooks:
     -   id: translations
         name: Check Translations
-        entry: sh -c "make translate"
+        entry: sh -c "set -x; if ! make check-translate; then make translate; fi"
         language: system
         always_run: true
