@@ -181,7 +181,7 @@ def compute_huffman_coding(translations, compression_filename):
         # chosen for its effectiveness.
         scores = sorted(
             (
-                (s, (len(s) - 1) ** log(max(occ - 2, 1)), occ)
+                (s, (len(s) - 3) * max(occ - 1.5, 1), occ)
                 for (s, occ) in counter.items()
             ),
             key=lambda x: x[1],
@@ -192,8 +192,6 @@ def compute_huffman_coding(translations, compression_filename):
         # 5?  Horray.  Pick the one with the highest score.
         word = None
         for (s, score, occ) in scores:
-            if occ < 5:
-                continue
             if score < 5:
                 break
             word = s
