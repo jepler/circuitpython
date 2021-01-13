@@ -50,14 +50,15 @@ STATIC int put_utf8(char *buf, int u) {
     } else if(word_start <= u && u <= word_end) {
         uint n = (u - word_start);
         size_t pos = 0;
-        if (n > 0) {
-            pos = wends[n - 1] + (n * 2);
+        for (uint i=0; i<n; i++) {
+            pos += wlens[i];
         }
+        size_t end = pos + wlens[n];
         int ret = 0;
         // note that at present, entries in the words table are
         // guaranteed not to represent words themselves, so this adds
         // at most 1 level of recursive call
-        for(; pos < wends[n] + (n + 1) * 2; pos++) {
+        for(; pos < end; pos++) {
             int len = put_utf8(buf, words[pos]);
             buf += len;
             ret += len;

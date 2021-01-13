@@ -52,9 +52,9 @@
 //   speaking, words.  They're just spans of code points that frequently
 //   occur together.
 //
-// - dictionary entries are non-overlapping, and the _ending_ index of each
-//   entry is stored in an array.  Since the index given is the ending
-//   index, the array is called "wends".
+// - dictionary entries are non-overlapping, and the length of each
+//   word is stored in an array.  Since the value is the length of the word,
+//   the array is called "wlens".
 //
 // The "data" / "tail" construct is so that the struct's last member is a
 // "flexible array".  However, the _only_ member is not permitted to be

@@ -203,8 +203,6 @@ def compute_huffman_coding(translations, compression_filename):
         # we've filled the dictionary to capacity and are done.
         if not word:
             break
-        if sum_len + len(word) - 2 > max_words_len:
-            break
         if len(words) == max_words:
             break
         words.append(word)
@@ -259,16 +257,14 @@ def compute_huffman_coding(translations, compression_filename):
     max_translation_encoded_length = max(
         len(translation.encode("utf-8")) for (original, translation) in translations)
 
-    wends = list(len(w) - 2 for w in words)
-    for i in range(1, len(wends)):
-        wends[i] += wends[i - 1]
+    wlens = [len(w) for w in words]
 
     with open(compression_filename, "w") as f:
         f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
         f.write("const {} values[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(u)) for u in values)))
         f.write("#define compress_max_length_bits ({})\n".format(max_translation_encoded_length.bit_length()))
         f.write("const {} words[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(c)) for w in words for c in w)))
-        f.write("const uint8_t wends[] = {{ {} }};\n".format(", ".join(str(p) for p in wends)))
+        f.write("const uint8_t wlens[] = {{ {} }};\n".format(", ".join(str(p) for p in wlens)))
         f.write("#define word_start {}\n".format(word_start))
         f.write("#define word_end {}\n".format(word_end))
 
