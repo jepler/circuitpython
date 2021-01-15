@@ -139,7 +139,6 @@ LDFLAGS = \
 	-T$(SPRESENSE_SDK)/nuttx/scripts/ramconfig.ld \
 	--gc-sections \
 	-Map=$(BUILD)/output.map \
-	-o $(BUILD)/firmware.elf \
 	--start-group \
 	-u spresense_main \
 	-u board_timerhook \
@@ -213,7 +212,8 @@ $(BUILD)/libmpy.a: $(SPRESENSE_SDK) $(OBJ)
 
 $(BUILD)/firmware.elf: $(BUILD)/libmpy.a
 	$(ECHO) "LD $@"
-	$(Q)$(LD) $(LDFLAGS)
+	$(Q)$(LD) $(LDFLAGS) -o $(BUILD)/firmware-$(BOARD).elf
+	$(Q)mv -f $(BUILD)/firmware-$(BOARD).elf $@
 
 $(MKSPK):
 	$(MAKE) -C mkspk
