@@ -178,9 +178,11 @@ void audioio_wavefile_reset_buffer(audioio_wavefile_obj_t* self,
     // loads
     self->bytes_remaining = self->file_length;
     f_lseek(&self->file->fp, self->data_start);
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
     self->read_count = 0;
     self->left_read_count = 0;
     self->right_read_count = 0;
+#endif
 }
 
 audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* self,
@@ -188,6 +190,7 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* 
                                                         uint8_t channel,
                                                         uint8_t** buffer,
                                                         uint32_t* buffer_length) {
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
     if (!single_channel) {
         channel = 0;
     }
@@ -198,6 +201,9 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* 
     }
 
     bool need_more_data = self->read_count == channel_read_count;
+#else
+    bool need_more_data = true;
+#endif
 
     if (self->bytes_remaining == 0 && need_more_data) {
         *buffer = NULL;
@@ -243,10 +249,16 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* 
             self->buffer_length = length_read;
         }
         self->buffer_index += 1;
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
         self->read_count += 1;
+#endif
     }
 
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
     uint32_t buffers_back = self->read_count - 1 - channel_read_count;
+#else
+    uint32_t buffers_back = 0;
+#endif
     if ((self->buffer_index - buffers_back) % 2 == 0) {
         *buffer = self->second_buffer;
         *buffer_length = self->second_buffer_length;
@@ -255,12 +267,14 @@ audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t* 
         *buffer_length = self->buffer_length;
     }
 
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
     if (channel == 0) {
         self->left_read_count += 1;
     } else if (channel == 1) {
         self->right_read_count += 1;
         *buffer = *buffer + self->bits_per_sample / 8;
     }
+#endif
 
     return self->bytes_remaining == 0 ? GET_BUFFER_DONE : GET_BUFFER_MORE_DATA;
 }
@@ -271,7 +285,7 @@ void audioio_wavefile_get_buffer_structure(audioio_wavefile_obj_t* self, bool si
     *single_buffer = false;
     *samples_signed = self->bits_per_sample > 8;
     *max_buffer_length = 512;
-    if (single_channel) {
+    if (!CIRCUITPY_AUDIOCORE_MULTICHANNEL || single_channel) {
         *spacing = self->channel_count;
     } else {
         *spacing = 1;

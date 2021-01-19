@@ -50,9 +50,11 @@ typedef struct {
     uint32_t len;
     pyb_file_obj_t* file;
 
+#if CIRCUITPY_AUDIOCORE_MULTICHANNEL
     uint32_t read_count;
     uint32_t left_read_count;
     uint32_t right_read_count;
+#endif
 } audioio_wavefile_obj_t;
 
 // These are not available from Python because it may be called in an interrupt.

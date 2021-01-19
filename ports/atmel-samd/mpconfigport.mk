@@ -93,6 +93,9 @@ ifndef CIRCUITPY_FRAMEBUFFERIO
 CIRCUITPY_FRAMEBUFFERIO = $(CIRCUITPY_FULL_BUILD)
 endif
 
+# On SAM D5x/E5x, some stereo DAC configurations need two DMA channels.  This enables extra code in WaveFile for managing the buffers.
+CIRCUITPY_AUDIOCORE_MULTICHANNEL = 1
+
 endif # samd51
 
 INTERNAL_LIBM = 1
