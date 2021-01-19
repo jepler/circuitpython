@@ -36,6 +36,7 @@ typedef struct {
     mp_obj_base_t base;
     const mcu_pin_obj_t *left_channel;
     const mcu_pin_obj_t *right_channel;
+    mp_obj_t *sample;
     bool loop;
     bool paused;
     bool playing;

@@ -24,7 +24,52 @@
  * THE SOFTWARE.
  */
 
+// Portions copied from esp-idf are
+// Copyright 2015-2020 Espressif Systems (Shanghai) PTE LTD
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "py/runtime.h"
+
 #include "common-hal/audioio/AudioOut.h"
+#include "shared-bindings/audioio/AudioOut.h"
+#include "bindings/espidf/__init__.h"
+
+#include "esp_system.h"
+#include "esp_intr_alloc.h"
+#include "driver/adc.h"
+#include "driver/dac.h"
+#include "driver/gpio.h"
+#include "esp_system.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "soc/spi_reg.h"
+#include "soc/adc_periph.h"
+#include "soc/dac_periph.h"
+#include "soc/lldesc.h"
+#include "soc/system_reg.h"
+
+static const char *TAG = "AudioOut";
+
+// Including "hal/adc_hal.h" fails:
+//    In file included from esp-idf/components/soc/include/hal/adc_hal.h:4,
+//                     from common-hal/audioio/AudioOut.c:53:
+//    esp-idf/components/soc/src/esp32s2/include/hal/adc_ll.h:10:10: fatal error: regi2c_ctrl.h: No such file or directory
+//     #include "regi2c_ctrl.h"
+//              ^~~~~~~~~~~~~~~
+// (regi2c_ctrl.h is in soc/src/esp32s2/ and *NOT* in an include/ directory)
+// so the required prototype is given here
+extern void adc_hal_digi_clk_config(const adc_digi_clk_t *clk);
 
 // There is only a single DAC DMA, and placing these as file-level statics
 // makes it easier to ensure that dma_buf is freed at soft-reset time.
@@ -37,50 +82,258 @@
 static uint8_t *dma_buf;
 static lldesc_t dma_desc[DMA_BUFS];
 
-static void release_dma_buf() {
-    if (dma_buf) {
-        free(dma_buf);
+// For ADC, INTERVAL must be >= 40 and 9 <= div_num < 255.  As far as I can tell, settings for DAC are all less stringent, or maybe just not as well documented.
+// In any case, for a list of common frequencies (48kHz/{1,2,3,6,12}, 44.1kHz/{1,2,4}), choosing an INTERVAL of 100 allows us to get within <20ppm.
+// The lowest sample rate (without increasing INTERVAL) is about 3140Hz.  The integer math is "exact" (finds the best fractional divisor), assuming that F_APB % INTERVAL == 0
+
+#define F_APB (80000000)
+#define INTERVAL (100)
+
+static adc_digi_clk_t choose_digi_clk(int fs, int fr) {
+    int div_num = fr / fs;
+    int ferr = fr - div_num * fs;
+    if (ferr == 0) {
+        return (adc_digi_clk_t) {
+            .use_apll = false,
+            .div_num = div_num - 1,
+            .div_a = 0,
+            .div_b = 1,
+        };
     }
-    dma_buf = NULL;
+    int best_den = 0, best_num = 0, best_err2 = INT_MAX;
+    for (int den=1; den<=63; den++) {
+        int div1 = (uint64_t)fr * den / fs;
+        int ferr2 = fr - div1 * fs / den;
+        if (abs(ferr2) < best_err2) {
+            best_den = den;
+            best_num = div1 % den;
+            best_err2 = ferr2;
+        }
+    }
+
+    if (div_num > 256) {
+        mp_raise_ValueError(translate("Invalid sample rate"));
+    }
+
+    return (adc_digi_clk_t) {
+        .use_apll = false,
+        .div_num = div_num - 1,
+        .div_a = best_num,
+        .div_b = best_den,
+    };
 }
 
-static uint32_t allocate_dma_buf() {
+/**
+ * SPI DMA type.
+ */
+typedef enum {
+    DMA_ONLY_ADC_INLINK = BIT(1),   /*!<Select ADC-DMA config. */
+    DMA_ONLY_DAC_OUTLINK = BIT(2),  /*!<Select DAC-DMA config. */
+    DMA_BOTH_ADC_DAC,               /*!<Select DAC-DMA and ADC-DMA config. */
+#define DMA_BOTH_ADC_DAC (DMA_ONLY_ADC_INLINK | DMA_ONLY_DAC_OUTLINK)
+} spi_dma_link_type_t;
+
+/**
+ * Register SPI-DMA interrupt handler.
+ *
+ * @param handler       Handler.
+ * @param handler_arg   Handler parameter.
+ * @param intr_mask     DMA interrupt type mask.
+ */
+esp_err_t adc_dac_dma_isr_register(intr_handler_t handler, void* handler_arg, uint32_t intr_mask);
+
+/**
+ * Deregister SPI-DMA interrupt handler.
+ *
+ * @param handler       Handler.
+ * @param handler_arg   Handler parameter.
+ */
+esp_err_t adc_dac_dma_isr_deregister(intr_handler_t handler, void* handler_arg);
+
+/**
+ * Reset DMA linker pointer and start DMA.
+ *
+ * @param type     DMA linker type. See ``spi_dma_link_type_t``.
+ * @param dma_addr DMA linker addr.
+ * @param int_msk  DMA interrupt type mask.
+ */
+void adc_dac_dma_linker_start(spi_dma_link_type_t type, void *dma_addr, uint32_t int_msk);
+
+/**
+ * Deinit SPI3 DMA. Disable interrupt, stop DMA trans.
+ */
+void adc_dac_dma_linker_deinit(void);
+
+void adc_dac_dma_linker_start(spi_dma_link_type_t type, void *dma_addr, uint32_t int_msk)
+{
+    REG_SET_BIT(DPORT_PERIP_CLK_EN_REG, DPORT_APB_SARADC_CLK_EN_M);
+    REG_SET_BIT(DPORT_PERIP_CLK_EN_REG, DPORT_SPI3_DMA_CLK_EN_M);
+    REG_SET_BIT(DPORT_PERIP_CLK_EN_REG, DPORT_SPI3_CLK_EN);
+    REG_CLR_BIT(DPORT_PERIP_RST_EN_REG, DPORT_SPI3_DMA_RST_M);
+    REG_CLR_BIT(DPORT_PERIP_RST_EN_REG, DPORT_SPI3_RST_M);
+    REG_WRITE(SPI_DMA_INT_CLR_REG(3), 0xFFFFFFFF);
+    REG_WRITE(SPI_DMA_INT_ENA_REG(3), int_msk | REG_READ(SPI_DMA_INT_ENA_REG(3)));
+    if (type & DMA_ONLY_ADC_INLINK) {
+        REG_SET_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_STOP);
+        REG_CLR_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_START);
+        SET_PERI_REG_BITS(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_ADDR, (uint32_t)dma_addr, 0);
+        REG_SET_BIT(SPI_DMA_CONF_REG(3), SPI_IN_RST);
+        REG_CLR_BIT(SPI_DMA_CONF_REG(3), SPI_IN_RST);
+        REG_CLR_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_STOP);
+        REG_SET_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_START);
+    }
+    if (type & DMA_ONLY_DAC_OUTLINK) {
+        REG_SET_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_STOP);
+        REG_CLR_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_START);
+        SET_PERI_REG_BITS(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_ADDR, (uint32_t)dma_addr, 0);
+        REG_SET_BIT(SPI_DMA_CONF_REG(3), SPI_OUT_RST);
+        REG_CLR_BIT(SPI_DMA_CONF_REG(3), SPI_OUT_RST);
+        REG_CLR_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_STOP);
+        REG_SET_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_START);
+    }
+}
+
+static void adc_dac_dma_linker_stop(spi_dma_link_type_t type)
+{
+    if (type & DMA_ONLY_ADC_INLINK) {
+        REG_SET_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_STOP);
+        REG_CLR_BIT(SPI_DMA_IN_LINK_REG(3), SPI_INLINK_START);
+    }
+    if (type & DMA_ONLY_DAC_OUTLINK) {
+        REG_SET_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_STOP);
+        REG_CLR_BIT(SPI_DMA_OUT_LINK_REG(3), SPI_OUTLINK_START);
+    }
+}
+
+static void dac_callback_fun(void *arg);
+
+/** ADC-DMA ISR handler. */
+static IRAM_ATTR void dac_dma_isr(void * self_in)
+{
+    audioio_audioout_obj_t* self = self;
+
+    uint32_t int_st = REG_READ(SPI_DMA_INT_ST_REG(3));
+    REG_WRITE(SPI_DMA_INT_CLR_REG(3), int_st);
+
+    background_callback_add_from_isr(&self->callback, dac_callback_fun, self_in);
+
+    ESP_EARLY_LOGV(TAG, "int msk%x, raw%x", int_st, REG_READ(SPI_DMA_INT_RAW_REG(3)));
+}
+
+
+static void release_dma_buf(void) {
     if (dma_buf) {
+        adc_dac_dma_linker_stop(DMA_BOTH_ADC_DAC);
+        REG_WRITE(SPI_DMA_INT_CLR_REG(3), 0xFFFFFFFF);
+        REG_WRITE(SPI_DMA_INT_ENA_REG(3), 0);
+
         free(dma_buf);
+        dma_buf = NULL;
     }
-    dma_buf = calloc(BYTES_PER_FRAME * FRAMES_PER_BUF, DMA_BUFS);
+}
+
+static uint32_t allocate_dma_buf(void) {
     if (!dma_buf) {
-        mp_raise_espidf_MemoryError();
+        dma_buf = calloc(BYTES_PER_FRAME * FRAMES_PER_BUF, DMA_BUFS);
+        if (!dma_buf) {
+            mp_raise_espidf_MemoryError();
+        }
+        dma_desc[0] = (lldesc_t) {
+            .size = BYTES_PER_FRAME * FRAMES_PER_BUF,
+            .length = BYTES_PER_FRAME * FRAMES_PER_BUF,
+            .eof = 0,
+            .owner = 1,
+            .buf = DMA_BUF0,
+            .qe.stqe_next = &dma_desc[1],
+        };
+        dma_desc[1] = (lldesc_t) {
+            .size = BYTES_PER_FRAME * FRAMES_PER_BUF,
+            .length = BYTES_PER_FRAME * FRAMES_PER_BUF,
+            .eof = 0,
+            .owner = 1,
+            .buf = DMA_BUF1,
+            .qe.stqe_next = &dma_desc[0],
+        };
+
+        for(int i=0; i<FRAMES_PER_BUF; i++) {
+            dma_buf[i*2] = i % 256;
+            dma_buf[i*2 + 1] = (255-i) % 256;
+        }
     }
-    dma_desc[0] = (lldesc_t) {
-        .size = BYTES_PER_FRAME * FRAMES_PER_BUF,
-        .length = BYTES_PER_FRAME * FRAMES_PER_BUF,
-        .eof = 0,
-        .owner = 1,
-        .buf = DMA_BUF0,
-        .qe.stqe_next = &dma_desc[1],
-    };
-    dma_desc[1] = (lldesc_t) {
-        .size = BYTES_PER_FRAME * FRAMES_PER_BUF,
-        .length = BYTES_PER_FRAME * FRAMES_PER_BUF,
-        .eof = 0,
-        .owner = 1,
-        .buf = DMA_BUF1,
-        .qe.stqe_next = &dma_desc[0],
-    };
     return (uint32_t)&dma_desc[0];
 }
 
 void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
     const mcu_pin_obj_t* left_channel, const mcu_pin_obj_t* right_channel, uint16_t default_value) {
+
+    if (left_channel->number != (int) DAC_CHANNEL_1) {
+        mp_raise_ValueError(translate("Invalid pin for left channel"));
+    }
+
+    if (right_channel && right_channel->number != (int) DAC_CHANNEL_2) {
+        mp_raise_ValueError(translate("Invalid pin for right channel"));
+    }
+
+#if 0
+    if (!spi_bus_is_free(SPI3_HOST)) {
+        mp_raise_ValueError(translate("SPI3 in use"));
+    }
+    // TODO: check and claim SPI3 peripheral
+#endif
+
+    uint32_t dma_addr = allocate_dma_buf();
+
+
+// enable DAC channels
+
+    claim_pin(left_channel);
+    if (right_channel) {
+        claim_pin(right_channel);
+    }
+
+    // arbitrary sample rate of 1kHz, this is overridden later
+    const dac_digi_config_t cfg = {
+        .mode = right_channel ? DAC_CONV_ALTER : DAC_CONV_NORMAL,
+        .interval = INTERVAL,
+        .dig_clk.use_apll = false,  // APB clk
+        .dig_clk.div_num = 79,
+        .dig_clk.div_b = 1,
+        .dig_clk.div_a = 0,
+    };
+
+    dac_digi_controller_config(&cfg);
+
+    const uint32_t int_mask = SPI_OUT_DONE_INT_ENA | SPI_OUT_EOF_INT_ENA | SPI_OUT_TOTAL_EOF_INT_ENA;
+
+    dac_output_enable(DAC_CHANNEL_1);
+    if (right_channel) {
+        dac_output_enable(DAC_CHANNEL_2);
+    }
+    adc_dac_dma_isr_register(dac_dma_isr, NULL, int_mask);
+    adc_dac_dma_linker_start(DMA_ONLY_DAC_OUTLINK, (void *)dma_addr, int_mask);
+
+    dac_digi_start();
+
     mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_audioio_audioout_deinit(audioio_audioout_obj_t* self)
 {
-    if (!self->left_channel) {
+    if (common_hal_audioio_audioout_deinited(self)) {
         return;
     }
+
+    release_dma_buf();
+
+    if (self->left_channel) {
+        reset_pin_number(self->left_channel->number);
+    }
+    self->left_channel = NULL;
+
+    if (self->right_channel) {
+        reset_pin_number(self->right_channel->number);
+    }
+    self->right_channel = NULL;
 }
 
 bool common_hal_audioio_audioout_deinited(audioio_audioout_obj_t* self)
@@ -101,16 +354,24 @@ void common_hal_audioio_audioout_play(audioio_audioout_obj_t* self, mp_obj_t sam
     audiosample_get_buffer_structure(sample, false, &single_buffer, &samples_signed,
                                      &max_buffer_length, &spacing);
     self->samples_signed = samples_signed;
-    self->playing = true;
     self->paused = false;
     self->stopping = false;
     self->sample_data = self->sample_end = NULL;
-    // We always output stereo so output twice as many bits.
-    // uint16_t bits_per_sample_output = bits_per_sample * 2;
 
     audiosample_reset_buffer(self->sample, false, 0);
 
-    mp_raise_NotImplementedError(NULL);
+    adc_digi_clk_t clk = choose_digi_clk(F_APB / INTERVAL, audiosample_sample_rate(sample));
+
+    adc_hal_digi_clk_config(&clk);
+
+    const uint32_t int_mask = SPI_OUT_DONE_INT_ENA | SPI_OUT_EOF_INT_ENA | SPI_OUT_TOTAL_EOF_INT_ENA;
+    uint32_t dma_addr = (uint32_t) dma_buf;
+
+    dac_output_enable(DAC_CHANNEL_1);
+    if (self-right_channel) {
+        dac_output_enable(DAC_CHANNEL_2);
+
+    self->playing = true;
 }
 
 void common_hal_audioio_audioout_stop(audioio_audioout_obj_t* self)

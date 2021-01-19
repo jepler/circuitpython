@@ -102,5 +102,5 @@ void port_finish_background_task(void);
 // Some ports need special handling to wake the main task from an interrupt
 // context or other task.  The port must implement the necessary code in this
 // function.  A default weak implementation is provided that does nothing.
-void port_wake_main_task(void);
+void port_wake_main_task(bool from_isr);
 #endif  // MICROPY_INCLUDED_SUPERVISOR_PORT_H

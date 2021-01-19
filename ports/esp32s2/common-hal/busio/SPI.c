@@ -91,7 +91,7 @@ static bool bus_uses_iomux_pins(spi_host_device_t host, const spi_bus_config_t* 
 
 // End copied code.
 
-static bool spi_bus_is_free(spi_host_device_t host_id) {
+bool spi_bus_is_free(spi_host_device_t host_id) {
     return spi_bus_get_attr(host_id) == NULL;
 }
 

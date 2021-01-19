@@ -54,7 +54,7 @@ typedef struct background_callback {
 } background_callback_t;
 
 /* Add a background callback for which 'fun' and 'data' were previously set */
-void background_callback_add_core(background_callback_t *cb);
+void background_callback_add_core(background_callback_t *cb, bool from_isr);
 
 /* Add a background callback to the given function with the given data.  When
  * the callback involves an object on the GC heap, the 'data' must be a pointer
@@ -64,6 +64,18 @@ void background_callback_add_core(background_callback_t *cb);
  * exists.
  */
 void background_callback_add(background_callback_t *cb, background_callback_fun fun, void *data);
+
+/* Add a background callback to the given function with the given data.  When
+ * the callback involves an object on the GC heap, the 'data' must be a pointer
+ * to that object itself, not an internal pointer.  Otherwise, it can be the
+ * case that no other references to the object itself survive, and the object
+ * becomes garbage collected while an outstanding background callback still
+ * exists.
+ *
+ * Some ports need different handling to add a background task from an ISR.
+ * In this case, the "from_isr" variant must be used.
+ */
+void background_callback_add_from_isr(background_callback_t *cb, background_callback_fun fun, void *data);
 
 /* Run all background callbacks.  Normally, this is done by the supervisor
  * whenever the list is non-empty */

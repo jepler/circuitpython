@@ -297,12 +297,20 @@ void port_disable_tick(void) {
     esp_timer_stop(_tick_timer);
 }
 
-void port_wake_main_task() {
-    xTaskNotifyGive(circuitpython_task);
+void port_wake_main_task(bool from_isr) {
+    if(from_isr) {
+        BaseType_t woken = 0;
+        vTaskNotifyGiveFromISR(circuitpython_task, &woken);
+        if (woken) {
+            portYIELD_FROM_ISR();
+        }
+    } else {
+        xTaskNotifyGive(circuitpython_task);
+    }
 }
 
 void sleep_timer_cb(void* arg) {
-    port_wake_main_task();
+    port_wake_main_task(false);
 }
 
 void port_interrupt_after_ticks(uint32_t ticks) {
