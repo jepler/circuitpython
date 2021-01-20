@@ -42,6 +42,7 @@ typedef struct {
     bool playing;
     bool stopping;
     bool samples_signed;
+    int8_t fill_buffer;
     int8_t bytes_per_sample;
     int8_t channel_count;
     uint8_t *sample_data, *sample_end;
