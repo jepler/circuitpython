@@ -399,8 +399,9 @@ static uint32_t allocate_dma_buf(void) {
             .qe.stqe_next = &dma_desc[0],
         };
 
-        for(int i=0; i<FRAMES_PER_BUF; i++) {
-            dma_buf[i*2] = i % 256;
+        for(int i=0; i<2*FRAMES_PER_BUF; i++) {
+            int j = i / 2;
+            dma_buf[i*2] = j % 256;
             dma_buf[i*2 + 1] = (255-i) % 256;
         }
     }
@@ -410,11 +411,12 @@ static uint32_t allocate_dma_buf(void) {
 void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
     const mcu_pin_obj_t* left_channel, const mcu_pin_obj_t* right_channel, uint16_t default_value) {
 
-    if (left_channel->number != (int) DAC_CHANNEL_1) {
+mp_printf(&mp_plat_print, "left channel number %d vs dac channel %d\n", left_channel->number, (int)DAC_CHANNEL_1_GPIO_NUM);
+    if (left_channel->number != (int) DAC_CHANNEL_1_GPIO_NUM) {
         mp_raise_ValueError(translate("Invalid pin for left channel"));
     }
 
-    if (right_channel && right_channel->number != (int) DAC_CHANNEL_2) {
+    if (right_channel && right_channel->number != (int) DAC_CHANNEL_2_GPIO_NUM) {
         mp_raise_ValueError(translate("Invalid pin for right channel"));
     }
 
@@ -438,9 +440,9 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
     // arbitrary sample rate of 1kHz, this is overridden later
     const dac_digi_config_t cfg = {
         .mode = right_channel ? DAC_CONV_ALTER : DAC_CONV_NORMAL,
-        .interval = INTERVAL,
+        .interval = 10,
         .dig_clk.use_apll = false,  // APB clk
-        .dig_clk.div_num = 79,
+        .dig_clk.div_num = 39,
         .dig_clk.div_b = 1,
         .dig_clk.div_a = 0,
     };
@@ -463,8 +465,6 @@ void common_hal_audioio_audioout_construct(audioio_audioout_obj_t* self,
     self->fill_buffer = 1;
 
     dac_digi_start();
-
-    mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_audioio_audioout_deinit(audioio_audioout_obj_t* self)
