@@ -133,7 +133,7 @@ void audiosample_convert_s16m_s16s(int16_t *buffer_out, const int16_t *buffer_in
 
 void audiosample_convert_u8m_u8s(uint8_t *buffer_out, const uint8_t *buffer_in, size_t nframes) {
     for(;nframes--;) {
-        uint8_t sample = (*buffer_in++ - 0x80);
+        uint8_t sample = *buffer_in++;
         *buffer_out++ = sample;
         *buffer_out++ = sample;
     }

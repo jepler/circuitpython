@@ -353,7 +353,7 @@ static void dac_callback_fun(void *self_in) {
 /** ADC-DMA ISR handler. */
 static IRAM_ATTR void dac_dma_isr(void * self_in)
 {
-    audioio_audioout_obj_t* self = self;
+    audioio_audioout_obj_t* self = self_in;
 
     uint32_t int_st = REG_READ(SPI_DMA_INT_ST_REG(3));
     REG_WRITE(SPI_DMA_INT_CLR_REG(3), int_st);
@@ -449,13 +449,15 @@ mp_printf(&mp_plat_print, "left channel number %d vs dac channel %d\n", left_cha
 
     dac_digi_controller_config(&cfg);
 
-    const uint32_t int_mask = SPI_OUT_EOF_INT_ENA;
+    // const uint32_t int_mask = SPI_OUT_EOF_INT_ENA;
+    const uint32_t int_mask = SPI_OUT_DONE_INT_ENA | SPI_OUT_EOF_INT_ENA | SPI_OUT_TOTAL_EOF_INT_ENA;
+
 
     dac_output_enable(DAC_CHANNEL_1);
     if (right_channel) {
         dac_output_enable(DAC_CHANNEL_2);
     }
-    adc_dac_dma_isr_register(dac_dma_isr, NULL, int_mask);
+    CHECK_ESP_RESULT(adc_dac_dma_isr_register(dac_dma_isr, (void *)self, int_mask));
     adc_dac_dma_linker_start(DMA_ONLY_DAC_OUTLINK, (void *)dma_addr, int_mask);
 
     // The first buffer output will be buffer 0.  When the IRQ fires, it will
@@ -463,6 +465,9 @@ mp_printf(&mp_plat_print, "left channel number %d vs dac channel %d\n", left_cha
     // IRQ toggles fill_buffer, so setting it to 1 here ensures its value is 0
     // the first time we start to re-fill
     self->fill_buffer = 1;
+
+    self->left_channel = left_channel;
+    self->right_channel = right_channel;
 
     dac_digi_start();
 }
