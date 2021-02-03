@@ -163,7 +163,7 @@ def compute_huffman_coding(translations, compression_filename):
     sum_len = 0
     while True:
         # Until the dictionary is filled to capacity, use a heuristic to find
-        # the best "word" (2- to 9-gram) to add to it.
+        # the best "word" (2- to 15-gram) to add to it.
         #
         # The TextSplitter allows us to avoid considering parts of the text
         # that are already covered by a previously chosen word, for example
@@ -189,7 +189,7 @@ def compute_huffman_coding(translations, compression_filename):
         for t in texts:
             for (found, word) in extractor.iter_words(t):
                 if not found:
-                    for substr in iter_substrings(word, minlen=2, maxlen=9):
+                    for substr in iter_substrings(word, minlen=2, maxlen=15):
                         counter[substr] += 1
 
         # Score the candidates we found.  This is a semi-empirical formula that
