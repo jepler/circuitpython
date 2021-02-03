@@ -158,7 +158,6 @@ def compute_huffman_coding(translations, compression_filename):
 
     bits_per_codepoint = 16 if max_ord > 255 else 8
     values_type = "uint16_t" if max_ord > 255 else "uint8_t"
-    max_words_len = 160 if max_ord > 255 else 255
 
     sum_len = 0
     while len(words) < max_words:
@@ -203,7 +202,6 @@ def compute_huffman_coding(translations, compression_filename):
             (
                 (s, score, occ)
                 for (s, occ) in counter.items()
-                if sum_len + len(s) - 2 <= max_words_len
                 for score in [occ * (bit_length(s) - est_len(occ) - 1) - len(s) * bits_per_codepoint]
                 if score > 0
             ),
@@ -215,10 +213,12 @@ def compute_huffman_coding(translations, compression_filename):
         if not scores: break
         word = scores[0][0]
 
+
         # Add it to the dictionary (we've already ensured we can)
         words.append(word)
         sum_len += len(word) - 2
 
+    words.sort(key=len)
     extractor = TextSplitter(words)
     counter = collections.Counter()
     for t in texts:
@@ -268,18 +268,21 @@ def compute_huffman_coding(translations, compression_filename):
     max_translation_encoded_length = max(
         len(translation.encode("utf-8")) for (original, translation) in translations)
 
-    wends = list(len(w) - 2 for w in words)
-    for i in range(1, len(wends)):
-        wends[i] += wends[i - 1]
+    maxlen = len(words[-1])
+    minlen = len(words[0])
+    wlencount = [len([None for w in words if len(w) == l]) for l in range(minlen, maxlen+1)]
 
     with open(compression_filename, "w") as f:
+        f.write("typedef {} mchar_t;".format(values_type))
         f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
-        f.write("const {} values[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(u)) for u in values)))
+        f.write("const mchar_t values[] = {{ {} }};\n".format(", ".join(str(ord(u)) for u in values)))
         f.write("#define compress_max_length_bits ({})\n".format(max_translation_encoded_length.bit_length()))
-        f.write("const {} words[] = {{ {} }};\n".format(values_type, ", ".join(str(ord(c)) for w in words for c in w)))
-        f.write("const uint8_t wends[] = {{ {} }};\n".format(", ".join(str(p) for p in wends)))
+        f.write("const mchar_t words[] = {{ {} }};\n".format(", ".join(str(ord(c)) for w in words for c in w)))
+        f.write("const uint8_t wlencount[] = {{ {} }};\n".format(", ".join(str(p) for p in wlencount)))
         f.write("#define word_start {}\n".format(word_start))
         f.write("#define word_end {}\n".format(word_end))
+        f.write("#define minlen {}\n".format(minlen))
+        f.write("#define maxlen {}\n".format(maxlen))
 
     return (values, lengths, words, canonical, extractor)
 
