@@ -161,7 +161,7 @@ def compute_huffman_coding(translations, compression_filename):
     max_words_len = 160 if max_ord > 255 else 255
 
     sum_len = 0
-    while True:
+    while len(words) < max_words:
         # Until the dictionary is filled to capacity, use a heuristic to find
         # the best "word" (2- to 15-gram) to add to it.
         #
@@ -201,32 +201,21 @@ def compute_huffman_coding(translations, compression_filename):
         # words[] array.
         scores = sorted(
             (
-                (s, occ * (bit_length(s) - est_len(occ) - 1) - len(s) * bits_per_codepoint, occ)
+                (s, score, occ)
                 for (s, occ) in counter.items()
+                if sum_len + len(s) - 2 <= max_words_len
+                for score in [occ * (bit_length(s) - est_len(occ) - 1) - len(s) * bits_per_codepoint]
+                if score > 0
             ),
             key=lambda x: x[1],
             reverse=True,
         )
 
-        # Pick the word with the best score (savings in bits).  It also has to
-        # occur more than once and save at least an estimated 2 bytes.
-        word = None
-        for (s, score, occ) in scores:
-            if occ < 2:
-                break
-            if score < 16:
-                break
-            word = s
-            break
+        # Pick the word with the best score (savings in bits).
+        if not scores: break
+        word = scores[0][0]
 
-        # If we can successfully add it to the dictionary, do so.  Otherwise,
-        # we've filled the dictionary to capacity and are done.
-        if not word:
-            break
-        if sum_len + len(word) - 2 > max_words_len:
-            break
-        if len(words) == max_words:
-            break
+        # Add it to the dictionary (we've already ensured we can)
         words.append(word)
         sum_len += len(word) - 2
 
