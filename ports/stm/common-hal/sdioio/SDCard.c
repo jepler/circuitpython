@@ -207,7 +207,7 @@ uint8_t common_hal_sdioio_sdcard_get_width(sdioio_sdcard_obj_t *self) {
 
 STATIC void check_whole_block(mp_buffer_info_t *bufinfo) {
     if (bufinfo->len % 512) {
-        mp_raise_ValueError(translate("Buffer must be a multiple of 512 bytes"));
+        mp_raise_ValueError(translate("Buffer length must be a multiple of 512"));
     }
 }
 
