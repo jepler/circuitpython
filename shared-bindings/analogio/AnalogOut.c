@@ -110,7 +110,7 @@ STATIC mp_obj_t analogio_analogout_obj_set_value(mp_obj_t self_in, mp_obj_t valu
    }
    uint32_t v = mp_obj_get_int(value);
    if (v >= (1 << 16)) {
-       mp_raise_ValueError(translate("AnalogOut is only 16 bits. Value must be less than 65536."));
+       mp_raise_ValueError_varg(translate("%q must be in the range 0-65535"), MP_QSTR_value);
    }
    common_hal_analogio_analogout_set_value(self, v);
    return mp_const_none;

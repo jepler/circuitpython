@@ -172,7 +172,7 @@ STATIC mp_obj_t pwmio_pwmout_obj_set_duty_cycle(mp_obj_t self_in, mp_obj_t duty_
     check_for_deinit(self);
     mp_int_t duty = mp_obj_get_int(duty_cycle);
     if (duty < 0 || duty > 0xffff) {
-        mp_raise_ValueError(translate("PWM duty_cycle must be between 0 and 65535 inclusive (16 bit resolution)"));
+       mp_raise_ValueError_varg(translate("%q must be in the range 0-65535"), MP_QSTR_duty_cycle);
     }
    common_hal_pwmio_pwmout_set_duty_cycle(self, duty);
    return mp_const_none;
