@@ -57,14 +57,39 @@ STATIC void get_word(int n, const mchar_t **pos, const mchar_t **end) {
     *end = *pos + len;
 }
 
+__attribute__((unused))
+STATIC int word_idx_pua(int x) {
+    if (x < 0xe000 || x > 0xf8ff) {
+        return 0;
+    }
+    return x - 0xe000 + 1;
+}
+
+__attribute__((unused))
+STATIC int word_idx_8bit(int x, int hi) {
+    if (x == '\r' || x == '\n') {
+        return 0;
+    }
+    if (x < '\n') {
+        return x + 1;
+    }
+    if (x < '\r') {
+        return x;
+    }
+    if (x < ' ') {
+        return x - 1;
+    }
+    if (x >= 0x80 && x <= hi) {
+        return x - 0x80 + 31;
+    }
+    return 0;
+}
+
 STATIC int put_utf8(char *buf, int u) {
-    if(u <= 0x7f) {
-        *buf = u;
-        return 1;
-    } else if(word_start <= u && u <= word_end) {
-        uint n = (u - word_start);
+    int n = word_idx(u);
+    if (n) {
         const mchar_t *pos, *end;
-        get_word(n, &pos, &end);
+        get_word(n-1, &pos, &end);
         int ret = 0;
         // note that at present, entries in the words table are
         // guaranteed not to represent words themselves, so this adds
@@ -75,6 +100,9 @@ STATIC int put_utf8(char *buf, int u) {
             ret += len;
         }
         return ret;
+    } else if(u <= 0x7f) {
+        *buf = u;
+        return 1;
     } else if(u <= 0x07ff) {
         *buf++ = 0b11000000 | (u >> 6);
         *buf   = 0b10000000 | (u & 0b00111111);

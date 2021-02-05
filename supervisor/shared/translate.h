@@ -43,21 +43,18 @@
 //   (building the huffman encoding on UTF-16 code points gave better
 //   compression than building it on UTF-8 bytes)
 //
-// - code points starting at 128 (word_start) and potentially extending
-//   to 255 (word_end) (but never interfering with the target
-//   language's used code points) stand for dictionary entries in a
-//   dictionary with size up to 256 code points.  The dictionary entries
-//   are computed with a heuristic based on frequent substrings of 2 to
-//   9 code points.  These are called "words" but are not, grammatically
-//   speaking, words.  They're just spans of code points that frequently
-//   occur together.  They are ordered shortest to longest.
+// - some code points not otherwise used stand for dictionary entries.
+//   The dictionary entries are computed with a heuristic based on
+//   frequent substrings.  These are called "words" but are not,
+//   grammatically speaking, words.  They're just spans of code points
+//   that frequently occur together.  They are ordered shortest to
+//   longest.
 //
-// - dictionary entries are non-overlapping, and the _ending_ index of each
-//   entry is stored in an array.  A count of words of each length, from
-//   minlen to maxlen, is given in the array called wlencount.  From
-//   this small array, the start and end of the N'th word can be
-//   calculated by an efficient, small loop.  (A bit of time is traded
-//   to reduce the size of this table indicating lengths)
+// - dictionary entries are non-overlapping.  A count of words of each
+//   length, from minlen to maxlen, is given in the array called
+//   wlencount.  From this small array, the start and end of the N'th word
+//   can be calculated by an efficient, small loop.  (A bit of time is
+//   traded to reduce the size of this table indicating lengths)
 //
 // The "data" / "tail" construct is so that the struct's last member is a
 // "flexible array".  However, the _only_ member is not permitted to be

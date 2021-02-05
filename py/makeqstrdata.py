@@ -146,7 +146,7 @@ def compute_huffman_coding(translations, compression_filename):
     words = []
 
     start_unused = 0x80
-    end_unused = 0xff
+    end_unused = 0x100
     max_ord = 0
     for text in texts:
         for c in text:
@@ -154,10 +154,19 @@ def compute_huffman_coding(translations, compression_filename):
             max_ord = max(ord_c, max_ord)
             if 0x80 <= ord_c < 0xff:
                 end_unused = min(ord_c, end_unused)
-    max_words = end_unused - 0x80
 
-    bits_per_codepoint = 16 if max_ord > 255 else 8
-    values_type = "uint16_t" if max_ord > 255 else "uint8_t"
+    if max_ord > 255:
+        word_idx = "word_idx_pua(x)"
+        word_values = range(0xe000, 0xf900)
+        bits_per_codepoint = 16
+        values_type = "uint16_t"
+    else:
+        word_idx = "word_idx_8bit(x, {})".format(end_unused)
+        word_values = [i for i in range(32) if i != 10 and i != 13] + list(range(start_unused, end_unused))
+        bits_per_codepoint = 8
+        values_type = "uint8_t"
+
+    max_words = len(word_values)
 
     sum_len = 0
     while len(words) < max_words:
@@ -226,8 +235,6 @@ def compute_huffman_coding(translations, compression_filename):
             counter[atom] += 1
     cb = huffman.codebook(counter.items())
 
-    word_start = start_unused
-    word_end = word_start + len(words) - 1
     print("// # words", len(words))
     print("// words", words)
 
@@ -245,9 +252,8 @@ def compute_huffman_coding(translations, compression_filename):
         if last_length:
             renumbered <<= (length - last_length)
         canonical[atom] = '{0:0{width}b}'.format(renumbered, width=length)
-        # print(f"atom={repr(atom)} code={code}", file=sys.stderr)
         if len(atom) > 1:
-            o = words.index(atom) + 0x80
+            o = word_values[words.index(atom)]
             s = "".join(C_ESCAPES.get(ch1, ch1) for ch1 in atom)
         else:
             s = C_ESCAPES.get(atom, atom)
@@ -263,7 +269,7 @@ def compute_huffman_coding(translations, compression_filename):
     print("// values", values, "lengths", len(lengths), lengths)
 
     print("//", values, lengths)
-    values = [(atom if len(atom) == 1 else chr(0x80 + words.index(atom))) for atom in values]
+    values = [(atom if len(atom) == 1 else chr(word_values[words.index(atom)])) for atom in values]
     print("//", values, lengths)
     max_translation_encoded_length = max(
         len(translation.encode("utf-8")) for (original, translation) in translations)
@@ -273,21 +279,20 @@ def compute_huffman_coding(translations, compression_filename):
     wlencount = [len([None for w in words if len(w) == l]) for l in range(minlen, maxlen+1)]
 
     with open(compression_filename, "w") as f:
-        f.write("typedef {} mchar_t;".format(values_type))
+        f.write("typedef {} mchar_t;\n".format(values_type))
         f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
         f.write("const mchar_t values[] = {{ {} }};\n".format(", ".join(str(ord(u)) for u in values)))
         f.write("#define compress_max_length_bits ({})\n".format(max_translation_encoded_length.bit_length()))
         f.write("const mchar_t words[] = {{ {} }};\n".format(", ".join(str(ord(c)) for w in words for c in w)))
         f.write("const uint8_t wlencount[] = {{ {} }};\n".format(", ".join(str(p) for p in wlencount)))
-        f.write("#define word_start {}\n".format(word_start))
-        f.write("#define word_end {}\n".format(word_end))
+        f.write("#define word_idx(x) {}\n".format(word_idx))
         f.write("#define minlen {}\n".format(minlen))
         f.write("#define maxlen {}\n".format(maxlen))
 
-    return (values, lengths, words, canonical, extractor)
+    return (values, lengths, words, word_values, canonical, extractor)
 
 def decompress(encoding_table, encoded, encoded_length_bits):
-    (values, lengths, words, _, _) = encoding_table
+    (values, lengths, words, word_idx, _, _) = encoding_table
     dec = []
     this_byte = 0
     this_bit = 7
@@ -335,8 +340,12 @@ def decompress(encoding_table, encoded, encoded_length_bits):
             searched_length += lengths[bit_length]
 
         v = values[searched_length + bits - max_code]
-        if v >= chr(0x80) and v < chr(0x80 + len(words)):
-            v = words[ord(v) - 0x80]
+        try:
+            wi = word_idx.index(ord(v))
+        except ValueError:
+            pass
+        else:
+            v = words[wi]
         i += len(v.encode('utf-8'))
         dec.append(v)
     return ''.join(dec)
@@ -344,7 +353,7 @@ def decompress(encoding_table, encoded, encoded_length_bits):
 def compress(encoding_table, decompressed, encoded_length_bits, len_translation_encoded):
     if not isinstance(decompressed, str):
         raise TypeError()
-    (_, _, _, canonical, extractor) = encoding_table
+    (_, _, _, _, canonical, extractor) = encoding_table
 
     enc = bytearray(len(decompressed) * 3)
     current_bit = 7
