@@ -445,9 +445,17 @@ bool common_hal_rp2pio_statemachine_deinited(rp2pio_statemachine_obj_t *self) {
     return self->state_machine == NUM_PIO_STATE_MACHINES;
 }
 
-static bool _transfer(rp2pio_statemachine_obj_t *self,
+bool common_hal_rp2pio_statemachine_transfer(rp2pio_statemachine_obj_t *self,
     const uint8_t *data_out, size_t out_len,
     uint8_t *data_in, size_t in_len) {
+
+    if (data_out && !self->out) {
+        mp_raise_RuntimeError(translate("Program lacks output instructions"));
+    }
+    if (data_in && !self->in) {
+        mp_raise_RuntimeError(translate("Program lacks input instructions"));
+    }
+
     // This implementation is based on SPI but varies because the tx and rx buffers
     // may be different lengths and occur at different times or speeds.
 
@@ -586,8 +594,11 @@ static bool _transfer(rp2pio_statemachine_obj_t *self,
 // Writes out the given data.
 bool common_hal_rp2pio_statemachine_write(rp2pio_statemachine_obj_t *self,
     const uint8_t *data, size_t len) {
-    if (!self->out) {
-        mp_raise_RuntimeError(translate("No out in program"));
-    }
-    return _transfer(self, data, len, NULL, 0);
+    return common_hal_rp2pio_statemachine_transfer(self, data, len, NULL, 0);
+}
+
+// Reads data into the given buffer
+bool common_hal_rp2pio_statemachine_read(rp2pio_statemachine_obj_t *self,
+    uint8_t *data, size_t len) {
+    return common_hal_rp2pio_statemachine_transfer(self, NULL, 0, data, len);
 }

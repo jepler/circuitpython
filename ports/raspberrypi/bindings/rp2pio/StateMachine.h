@@ -52,20 +52,20 @@ extern void common_hal_rp2pio_statemachine_deinit(rp2pio_statemachine_obj_t *sel
 extern bool common_hal_rp2pio_statemachine_deinited(rp2pio_statemachine_obj_t *self);
 
 // Writes out the given data.
-extern bool common_hal_rp2pio_statemachine_write(rp2pio_statemachine_obj_t *self, const uint8_t *data, size_t len);
+bool common_hal_rp2pio_statemachine_write(rp2pio_statemachine_obj_t *self, const uint8_t *data, size_t len);
 
-// // Reads in len bytes while outputting zeroes.
-// extern bool common_hal_rp2pio_statemachine_read(rp2pio_statemachine_obj_t *self, uint8_t *data, size_t len, uint8_t write_value);
+// Reads data into the given buffer
+bool common_hal_rp2pio_statemachine_read(rp2pio_statemachine_obj_t *self, uint8_t *data, size_t len);
 
-// // Reads and write len bytes simultaneously.
-// extern bool common_hal_rp2pio_statemachine_transfer(rp2pio_statemachine_obj_t *self,
-//                                           const uint8_t *data_out, size_t out_len,
-//                                           uint8_t *data_in, size_t in_len);
+// Performs a bidirectional transfer using both buffers
+bool common_hal_rp2pio_statemachine_transfer(rp2pio_statemachine_obj_t *self,
+    const uint8_t *data_out, size_t out_len,
+    uint8_t *data_in, size_t in_len);
 
-// Return actual SPI bus frequency.
+// Return actual PIO clock frequency.
 uint32_t common_hal_rp2pio_statemachine_get_frequency(rp2pio_statemachine_obj_t* self);
 
-// This is used by the supervisor to claim SPI devices indefinitely.
+// This is used by the supervisor to claim state machines indefinitely.
 // extern void common_hal_rp2pio_statemachine_never_reset(rp2pio_statemachine_obj_t *self);
 
 #endif // MICROPY_INCLUDED_RASPBERRYPI_BINDINGS_RP2PIO_STATEMACHINE_H
