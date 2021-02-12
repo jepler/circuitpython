@@ -32,9 +32,12 @@
 
 #include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
+#include "shared-bindings/microcontroller/__init__.h"
 #include "supervisor/shared/translate.h"
 
 #include "src/rp2_common/hardware_gpio/include/hardware/gpio.h"
+#include "src/rp2_common/hardware_clocks/include/hardware/clocks.h"
+#include "hardware/regs/io_qspi.h"
 
 digitalinout_result_t common_hal_digitalio_digitalinout_construct(
         digitalio_digitalinout_obj_t* self, const mcu_pin_obj_t* pin) {
@@ -66,6 +69,13 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self
 
 void common_hal_digitalio_digitalinout_switch_to_input(
         digitalio_digitalinout_obj_t* self, digitalio_pull_t pull) {
+    const uint8_t pin = self->pin->number;
+    if(pin == 33) {
+        if (pull != PULL_UP) {
+            mp_raise_RuntimeError(translate("Pin only usable in input mode with pull up"));
+        }
+        return;
+    }
     self->output = false;
     // This also sets direction to input.
     common_hal_digitalio_digitalinout_set_pull(self, pull);
@@ -75,6 +85,9 @@ digitalinout_result_t common_hal_digitalio_digitalinout_switch_to_output(
         digitalio_digitalinout_obj_t* self, bool value,
         digitalio_drive_mode_t drive_mode) {
     const uint8_t pin = self->pin->number;
+    if(pin == 33) {
+        mp_raise_RuntimeError(translate("Pin only usable in input mode"));
+    }
     gpio_set_dir(pin, GPIO_OUT);
     // TODO: Turn on "strong" pin driving (more current available).
 
@@ -92,6 +105,9 @@ digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(
 void common_hal_digitalio_digitalinout_set_value(
         digitalio_digitalinout_obj_t* self, bool value) {
     const uint8_t pin = self->pin->number;
+    if(pin == 33) {
+        mp_raise_RuntimeError(translate("Pin only usable in input mode"));
+    }
     if (self->open_drain) {
         gpio_set_dir(pin, value ? GPIO_IN : GPIO_OUT);
     } else {
@@ -99,9 +115,43 @@ void common_hal_digitalio_digitalinout_set_value(
     }
 }
 
+static inline void inline_delay_loop(uint32_t count) {
+    asm volatile (
+    "1: \n\t"
+    "sub %0, %0, #1 \n\t"
+    "bne 1b"
+    : "+r" (count)
+    );
+}
+
+static bool __attribute__((noinline)) __not_in_flash_func(read_bootsel)(int clock_mhz) {
+    // Check CSn strap: delay for pullups to charge trace, then take a majority vote.
+
+    io_rw_32 *reg = (io_rw_32 *) (IO_QSPI_BASE + IO_QSPI_GPIO_QSPI_SS_CTRL_OFFSET);
+    io_rw_32 oreg = *reg;
+    *reg = (*reg & ~0x1f) | 5; // return pin to sio
+    sio_hw->gpio_hi_oe_clr = 1u << 1;      // Output disable
+    inline_delay_loop(200 * clock_mhz / 3);
+    uint32_t sum = 0;
+    for (int i = 0; i < 9; ++i) {
+        inline_delay_loop(5 * clock_mhz / 3);
+        sum += (sio_hw->gpio_hi_in >> 1) & 1u;
+    }
+    sio_hw->gpio_hi_oe_set = 1u << 1;      // Output enable
+    *reg = oreg;
+    return (sum >= 8);
+}
+
 bool common_hal_digitalio_digitalinout_get_value(
         digitalio_digitalinout_obj_t* self) {
-    return gpio_get(self->pin->number);
+    const uint8_t pin = self->pin->number;
+    if(pin == 33) {
+        common_hal_mcu_disable_interrupts();
+        bool result = read_bootsel((clock_get_hz(clk_sys) + 999999) / 1000000);
+        common_hal_mcu_enable_interrupts();
+        return result;
+    }
+    return gpio_get(pin);
 }
 
 digitalinout_result_t common_hal_digitalio_digitalinout_set_drive_mode(

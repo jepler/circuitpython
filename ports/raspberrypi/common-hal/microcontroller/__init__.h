@@ -29,7 +29,7 @@
 
 #include "src/rp2040/hardware_regs/include/hardware/platform_defs.h"
 
-#define TOTAL_GPIO_COUNT NUM_BANK0_GPIOS
+#define TOTAL_GPIO_COUNT (1+NUM_BANK0_GPIOS)
 
 extern const mp_rom_map_elem_t mcu_pin_global_dict_table[TOTAL_GPIO_COUNT];
 

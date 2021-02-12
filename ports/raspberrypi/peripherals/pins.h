@@ -67,5 +67,6 @@ extern const mcu_pin_obj_t pin_GPIO26;
 extern const mcu_pin_obj_t pin_GPIO27;
 extern const mcu_pin_obj_t pin_GPIO28;
 extern const mcu_pin_obj_t pin_GPIO29;
+extern const mcu_pin_obj_t pin_GPIO33;
 
 #endif  // MICROPY_INCLUDED_RASPBERRYPI_PERIPHERALS_PINS_H

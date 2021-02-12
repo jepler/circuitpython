@@ -33,6 +33,7 @@
 
 #include "src/rp2_common/hardware_gpio/include/hardware/gpio.h"
 
+bool bootsel_in_use;
 #ifdef MICROPY_HW_NEOPIXEL
 bool neopixel_in_use;
 #endif
@@ -47,8 +48,9 @@ bool speaker_enable_in_use;
 STATIC uint32_t never_reset_pins;
 
 void reset_all_pins(void) {
+    bootsel_in_use = false;
     for (size_t i = 0; i < TOTAL_GPIO_COUNT; i++) {
-        if ((never_reset_pins & (1 << i)) != 0) {
+        if (i < TOTAL_GPIO_COUNT && (never_reset_pins & (1 << i)) != 0) {
             continue;
         }
         reset_pin_number(i);
@@ -64,6 +66,11 @@ void never_reset_pin_number(uint8_t pin_number) {
 }
 
 void reset_pin_number(uint8_t pin_number) {
+    if (pin_number == 33) {
+        bootsel_in_use = false;
+        return;
+    }
+
     if (pin_number >= TOTAL_GPIO_COUNT) {
         return;
     }
@@ -113,6 +120,9 @@ void common_hal_reset_pin(const mcu_pin_obj_t* pin) {
 }
 
 void claim_pin(const mcu_pin_obj_t* pin) {
+    if (pin == &pin_GPIO33) {
+        bootsel_in_use = true;
+    }
     #ifdef MICROPY_HW_NEOPIXEL
     if (pin == MICROPY_HW_NEOPIXEL) {
         neopixel_in_use = true;
@@ -135,6 +145,7 @@ void claim_pin(const mcu_pin_obj_t* pin) {
 }
 
 bool pin_number_is_free(uint8_t pin_number) {
+
     if (pin_number >= TOTAL_GPIO_COUNT) {
         return false;
     }
@@ -145,6 +156,9 @@ bool pin_number_is_free(uint8_t pin_number) {
 }
 
 bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin) {
+    if (pin == &pin_GPIO33) {
+        return !bootsel_in_use;
+    }
     #ifdef MICROPY_HW_NEOPIXEL
     if (pin == MICROPY_HW_NEOPIXEL) {
         return !neopixel_in_use;
