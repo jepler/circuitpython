@@ -485,7 +485,7 @@ bool common_hal_rp2pio_statemachine_transfer(rp2pio_statemachine_obj_t *self,
     }
     if (rx) {
         rx_source = (const volatile uint8_t*) &self->pio->rxf[self->state_machine];
-        if (!self->in_shift_right) {
+        if (self->in_shift_right) {
             rx_source += 3;
         }
     }
@@ -554,23 +554,15 @@ bool common_hal_rp2pio_statemachine_transfer(rp2pio_statemachine_obj_t *self,
         size_t tx_remaining = out_len;
 
         while (rx_remaining || tx_remaining) {
-            for (int i=0; i<32; i++) {
-                bool did_transfer = false;
-                if (tx_remaining && !pio_sm_is_tx_fifo_full(self->pio, self->state_machine)) {
-                    *tx_destination = *data_out;
-                    data_out++;
-                    --tx_remaining;
-                    did_transfer = true;
-                }
-                if (rx_remaining && !pio_sm_is_rx_fifo_empty(self->pio, self->state_machine)) {
-                    *data_in = (uint8_t) *rx_source;
-                    data_in++;
-                    --rx_remaining;
-                    did_transfer = true;
-                }
-                if (!did_transfer) {
-                    break;
-                }
+            while (tx_remaining && !pio_sm_is_tx_fifo_full(self->pio, self->state_machine)) {
+                *tx_destination = *data_out;
+                data_out++;
+                --tx_remaining;
+            }
+            while (rx_remaining && !pio_sm_is_rx_fifo_empty(self->pio, self->state_machine)) {
+                *data_in = (uint8_t) (*rx_source);
+                data_in++;
+                --rx_remaining;
             }
             RUN_BACKGROUND_TASKS;
             if (mp_hal_is_interrupted()) {
