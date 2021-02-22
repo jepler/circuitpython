@@ -580,3 +580,13 @@ __attribute__((used)) void HardFault_Handler(void)
         asm("nop;");
     }
 }
+
+extern void __bad_use_of_float_to_u64_cast(void);
+void __aeabi_f2ulz(void) {
+    __bad_use_of_float_to_u64_cast();
+}
+
+extern void __bad_use_of_float_to_s64_cast(void);
+void __aeabi_f2lz(void) {
+    __bad_use_of_float_to_s64_cast();
+}
