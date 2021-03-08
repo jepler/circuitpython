@@ -102,6 +102,11 @@ msgstr ""
 msgid "%q must be a tuple of length 2"
 msgstr ""
 
+#: shared-bindings/analogio/AnalogOut.c shared-bindings/pwmio/PWMOut.c
+#: shared-bindings/touchio/TouchIn.c
+msgid "%q must be in the range 0-65535"
+msgstr ""
+
 #: ports/raspberrypi/common-hal/rp2pio/StateMachine.c
 #: shared-bindings/canio/Match.c
 msgid "%q out of range"
@@ -398,10 +403,6 @@ msgstr ""
 msgid "AnalogOut functionality not supported"
 msgstr ""
 
-#: shared-bindings/analogio/AnalogOut.c
-msgid "AnalogOut is only 16 bits. Value must be less than 65536."
-msgstr ""
-
 #: ports/atmel-samd/common-hal/analogio/AnalogOut.c
 msgid "AnalogOut not supported on given pin"
 msgstr ""
@@ -429,7 +430,7 @@ msgid "Attempt to allocate %d blocks"
 msgstr ""
 
 #: supervisor/shared/safe_mode.c
-msgid "Attempted heap allocation when MicroPython VM not running."
+msgid "Attempted heap allocation when VM not running."
 msgstr ""
 
 #: shared-bindings/wifi/Radio.c
@@ -525,12 +526,9 @@ msgid "Buffer length %d too big. It must be less than %d"
 msgstr ""
 
 #: ports/atmel-samd/common-hal/sdioio/SDCard.c
-#: ports/cxd56/common-hal/sdioio/SDCard.c shared-module/sdcardio/SDCard.c
+#: ports/cxd56/common-hal/sdioio/SDCard.c ports/stm/common-hal/sdioio/SDCard.c
+#: shared-module/sdcardio/SDCard.c
 msgid "Buffer length must be a multiple of 512"
-msgstr ""
-
-#: ports/stm/common-hal/sdioio/SDCard.c
-msgid "Buffer must be a multiple of 512 bytes"
 msgstr ""
 
 #: shared-bindings/bitbangio/I2C.c shared-bindings/busio/I2C.c
@@ -1000,6 +998,10 @@ msgstr ""
 msgid "Failed to write internal flash."
 msgstr ""
 
+#: supervisor/shared/safe_mode.c
+msgid "Fatal error."
+msgstr ""
+
 #: py/moduerrno.c
 msgid "File exists"
 msgstr ""
@@ -1040,10 +1042,6 @@ msgstr ""
 #: shared-bindings/displayio/EPaperDisplay.c
 #: shared-bindings/framebufferio/FramebufferDisplay.c
 msgid "Group already used"
-msgstr ""
-
-#: shared-module/displayio/Group.c
-msgid "Group full"
 msgstr ""
 
 #: ports/mimxrt10xx/common-hal/busio/SPI.c ports/stm/common-hal/busio/I2C.c
@@ -1399,14 +1397,6 @@ msgstr ""
 msgid "Messages limited to 8 bytes"
 msgstr ""
 
-#: supervisor/shared/safe_mode.c
-msgid "MicroPython NLR jump failed. Likely memory corruption."
-msgstr ""
-
-#: supervisor/shared/safe_mode.c
-msgid "MicroPython fatal error."
-msgstr ""
-
 #: shared-bindings/audiobusio/PDMIn.c
 msgid "Microphone startup delay must be in range 0.0 to 1.0"
 msgstr ""
@@ -1456,6 +1446,10 @@ msgstr ""
 #: shared-bindings/rgbmatrix/RGBMatrix.c
 #, c-format
 msgid "Must use a multiple of 6 rgb pins, not %d"
+msgstr ""
+
+#: supervisor/shared/safe_mode.c
+msgid "NLR jump failed. Likely memory corruption."
 msgstr ""
 
 #: ports/esp32s2/common-hal/nvm/ByteArray.c
@@ -1710,11 +1704,6 @@ msgstr ""
 
 #: shared-bindings/audiobusio/PDMIn.c
 msgid "PDMIn not available"
-msgstr ""
-
-#: shared-bindings/pwmio/PWMOut.c
-msgid ""
-"PWM duty_cycle must be between 0 and 65535 inclusive (16 bit resolution)"
 msgstr ""
 
 #: shared-bindings/pwmio/PWMOut.c
@@ -3939,10 +3928,6 @@ msgstr ""
 
 #: extmod/moductypes.c
 msgid "syntax error in uctypes descriptor"
-msgstr ""
-
-#: shared-bindings/touchio/TouchIn.c
-msgid "threshold must be in the range 0-65536"
 msgstr ""
 
 #: shared-bindings/rgbmatrix/RGBMatrix.c
