@@ -125,7 +125,8 @@ void pulsein_reset(void) {
     memset(_objs, 0, sizeof(_objs));
 }
 
-void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self, const mcu_pin_obj_t *pin, uint16_t maxlen, bool idle_state) {
+void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t* self,
+        const mcu_pin_obj_t* pin, uint32_t frequency, uint16_t maxlen, bool idle_state) {
     int idx = _find_pulsein_obj(NULL);
     if (idx < 0) {
         mp_raise_NotImplementedError(NULL);
@@ -306,6 +307,10 @@ uint16_t common_hal_pulseio_pulsein_popleft(pulseio_pulsein_obj_t *self) {
 
 uint16_t common_hal_pulseio_pulsein_get_maxlen(pulseio_pulsein_obj_t *self) {
     return self->maxlen;
+}
+
+uint32_t common_hal_pulseio_pulsein_get_frequency(pulseio_pulsein_obj_t* self) {
+    return 1000000;
 }
 
 bool common_hal_pulseio_pulsein_get_paused(pulseio_pulsein_obj_t *self) {

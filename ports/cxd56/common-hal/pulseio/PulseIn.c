@@ -83,8 +83,8 @@ static int pulsein_interrupt_handler(int irq, FAR void *context, FAR void *arg) 
     return 0;
 }
 
-void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
-    const mcu_pin_obj_t *pin, uint16_t maxlen, bool idle_state) {
+void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t* self,
+        const mcu_pin_obj_t* pin, uint32_t frequency, uint16_t maxlen, bool idle_state) {
     self->buffer = (uint16_t *)m_malloc(maxlen * sizeof(uint16_t), false);
     if (self->buffer == NULL) {
         mp_raise_msg_varg(&mp_type_MemoryError, translate("Failed to allocate RX buffer of %d bytes"), maxlen * sizeof(uint16_t));
@@ -173,6 +173,10 @@ uint16_t common_hal_pulseio_pulsein_popleft(pulseio_pulsein_obj_t *self) {
 
 uint16_t common_hal_pulseio_pulsein_get_maxlen(pulseio_pulsein_obj_t *self) {
     return self->maxlen;
+}
+
+uint32_t common_hal_pulseio_pulsein_get_frequency(pulseio_pulsein_obj_t* self) {
+    return 1000000;
 }
 
 bool common_hal_pulseio_pulsein_get_paused(pulseio_pulsein_obj_t *self) {

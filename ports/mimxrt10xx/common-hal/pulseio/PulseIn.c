@@ -101,8 +101,8 @@
 //    self->last_us = current_us;
 // }
 
-void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
-    const mcu_pin_obj_t *pin, uint16_t maxlen, bool idle_state) {
+void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t* self,
+        const mcu_pin_obj_t* pin, uint32_t frequency, uint16_t maxlen, bool idle_state) {
 //    if (!pin->has_extint) {
 //        mp_raise_RuntimeError(translate("No hardware support on pin"));
 //    }
@@ -216,6 +216,10 @@ uint16_t common_hal_pulseio_pulsein_popleft(pulseio_pulsein_obj_t *self) {
 uint16_t common_hal_pulseio_pulsein_get_maxlen(pulseio_pulsein_obj_t *self) {
 //    return self->maxlen;
     return 0;
+}
+
+uint32_t common_hal_pulseio_pulsein_get_frequency(pulseio_pulsein_obj_t* self) {
+    return 1000000;
 }
 
 uint16_t common_hal_pulseio_pulsein_get_len(pulseio_pulsein_obj_t *self) {

@@ -40,7 +40,7 @@
 //|        and low cost temperature sensors (DHT). The pulsed signal consists of timed active and
 //|        idle periods. Unlike PWM, there is no set duration for active and idle pairs."""
 //|
-//|     def __init__(self, pin: microcontroller.Pin, maxlen: int = 2, *, idle_state: bool = False) -> None:
+//|     def __init__(self, pin: microcontroller.Pin, maxlen: int = 2, *, idle_state: bool = False, frequency : int = 1_000_000) -> None:
 //|         """Create a PulseIn object associated with the given pin. The object acts as
 //|         a read-only sequence of pulse lengths with a given max length. When it is
 //|         active, new pulse lengths are added to the end of the list. When there is
@@ -49,6 +49,10 @@
 //|
 //|         :param ~microcontroller.Pin pin: Pin to read pulses from.
 //|         :param int maxlen: Maximum number of pulse durations to store at once
+//|         :param int frequency: Pulses are measured in number of
+//|             cycles.  The default makes 1 = 1µs.  This value may be
+//|             rounded, the actual value can be retrieved via the
+//|             `PulseIn.frequency` property.
 //|         :param bool idle_state: Idle state of the pin. At start and after `resume`
 //|           the first recorded pulse will the opposite state from idle.
 //|
@@ -77,10 +81,11 @@
 //|         ...
 //|
 STATIC mp_obj_t pulseio_pulsein_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_pin, ARG_maxlen, ARG_idle_state };
+    enum { ARG_pin, ARG_maxlen, ARG_frequency, ARG_idle_state };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_maxlen, MP_ARG_INT, {.u_int = 2} },
+        { MP_QSTR_frequency, MP_ARG_INT, {.u_int = 1000000} },
         { MP_QSTR_idle_state, MP_ARG_BOOL, {.u_bool = false} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -90,7 +95,7 @@ STATIC mp_obj_t pulseio_pulsein_make_new(const mp_obj_type_t *type, size_t n_arg
     pulseio_pulsein_obj_t *self = m_new_obj(pulseio_pulsein_obj_t);
     self->base.type = &pulseio_pulsein_type;
 
-    common_hal_pulseio_pulsein_construct(self, pin, args[ARG_maxlen].u_int,
+    common_hal_pulseio_pulsein_construct(self, pin, args[ARG_maxlen].u_int, args[ARG_frequency].u_int,
         args[ARG_idle_state].u_bool);
 
     return MP_OBJ_FROM_PTR(self);
@@ -195,6 +200,25 @@ STATIC mp_obj_t pulseio_pulsein_obj_popleft(mp_obj_t self_in) {
     return MP_OBJ_NEW_SMALL_INT(common_hal_pulseio_pulsein_popleft(self));
 }
 MP_DEFINE_CONST_FUN_OBJ_1(pulseio_pulsein_popleft_obj, pulseio_pulsein_obj_popleft);
+
+//|     frequency: int
+//|     """The frequency of the counter in Hz.  1_000_000 indicates that
+//|     pulse lengths are in units of microseconds."""
+//|
+STATIC mp_obj_t pulseio_pulsein_obj_get_frequency(mp_obj_t self_in) {
+    pulseio_pulsein_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    check_for_deinit(self);
+
+    return MP_OBJ_NEW_SMALL_INT(common_hal_pulseio_pulsein_get_frequency(self));
+}
+MP_DEFINE_CONST_FUN_OBJ_1(pulseio_pulsein_get_frequency_obj, pulseio_pulsein_obj_get_frequency);
+
+const mp_obj_property_t pulseio_pulsein_frequency_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&pulseio_pulsein_get_frequency_obj,
+              (mp_obj_t)&mp_const_none_obj,
+              (mp_obj_t)&mp_const_none_obj},
+};
 
 //|     maxlen: int
 //|     """The maximum length of the PulseIn. When len() is equal to maxlen,
@@ -302,6 +326,7 @@ STATIC const mp_rom_map_elem_t pulseio_pulsein_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_popleft), MP_ROM_PTR(&pulseio_pulsein_popleft_obj) },
 
     // Properties
+    { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_PTR(&pulseio_pulsein_frequency_obj) },
     { MP_ROM_QSTR(MP_QSTR_maxlen), MP_ROM_PTR(&pulseio_pulsein_maxlen_obj) },
     { MP_ROM_QSTR(MP_QSTR_paused), MP_ROM_PTR(&pulseio_pulsein_paused_obj) },
 };

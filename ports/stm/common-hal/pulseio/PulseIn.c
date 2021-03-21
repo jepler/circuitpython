@@ -108,8 +108,8 @@ void pulsein_reset(void) {
     refcount = 0;
 }
 
-void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self, const mcu_pin_obj_t *pin,
-    uint16_t maxlen, bool idle_state) {
+void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t* self,
+        const mcu_pin_obj_t* pin, uint32_t frequency, uint16_t maxlen, bool idle_state) {
     // STM32 has one shared EXTI for each pin number, 0-15
     uint8_t p_num = pin->number;
     if (_objs[p_num]) {
@@ -270,6 +270,10 @@ uint16_t common_hal_pulseio_pulsein_popleft(pulseio_pulsein_obj_t *self) {
 
 uint16_t common_hal_pulseio_pulsein_get_maxlen(pulseio_pulsein_obj_t *self) {
     return self->maxlen;
+}
+
+uint32_t common_hal_pulseio_pulsein_get_frequency(pulseio_pulsein_obj_t* self) {
+    return 1000000;
 }
 
 bool common_hal_pulseio_pulsein_get_paused(pulseio_pulsein_obj_t *self) {

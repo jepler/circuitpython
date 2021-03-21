@@ -49,7 +49,7 @@ uint16_t pulsein_program[] = {
 };
 
 void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
-    const mcu_pin_obj_t *pin, uint16_t maxlen, bool idle_state) {
+    const mcu_pin_obj_t *pin, uint32_t frequency, uint16_t maxlen, bool idle_state) {
 
     self->buffer = (uint16_t *)m_malloc(maxlen * sizeof(uint16_t), false);
     if (self->buffer == NULL) {
@@ -67,7 +67,7 @@ void common_hal_pulseio_pulsein_construct(pulseio_pulsein_obj_t *self,
 
     bool ok = rp2pio_statemachine_construct(&state_machine,
         pulsein_program, sizeof(pulsein_program) / sizeof(pulsein_program[0]),
-        1000000,
+        frequency,
         NULL, 0,
         NULL, 0,
         pin, 1,
@@ -204,6 +204,10 @@ uint16_t common_hal_pulseio_pulsein_get_maxlen(pulseio_pulsein_obj_t *self) {
 
 uint16_t common_hal_pulseio_pulsein_get_len(pulseio_pulsein_obj_t *self) {
     return self->len;
+}
+
+uint32_t common_hal_pulseio_pulsein_get_frequency(pulseio_pulsein_obj_t *self) {
+    return common_hal_rp2pio_statemachine_get_frequency(&self->state_machine);
 }
 
 bool common_hal_pulseio_pulsein_get_paused(pulseio_pulsein_obj_t *self) {
