@@ -72,6 +72,41 @@ typedef struct {
         .pin = p_pin, \
     }
 
+#define IOMUXC_MUXREGISTER(x) IOMUXC_MUXREGISTER_(x)
+#define IOMUXC_MUXREGISTER_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_muxregister
+#define IOMUXC_MUX_MODE(x) IOMUXC_MUX_MODE_(x)
+#define IOMUXC_MUX_MODE_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_mux_mode
+#define IOMUXC_INPUT_REGISTER(x) IOMUXC_INPUT_REGISTER_(x)
+#define IOMUXC_INPUT_REGISTER_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_input_register
+#define IOMUXC_INPUT_IDX(x) IOMUXC_INPUT_IDX_(x)
+#define IOMUXC_INPUT_IDX_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_input_idx
+#define IOMUXC_CONFIG_REG(x) IOMUXC_CONFIG_REG_(x)
+#define IOMUXC_CONFIG_REG_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_config_reg
+#define IOMUXC_PIN(x) IOMUXC_PIN_(x)
+#define IOMUXC_PIN_(p_muxregister, p_mux_mode, p_input_register, p_input_idx, p_config_reg, p_pin) p_pin
+
+typedef struct {
+    uint8_t sai;
+    uint8_t channel;
+    uint8_t mux_mode;
+    uint8_t input_idx;
+    uint32_t input_reg;
+    const mcu_pin_obj_t *pin;
+} mcu_sai_obj_t;
+
+#define SAI_PIN(p_iomuxc, p_sai, p_channel, p_pin) \
+    SAI_PIN_(p_iomuxc, p_sai, p_channel, p_pin)
+
+#define SAI_PIN_(p_mux_reg, p_mux_mode, p_input_reg, p_input_idx, p_config_reg, p_sai, p_channel, p_pin) \
+    { \
+        .sai = p_sai, \
+        .channel = p_channel, \
+        .mux_mode = p_mux_mode, \
+        .input_reg = p_input_reg, \
+        .input_idx = p_input_idx, \
+        .pin = p_pin, \
+    }
+
 extern LPI2C_Type *mcu_i2c_banks[];
 extern LPSPI_Type *mcu_spi_banks[];
 extern LPUART_Type *mcu_uart_banks[];

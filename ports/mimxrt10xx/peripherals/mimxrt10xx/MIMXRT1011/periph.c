@@ -166,3 +166,41 @@ const mcu_pwm_obj_t mcu_pwm_list[20] = {
 
     PWM_PIN(PWM1, kPWM_Module_3, kPWM_PwmX, IOMUXC_GPIO_AD_09_FLEXPWM1_PWM3_X, &pin_GPIO_AD_09),
 };
+
+const mcu_sai_obj_t mcu_sai_mclk_list[2] = {
+    SAI_PIN(IOMUXC_GPIO_08_SAI1_MCLK, 1, 0, &pin_GPIO_08),
+    SAI_PIN(IOMUXC_GPIO_00_SAI3_MCLK, 3, 0, &pin_GPIO_00),
+};
+
+const mcu_sai_obj_t mcu_sai_rx_bclk_list[4] = {
+    SAI_PIN(IOMUXC_GPIO_SD_13_SAI3_RX_BCLK, 3, 0, &pin_GPIO_SD_13),
+    SAI_PIN(IOMUXC_GPIO_SD_01_SAI3_TX_BCLK, 3, 0, &pin_GPIO_SD_01),
+    SAI_PIN(IOMUXC_GPIO_06_SAI1_TX_BCLK, 1, 0, &pin_GPIO_SD_06),
+    SAI_PIN(IOMUXC_GPIO_01_SAI1_RX_BCLK, 1, 0, &pin_GPIO_SD_13),
+};
+
+const mcu_sai_obj_t mcu_sai_rx_data_list[2] = {
+    SAI_PIN(IOMUXC_GPIO_SD_03_SAI3_RX_DATA, 3, 0, &pin_GPIO_SD_03),
+    SAI_PIN(IOMUXC_GPIO_03_SAI1_RX_DATA00, 1, 0, &pin_GPIO_03),
+};
+
+const mcu_sai_obj_t mcu_sai_rx_sync_list[2] = {
+    SAI_PIN(IOMUXC_GPIO_SD_04_SAI3_RX_SYNC, 3, 0, &pin_GPIO_SD_04),
+    SAI_PIN(IOMUXC_GPIO_02_SAI1_RX_SYNC, 1, 0, &pin_GPIO_02),
+};
+
+const mcu_sai_obj_t mcu_sai_tx_bclk_list[2] = {
+    SAI_PIN(IOMUXC_GPIO_SD_01_SAI3_TX_BCLK, 3, 0, &pin_GPIO_SD_01),
+    SAI_PIN(IOMUXC_GPIO_06_SAI1_TX_BCLK, 1, 0, &pin_GPIO_06),
+};
+
+const mcu_sai_obj_t mcu_sai_tx_data_list[3] = {
+    SAI_PIN(IOMUXC_GPIO_SD_02_SAI3_TX_DATA, 3, 0, &pin_GPIO_SD_02),
+    SAI_PIN(IOMUXC_GPIO_05_SAI1_TX_DATA01, 1, 1, &pin_GPIO_05),
+    SAI_PIN(IOMUXC_GPIO_04_SAI1_TX_DATA00, 1, 0, &pin_GPIO_04),
+};
+
+const mcu_sai_obj_t mcu_sai_tx_sync_list[2] = {
+    SAI_PIN(IOMUXC_GPIO_SD_00_SAI3_TX_SYNC, 3, 0, &pin_GPIO_SD_00),
+    SAI_PIN(IOMUXC_GPIO_07_SAI1_TX_SYNC, 1, 0, &pin_GPIO_07),
+};
