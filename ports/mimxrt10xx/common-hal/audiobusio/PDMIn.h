@@ -4,7 +4,6 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- * Copyright (c) 2019 Artur Pacholec
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,16 +24,24 @@
  * THE SOFTWARE.
  */
 
-#include "supervisor/port.h"
+#pragma once
 
-#include "audio_dma.h"
+#include "common-hal/microcontroller/Pin.h"
 
-void port_background_task(void) {
-    #if CIRCUITPY_AUDIOIO || CIRCUITPY_AUDIOBUSIO
-    audio_dma_background();
-    #endif
-}
-void port_start_background_task(void) {
-}
-void port_finish_background_task(void) {
-}
+#include "py/obj.h"
+
+typedef struct {
+    mp_obj_base_t base;
+    const mcu_pin_obj_t *clock_pin;
+    const mcu_pin_obj_t *data_pin;
+    uint32_t sample_rate;
+    uint8_t serializer;
+    uint8_t clock_unit;
+    uint8_t bytes_per_sample;
+    uint8_t bit_depth;
+    uint8_t gclk;
+} audiobusio_pdmin_obj_t;
+
+void pdmin_reset(void);
+
+void pdmin_background(void);

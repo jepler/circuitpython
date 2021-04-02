@@ -36,6 +36,8 @@
 
 #include "fsl_device_registers.h"
 
+#include "common-hal/audiobusio/PDMIn.h"
+#include "common-hal/audiobusio/I2SOut.h"
 #include "common-hal/microcontroller/Pin.h"
 #include "common-hal/pulseio/PulseIn.h"
 #include "common-hal/pulseio/PulseOut.h"

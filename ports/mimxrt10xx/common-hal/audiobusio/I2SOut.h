@@ -4,7 +4,6 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- * Copyright (c) 2019 Artur Pacholec
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,16 +24,28 @@
  * THE SOFTWARE.
  */
 
-#include "supervisor/port.h"
+#pragma once
 
-#include "audio_dma.h"
+#include "common-hal/microcontroller/Pin.h"
 
-void port_background_task(void) {
-    #if CIRCUITPY_AUDIOIO || CIRCUITPY_AUDIOBUSIO
-    audio_dma_background();
-    #endif
-}
-void port_start_background_task(void) {
-}
-void port_finish_background_task(void) {
-}
+#include "py/obj.h"
+
+// Some boards don't implement I2SOut, so suppress any routines from here.
+#if CIRCUITPY_AUDIOBUSIO_I2SOUT
+
+// We don't bit pack because we'll only have two at most. Its better to save code size instead.
+typedef struct {
+    mp_obj_base_t base;
+    bool left_justified;
+    const mcu_pin_obj_t *bit_clock;
+    const mcu_pin_obj_t *word_select;
+    const mcu_pin_obj_t *data;
+    uint8_t clock_unit;
+    uint8_t serializer;
+    uint8_t gclk;
+    bool playing, paused;
+} audiobusio_i2sout_obj_t;
+
+void i2sout_reset(void);
+
+#endif // CIRCUITPY_AUDIOBUSIO_I2SOUT
