@@ -48,7 +48,7 @@ extern const mcu_periph_obj_t mcu_uart_cts_list[4];
 extern const mcu_pwm_obj_t mcu_pwm_list[20];
 
 extern const mcu_sai_obj_t mcu_sai_mclk_list[2];
-extern const mcu_sai_obj_t mcu_sai_rx_bclk_list[4];
+extern const mcu_sai_obj_t mcu_sai_rx_bclk_list[2];
 extern const mcu_sai_obj_t mcu_sai_rx_data_list[2];
 extern const mcu_sai_obj_t mcu_sai_rx_sync_list[2];
 extern const mcu_sai_obj_t mcu_sai_tx_bclk_list[2];
