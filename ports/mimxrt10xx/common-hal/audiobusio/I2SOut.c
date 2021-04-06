@@ -72,7 +72,7 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
 {
     self->data = find_sai_pin(data, mcu_sai_tx_data_list, MP_ARRAY_SIZE(mcu_sai_tx_data_list), -1, MP_QSTR_data);
     self->bit_clock = find_sai_pin(bit_clock, mcu_sai_tx_bclk_list, MP_ARRAY_SIZE(mcu_sai_tx_bclk_list), self->data->sai, MP_QSTR_bit_clock);
-    self->word_select = find_sai_pin(word_select, mcu_sai_tx_data_list, MP_ARRAY_SIZE(mcu_sai_tx_sync_list), self->data->sai, MP_QSTR_word_select);
+    self->word_select = find_sai_pin(word_select, mcu_sai_tx_sync_list, MP_ARRAY_SIZE(mcu_sai_tx_sync_list), self->data->sai, MP_QSTR_word_select);
     self->index = self->data->sai;
     self->left_justified = left_justified;
 
@@ -91,14 +91,20 @@ void common_hal_audiobusio_i2sout_deinit(audiobusio_i2sout_obj_t *self)
 {
     // release EDMA channel
 
-    common_hal_reset_pin(self->data->pin);
+    if (self->data) {
+        common_hal_reset_pin(self->data->pin);
+    }
     self->data = NULL;
 
-    common_hal_reset_pin(self->bit_clock->pin);
-    self->data = NULL;
+    if (self->bit_clock) {
+        common_hal_reset_pin(self->bit_clock->pin);
+    }
+    self->bit_clock = NULL;
 
-    common_hal_reset_pin(self->word_select->pin);
-    self->data = NULL;
+    if (self->word_select) {
+        common_hal_reset_pin(self->word_select->pin);
+    }
+    self->word_select = NULL;
 }
 
 bool common_hal_audiobusio_i2sout_deinited(audiobusio_i2sout_obj_t *self)
