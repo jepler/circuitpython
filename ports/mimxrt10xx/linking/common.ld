@@ -96,6 +96,7 @@ SECTIONS
         . = ALIGN(4);
 
         *(.bss*)
+        *(.NonCacheable*)
         *(COMMON)
 
         . = ALIGN(4);

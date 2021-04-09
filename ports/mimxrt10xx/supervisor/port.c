@@ -35,6 +35,8 @@
 #include "supervisor/port.h"
 
 #include "fsl_device_registers.h"
+#include "fsl_edma.h"
+#include "fsl_dmamux.h"
 
 #include "common-hal/audiobusio/PDMIn.h"
 #include "common-hal/audiobusio/I2SOut.h"
@@ -254,6 +256,10 @@ safe_mode_t port_init(void) {
     CLOCK_SetMode(kCLOCK_ModeRun);
 
     clocks_init();
+
+    edma_config_t dmaConfig = {0};
+    EDMA_Init(DMA0, &dmaConfig);
+    DMAMUX_Init(DMAMUX);
 
     #if CIRCUITPY_RTC
     rtc_init();

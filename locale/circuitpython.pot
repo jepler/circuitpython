@@ -313,6 +313,10 @@ msgstr ""
 msgid "All CAN peripherals are in use"
 msgstr ""
 
+#: ports/mimxrt10xx/audio_dma.c
+msgid "All DMA channels in use"
+msgstr ""
+
 #: ports/esp32s2/common-hal/busio/I2C.c ports/nrf/common-hal/busio/I2C.c
 msgid "All I2C peripherals are in use"
 msgstr ""
@@ -1185,6 +1189,7 @@ msgstr ""
 
 #: ports/atmel-samd/common-hal/audiobusio/I2SOut.c
 #: ports/atmel-samd/common-hal/audiobusio/PDMIn.c
+#: ports/mimxrt10xx/common-hal/audiobusio/I2SOut.c
 #: ports/mimxrt10xx/common-hal/busio/UART.c
 msgid "Invalid %q pin"
 msgstr ""

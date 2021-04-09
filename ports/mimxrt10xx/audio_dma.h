@@ -26,19 +26,22 @@
 
 #pragma once
 
+#include "py/obj.h"
+
+#include "fsl_sai.h"
+#include "fsl_sai_edma.h"
+
+#include "shared-module/audiocore/__init__.h"
+#include "supervisor/background_callback.h"
+
 typedef struct {
     mp_obj_t sample;
     I2S_Type *sai;
-    uint8_t dma_channel;
-    uint8_t bytes_per_sample;
-    uint8_t beat_size;
-    uint8_t spacing;
-    bool loop;
-    bool single_channel;
-    bool signed_to_unsigned;
-    bool unsigned_to_signed;
-    bool first_buffer_free;
+    audiocore_rebuffer_t rebuffer;
     background_callback_t callback;
+    sai_edma_handle_t *handle;
+    uint8_t dma_channel;
+    uint8_t buffer_count;
 } audio_dma_t;
 
 typedef enum {
@@ -54,7 +57,7 @@ uint8_t audiosample_channel_count(mp_obj_t sample_obj);
 void audio_dma_init(audio_dma_t *dma);
 void audio_dma_reset(void);
 
-uint8_t audio_dma_allocate_channel(void);
+uint8_t audio_dma_allocate_channel(audio_dma_t *self);
 void audio_dma_free_channel(uint8_t channel);
 
 // This sets everything up but doesn't start the timer.

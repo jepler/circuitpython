@@ -133,6 +133,8 @@ SRC_SDK := \
 	drivers/fsl_cache.c \
 	drivers/fsl_clock.c \
 	drivers/fsl_common.c \
+	drivers/fsl_dmamux.c \
+	drivers/fsl_edma.c \
 	drivers/fsl_flexspi.c \
 	drivers/fsl_gpio.c \
 	drivers/fsl_lpi2c.c \
@@ -140,6 +142,8 @@ SRC_SDK := \
 	drivers/fsl_lpuart.c \
 	drivers/fsl_ocotp.c \
 	drivers/fsl_pwm.c \
+	drivers/fsl_sai.c \
+	drivers/fsl_sai_edma.c \
 	drivers/fsl_snvs_hp.c \
 	drivers/fsl_tempmon.c \
 	drivers/fsl_trng.c \
@@ -149,6 +153,7 @@ SRC_SDK := $(addprefix sdk/devices/$(CHIP_FAMILY)/, $(SRC_SDK))
 $(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef
 
 SRC_C += \
+	audio_dma.c \
 	background.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/flash_config.c \
