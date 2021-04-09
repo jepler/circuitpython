@@ -39,6 +39,29 @@ typedef enum {
     GET_BUFFER_ERROR,           // Error while reading data.
 } audioio_get_buffer_result_t;
 
+typedef enum {
+    AUDIOSAMPLE_SIGNED = (1 << 0),
+    AUDIOSAMPLE_16BIT = (1 << 1),
+    AUDIOSAMPLE_STEREO = (1 << 2),
+
+    AUDIOSAMPLE_U8M = 0,
+    AUDIOSAMPLE_U8S = AUDIOSAMPLE_STEREO,
+    AUDIOSAMPLE_S8M = AUDIOSAMPLE_SIGNED,
+    AUDIOSAMPLE_S8S = AUDIOSAMPLE_SIGNED | AUDIOSAMPLE_STEREO,
+    AUDIOSAMPLE_U16M = AUDIOSAMPLE_16BIT,
+    AUDIOSAMPLE_U16S = AUDIOSAMPLE_16BIT | AUDIOSAMPLE_STEREO,
+    AUDIOSAMPLE_S16M = AUDIOSAMPLE_16BIT | AUDIOSAMPLE_SIGNED,
+    AUDIOSAMPLE_S16S = AUDIOSAMPLE_16BIT | AUDIOSAMPLE_SIGNED | AUDIOSAMPLE_STEREO,
+} audiosample_sample_type_t;
+
+typedef struct {
+    mp_obj_t sample_obj;
+    uint8_t *sample_data, *sample_end;
+    bool loop;
+    audiosample_sample_type_t sample_type;
+    uint8_t bytes_per_frame;
+} audiocore_rebuffer_t;
+
 typedef uint32_t (*audiosample_sample_rate_fun)(mp_obj_t);
 typedef uint8_t (*audiosample_bits_per_sample_fun)(mp_obj_t);
 typedef uint8_t (*audiosample_channel_count_fun)(mp_obj_t);
@@ -81,5 +104,9 @@ void audiosample_convert_s8s_s16s(int16_t *buffer_out, const int8_t *buffer_in, 
 void audiosample_convert_u16m_s16s(int16_t *buffer_out, const uint16_t *buffer_in, size_t nframes);
 void audiosample_convert_u16s_s16s(int16_t *buffer_out, const uint16_t *buffer_in, size_t nframes);
 void audiosample_convert_s16m_s16s(int16_t *buffer_out, const int16_t *buffer_in, size_t nframes);
+void audiosample_convert_to_s16s(int16_t *buffer_out, const void *buffer_in, size_t nframes, audiosample_sample_type_t sample_type);
+
+void audiorebuffer_set_sample(audiocore_rebuffer_t *self, mp_obj_t *sample, bool loop);
+audioio_get_buffer_result_t audiorebuffer_fill_s16(audiocore_rebuffer_t *self, int16_t *sample_buffer, size_t nframes);
 
 #endif  // MICROPY_INCLUDED_SHARED_MODULE_AUDIOCORE__INIT__H
