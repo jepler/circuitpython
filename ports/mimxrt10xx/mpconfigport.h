@@ -30,6 +30,8 @@
 
 #include <stdint.h>
 
+#define AUDIO_DMA_CHANNEL_COUNT (2)
+
 #define MICROPY_PY_SYS_PLATFORM                     "NXP IMXRT10XX"
 #define SPI_FLASH_MAX_BAUDRATE 24000000
 
@@ -51,8 +53,6 @@ extern uint8_t _ld_default_stack_size;
 
 #define MICROPY_PORT_ROOT_POINTERS \
     CIRCUITPY_COMMON_ROOT_POINTERS \
-
-// TODO:
-//    mp_obj_t playing_audio[AUDIO_DMA_CHANNEL_COUNT];
+    mp_obj_t playing_audio[AUDIO_DMA_CHANNEL_COUNT];
 
 #endif  // __INCLUDED_MPCONFIGPORT_H

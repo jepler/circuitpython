@@ -24,5 +24,34 @@
  * THE SOFTWARE.
  */
 
+#include "py/obj.h"
+
+#include "fsl_dmaux.h"
+#include "fsl_sai_edma.h"
+
+void audio_dma_init(void) {
+    DMAMUX_Init(DMA0);
+}
+
 void audio_dma_background(void) {
 }
+
+void audio_dma_reset(void) {
+    for (int i = 0; i < AUDIO_DMA_CHANNEL_COUNT; i++) {
+        DMAMUX_DisableChannel(DMA0, i);
+        playing_audio[i] = NULL;
+    }
+}
+
+static uint8_t audio_dma_get_available_channel(void) {
+    for (int i = 0; i < AUDIO_DMA_CHANNEL_COUNT; i++) {
+        if (!playing_audio[i]) {
+            return i;
+        }
+    }
+    mp_raise_RuntimeError("All DMA channels in use");
+}
+
+uint8_t audio_dma_allocate_channel(void) {
+
+    DMAMUX_SetSource (DMA0, channel

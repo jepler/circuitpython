@@ -87,6 +87,11 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t
 
 // Callbacks invoked when receive Set_Report request through control endpoint
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize) {
+    mp_printf(&mp_plat_print, "tud_hid_set_report_cb report_id=%d bufsize=%d\n", report_type, bufsize);
+    for (int i = 0; i < bufsize; i++) {
+        mp_printf(&mp_plat_print, "[%d]=0x%02x\n", i, buffer[i]);
+    }
+
     (void)itf;
     if (report_type == HID_REPORT_TYPE_INVALID) {
         report_id = buffer[0];
