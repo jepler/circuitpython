@@ -174,7 +174,7 @@ const mcu_sai_obj_t mcu_sai_mclk_list[2] = {
 
 const mcu_sai_obj_t mcu_sai_rx_bclk_list[2] = {
     SAI_PIN(IOMUXC_GPIO_SD_13_SAI3_RX_BCLK, 3, 0, &pin_GPIO_SD_13),
-    SAI_PIN(IOMUXC_GPIO_06_SAI1_TX_BCLK, 1, 0, &pin_GPIO_SD_06),
+    SAI_PIN(IOMUXC_GPIO_01_SAI1_RX_BCLK, 1, 0, &pin_GPIO_SD_01),
 };
 
 const mcu_sai_obj_t mcu_sai_rx_data_list[2] = {
