@@ -35,5 +35,5 @@ void reset(void) {
 }
 
 bool bootloader_available(void) {
-    return SNVS->LPGPR[0] >= 0;
+    return DBL_TAP_REG >= 0;
 }
