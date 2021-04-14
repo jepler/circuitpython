@@ -111,6 +111,10 @@ extern uint32_t _ld_itcm_flash_copy;
 
 extern void main(void);
 
+#ifdef __GNUC__
+#pragma  GCC diagnostic ignored "-Wmissing-prototypes"
+#endif
+
 // This replaces the Reset_Handler in startup_*.S and SystemInit in system_*.c.
 __attribute__((used, naked)) void Reset_Handler(void) {
     __disable_irq();
@@ -257,7 +261,37 @@ safe_mode_t port_init(void) {
 
     clocks_init();
 
+    /*
+     * AUDIO PLL setting: Frequency = Fref * (DIV_SELECT + NUM / DENOM)
+     *                              = 24 * (32 + 77/100)
+     *                              = 786.48 MHz
+     */
+    const clock_audio_pll_config_t audio_pll_config = {
+        .loopDivider = 32,  /* PLL loop divider. Valid range for DIV_SELECT divider value: 27~54. */
+        .postDivider = 1,   /* Divider after the PLL, should only be 1, 2, 4, 8, 16. */
+        .numerator   = 77,  /* 30 bit numerator of fractional loop divider. */
+        .denominator = 100, /* 30 bit denominator of fractional loop divider */
+    };
+
+    CLOCK_InitAudioPll(&audio_pll_config);
+
+#define DEMO_SAI1_CLOCK_SOURCE_SELECT (2U)
+/* Clock pre divider for sai1 clock source */
+#define DEMO_SAI1_CLOCK_SOURCE_PRE_DIVIDER (1U)
+/* Clock divider for sai1 clock source */
+#define DEMO_SAI1_CLOCK_SOURCE_DIVIDER (63U)
+
+    /*Clock setting for SAI1*/
+    CLOCK_SetMux(kCLOCK_Sai1Mux, DEMO_SAI1_CLOCK_SOURCE_SELECT);
+    CLOCK_SetDiv(kCLOCK_Sai1PreDiv, DEMO_SAI1_CLOCK_SOURCE_PRE_DIVIDER);
+    CLOCK_SetDiv(kCLOCK_Sai1Div, DEMO_SAI1_CLOCK_SOURCE_DIVIDER);
+    // sai3
+    CLOCK_SetMux(kCLOCK_Sai3Mux, DEMO_SAI1_CLOCK_SOURCE_SELECT);
+    CLOCK_SetDiv(kCLOCK_Sai3PreDiv, DEMO_SAI1_CLOCK_SOURCE_PRE_DIVIDER);
+    CLOCK_SetDiv(kCLOCK_Sai3Div, DEMO_SAI1_CLOCK_SOURCE_DIVIDER);
+
     edma_config_t dmaConfig = {0};
+    EDMA_GetDefaultConfig(&dmaConfig);
     EDMA_Init(DMA0, &dmaConfig);
     DMAMUX_Init(DMAMUX);
 
