@@ -36,6 +36,10 @@
 #include "fsl_sai_edma.h"
 
 static I2S_Type *const s_saiBases[] = I2S_BASE_PTRS;
+static dma_request_source_t const dma_tx_request_sources[] = {
+    [1] = kDmaRequestMuxSai1Tx,
+    [3] = kDmaRequestMuxSai3Tx,
+};
 
 /* Clock pre divider for sai1 clock source */
 #define AUDIO_CLOCK_SOURCE_PRE_DIVIDER (3U)
@@ -133,6 +137,8 @@ uint8_t audio_dma_allocate_channel(audio_dma_t *self, bool transmit, int sai_per
     self->i2s_channel = i2s_channel;
     MP_STATE_PORT(playing_audio)[dma_channel] = self;
 
+    DMAMUX_SetSource(DMAMUX, dma_channel, dma_tx_request_sources[sai_peripheral]);
+    DMAMUX_EnableChannel(DMAMUX, dma_channel);
     edma_config_t dmaConfig = {0};
     EDMA_GetDefaultConfig(&dmaConfig);
     EDMA_CreateHandle(&edma_handles[dma_channel], DMA0, dma_channel);
