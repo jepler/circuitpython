@@ -68,10 +68,10 @@ INC += \
 	-Iboards/$(BOARD) \
 	-Iperipherals/ \
 	-Iperipherals/mimxrt10xx/ \
-	-Isdk/CMSIS/Include \
-	-Isdk/devices/$(CHIP_FAMILY) \
-	-Isdk/devices/$(CHIP_FAMILY)/drivers \
-	-Isdk/devices/$(CHIP_FAMILY)/xip \
+	-isystem sdk/CMSIS/Include \
+	-isystem sdk/devices/$(CHIP_FAMILY) \
+	-isystem sdk/devices/$(CHIP_FAMILY)/drivers \
+	-isystem sdk/devices/$(CHIP_FAMILY)/xip \
 
 # NDEBUG disables assert() statements. This reduces code size pretty dramatically, per tannewt.
 
@@ -90,11 +90,11 @@ else
   #CFLAGS += -flto -flto-partition=none
 endif
 
-CFLAGS += $(INC) -ggdb -Wall -Wno-cast-align -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
+CFLAGS += $(INC) -ggdb -Wall -Werror -Wno-cast-align -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
 
 # TODO: add these when -Werror is applied
-# Disable some warnings, as do most ports. NXP SDK causes undef, tinyusb causes cast-align
-# CFLAGS += -Wno-undef -Wno-cast-align
+# Disable some warnings, as do most ports. tinyusb causes cast-align
+CFLAGS += -Wno-cast-align
 
 CFLAGS += \
 	-mthumb \
@@ -150,7 +150,7 @@ SRC_SDK := \
 	system_$(CHIP_FAMILY).c \
 
 SRC_SDK := $(addprefix sdk/devices/$(CHIP_FAMILY)/, $(SRC_SDK))
-$(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef
+$(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef -Wno-sign-compare -Wno-missing-prototypes -Wno-missing-declarations
 
 SRC_C += \
 	audio_dma.c \
