@@ -142,7 +142,7 @@ uint8_t audio_dma_allocate_channel(audio_dma_t *self, bool transmit, int sai_per
 }
 
 bool audio_dma_get_playing(audio_dma_t *self) {
-    return self->sample != NULL;
+    return self->rebuffer.sample_obj != NULL;
 }
 
 bool audio_dma_get_paused(audio_dma_t *self) {

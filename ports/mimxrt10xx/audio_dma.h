@@ -35,7 +35,6 @@
 #include "supervisor/background_callback.h"
 
 typedef struct {
-    mp_obj_t sample;
     I2S_Type *sai;
     audiocore_rebuffer_t rebuffer;
     background_callback_t callback;
