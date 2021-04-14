@@ -99,6 +99,7 @@ void audio_dma_play(audio_dma_t *self, mp_obj_t sample, bool loop) {
 
     SAI_TxSetBitClockRate(self->sai, AUDIO_CLK_FREQ, audiosample_sample_rate(sample), 16, 2);
     fill_buffer(self);
+    fill_buffer(self);
     common_hal_mcu_enable_interrupts();
 }
 
