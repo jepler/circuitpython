@@ -29,6 +29,9 @@
 #include "mpconfigboard.h"
 #include "py/runtime.h"
 
+#include "shared-bindings/board/__init__.h"
+#include "shared-module/board/__init__.h"
+
 #if CIRCUITPY_BUSIO
 #include "shared-bindings/busio/I2C.h"
 #include "shared-bindings/busio/SPI.h"

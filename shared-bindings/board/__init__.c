@@ -49,7 +49,7 @@
 //|
 
 #if BOARD_I2C
-mp_obj_t board_i2c(void) {
+static mp_obj_t board_i2c(void) {
     mp_obj_t singleton = common_hal_board_get_i2c();
     if (singleton != NULL && !common_hal_busio_i2c_deinited(singleton)) {
         return singleton;
@@ -59,7 +59,7 @@ mp_obj_t board_i2c(void) {
     return common_hal_board_create_i2c();
 }
 #else
-mp_obj_t board_i2c(void) {
+static mp_obj_t board_i2c(void) {
     mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_I2C);
     return NULL;
 }
@@ -73,7 +73,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(board_i2c_obj, board_i2c);
 //|     ...
 //|
 #if BOARD_SPI
-mp_obj_t board_spi(void) {
+static mp_obj_t board_spi(void) {
     mp_obj_t singleton = common_hal_board_get_spi();
     if (singleton != NULL && !common_hal_busio_spi_deinited(singleton)) {
         return singleton;
@@ -84,7 +84,7 @@ mp_obj_t board_spi(void) {
     return common_hal_board_create_spi();
 }
 #else
-mp_obj_t board_spi(void) {
+static mp_obj_t board_spi(void) {
     mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_SPI);
     return NULL;
 }
@@ -101,7 +101,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(board_spi_obj, board_spi);
 //|     ...
 //|
 #if BOARD_UART
-mp_obj_t board_uart(void) {
+static mp_obj_t board_uart(void) {
     mp_obj_t singleton = common_hal_board_get_uart();
     if (singleton != NULL) {
         return singleton;
@@ -113,7 +113,7 @@ mp_obj_t board_uart(void) {
     return common_hal_board_create_uart();
 }
 #else
-mp_obj_t board_uart(void) {
+static mp_obj_t board_uart(void) {
     mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_UART);
     return NULL;
 }

@@ -25,6 +25,7 @@
  */
 
 #include "shared-module/usb_midi/PortOut.h"
+#include "shared-bindings/usb_midi/PortOut.h"
 #include "supervisor/shared/translate.h"
 #include "tusb.h"
 

@@ -79,7 +79,7 @@ STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
 MP_DEFINE_CONST_FUN_OBJ_1(time_sleep_obj, time_sleep);
 
 #if MICROPY_PY_COLLECTIONS
-mp_obj_t struct_time_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
+static mp_obj_t struct_time_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     if (n_args != 1 || (kw_args != NULL && kw_args->used > 0)) {
         return namedtuple_make_new(type, n_args, args, kw_args);
     }

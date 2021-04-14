@@ -924,7 +924,7 @@ STATIC void process_find_type_req(uint16_t conn_handle, uint16_t mtu, uint8_t dl
     }
 }
 
-void process_read_group_req(uint16_t conn_handle, uint16_t mtu, uint8_t dlen, uint8_t data[]) {
+static void process_read_group_req(uint16_t conn_handle, uint16_t mtu, uint8_t dlen, uint8_t data[]) {
     struct bt_att_read_group_req *req = (struct bt_att_read_group_req *)data;
     uint16_t type_uuid = req->uuid[0] | (req->uuid[1] << 8);
 

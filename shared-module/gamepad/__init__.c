@@ -27,8 +27,9 @@
 #include <stdbool.h>
 
 #include "py/mpstate.h"
-#include "shared-bindings/gamepad/__init__.h"
 #include "shared-bindings/gamepad/GamePad.h"
+#include "shared-bindings/gamepad/__init__.h"
+#include "shared-module/gamepad/__init__.h"
 #include "supervisor/shared/tick.h"
 
 #include "shared-bindings/digitalio/DigitalInOut.h"

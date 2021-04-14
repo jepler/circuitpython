@@ -36,6 +36,7 @@
 
 #include "supervisor/filesystem.h"
 #include "supervisor/shared/autoreload.h"
+#include "supervisor/usb.h"
 
 #define MSC_FLASH_BLOCK_SIZE    512
 

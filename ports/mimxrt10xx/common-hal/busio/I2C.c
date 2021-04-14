@@ -30,6 +30,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/busio/I2C.h"
+#include "common-hal/busio/I2C.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
 #include "periph.h"

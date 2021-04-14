@@ -25,6 +25,9 @@
  */
 
 #if !CIRCUITPY_BLE_FILE_SERVICE
+
+#include "supervisor/shared/bluetooth.h"
+
 void supervisor_start_bluetooth(void) {
 }
 

@@ -26,6 +26,7 @@
  */
 
 #include "fsl_clock.h"
+#include "fsl_device_registers.h"
 #include "tusb.h"
 #include "supervisor/usb.h"
 
@@ -52,6 +53,7 @@ void init_usb_hardware(void) {
     usb_phy->TX = phytx;
 }
 
+extern void USB_OTG1_IRQHandler(void);
 void USB_OTG1_IRQHandler(void) {
     usb_irq_handler();
 }

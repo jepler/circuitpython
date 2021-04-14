@@ -27,6 +27,7 @@
 #include "supervisor/shared/tick.h"
 
 #include "lib/utils/interrupt_char.h"
+#include "py/mphal.h"
 #include "py/mpstate.h"
 #include "py/runtime.h"
 #include "supervisor/linker.h"
@@ -35,6 +36,7 @@
 #include "supervisor/port.h"
 #include "supervisor/shared/autoreload.h"
 #include "supervisor/shared/stack.h"
+#include "supervisor/shared/tick.h"
 
 #if CIRCUITPY_BLEIO
 #include "supervisor/shared/bluetooth.h"
@@ -72,7 +74,7 @@ static background_callback_t tick_callback;
 
 volatile uint64_t last_finished_tick = 0;
 
-void supervisor_background_tasks(void *unused) {
+static void supervisor_background_tasks(void *unused) {
     port_start_background_task();
 
     assert_heap_ok();

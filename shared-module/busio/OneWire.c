@@ -27,6 +27,7 @@
 // Wraps the bitbangio implementation of OneWire for use in busio.
 #include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/bitbangio/OneWire.h"
+#include "shared-bindings/busio/OneWire.h"
 #include "shared-module/busio/OneWire.h"
 
 void common_hal_busio_onewire_construct(busio_onewire_obj_t *self,

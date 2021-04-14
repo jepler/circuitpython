@@ -57,7 +57,7 @@ static bool web_serial_connected = false;
 // descriptor.
 extern uint16_t usb_serial_number[1 + COMMON_HAL_MCU_PROCESSOR_UID_LENGTH * 2];
 
-void load_serial_number(void) {
+static void load_serial_number(void) {
     // create serial number based on device unique id
     uint8_t raw_id[COMMON_HAL_MCU_PROCESSOR_UID_LENGTH];
     common_hal_mcu_processor_get_uid(raw_id);

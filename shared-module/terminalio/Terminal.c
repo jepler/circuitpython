@@ -25,6 +25,7 @@
  */
 
 #include "shared-module/terminalio/Terminal.h"
+#include "shared-bindings/terminalio/Terminal.h"
 
 #include "shared-module/fontio/BuiltinFont.h"
 #include "shared-bindings/displayio/TileGrid.h"
