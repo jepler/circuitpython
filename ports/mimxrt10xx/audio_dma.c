@@ -104,6 +104,8 @@ void audio_dma_reset(void) {
         EDMA_ResetChannel(DMA0, i);
         MP_STATE_PORT(playing_audio)[i] = NULL;
     }
+    SAI_Deinit(SAI1);
+    SAI_Deinit(SAI3);
 }
 
 static uint8_t audio_dma_get_available_channel(void) {
