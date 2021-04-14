@@ -76,7 +76,7 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
     self->index = self->data->sai;
     self->left_justified = left_justified;
 
-    // get EDMA channel
+    audio_dma_allocate_channel(&self->dma, true, self->index, self->data->channel);
 
     common_hal_never_reset_pin(bit_clock);
     common_hal_never_reset_pin(word_select);
@@ -114,30 +114,30 @@ bool common_hal_audiobusio_i2sout_deinited(audiobusio_i2sout_obj_t *self)
 
 void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t *self, mp_obj_t sample, bool loop)
 {
-    self->playing = 1;
+    audio_dma_play(&self->dma, sample, loop);
 }
 
 void common_hal_audiobusio_i2sout_stop(audiobusio_i2sout_obj_t *self)
 {
-    self->playing = 0;
+    audio_dma_stop(&self->dma);
 }
 
 bool common_hal_audiobusio_i2sout_get_playing(audiobusio_i2sout_obj_t *self)
 {
-    return self->playing;
+    return audio_dma_get_playing(&self->dma);
 }
 
 void common_hal_audiobusio_i2sout_pause(audiobusio_i2sout_obj_t *self)
 {
-    self->paused = 1;
+    return audio_dma_pause(&self->dma);
 }
 
 void common_hal_audiobusio_i2sout_resume(audiobusio_i2sout_obj_t *self)
 {
-    self->paused = 0;
+    return audio_dma_resume(&self->dma);
 }
 
 bool common_hal_audiobusio_i2sout_get_paused(audiobusio_i2sout_obj_t *self)
 {
-    return self->paused;
+    return audio_dma_get_paused(&self->dma);
 }

@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include "shared-bindings/microcontroller/__init__.h"
+
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "py/mpstate.h"
@@ -33,17 +35,16 @@
 #include "fsl_dmamux.h"
 #include "fsl_sai_edma.h"
 
+static I2S_Type *const s_saiBases[] = I2S_BASE_PTRS;
+
 /* Clock pre divider for sai1 clock source */
 #define AUDIO_CLOCK_SOURCE_PRE_DIVIDER (3U)
 /* Clock divider for sai1 clock source */
 #define AUDIO_CLOCK_SOURCE_DIVIDER (1U)
 /* Get frequency of sai1 clock */
 #define AUDIO_CLK_FREQ                                                        \
-    (CLOCK_GetFreq(kCLOCK_PllUsb1) / (AUDIO_CLOCK_SOURCE_DIVIDER + 1U) / \
+    (CLOCK_GetFreq(kCLOCK_Usb1PllClk) / (AUDIO_CLOCK_SOURCE_DIVIDER + 1U) / \
     (AUDIO_CLOCK_SOURCE_PRE_DIVIDER + 1U))
-
-#define AUDIO_TX_EDMA_CHANNEL (0U)
-#define AUDIO_RX_EDMA_CHANNEL (1U)
 
 #define BUFFER_NUMBER (2U)
 #define BUFFER_SIZE (512U)
@@ -59,7 +60,7 @@ static void fill_buffer(audio_dma_t *self) {
 
     void *sample_buffer = Buffer + BUFFER_SIZE * (self->buffer_count++ % 2);
 
-    (void)audiorebuffer_fill_s16(&self->rebuffer, (int16_t *)sample_buffer, BUFFER_SIZE / sizeof(int16_t) / 2);
+    (void)audiorebuffer_fill_s16s(&self->rebuffer, (int16_t *)sample_buffer, BUFFER_SIZE / sizeof(int16_t) / 2);
 
     sai_transfer_t xfer;
     xfer.data = sample_data;
@@ -67,17 +68,34 @@ static void fill_buffer(audio_dma_t *self) {
     SAI_TransferSendEDMA(self->sai, &tx_handles[self->dma_channel], &xfer);
 }
 
-void audio_dma_callback(void *self_in) {
+static void audio_dma_callback(void *self_in) {
     audio_dma_t *self = self_in;
     fill_buffer(self);
+}
+
+void audio_dma_stop(audio_dma_t *self) {
+    common_hal_mcu_disable_interrupts();
+    audiorebuffer_set_sample(&self->rebuffer, NULL, false);
+    common_hal_mcu_enable_interrupts();
 }
 
 void audio_dma_play(audio_dma_t *self, mp_obj_t sample, bool loop) {
     if (self->rebuffer.sample_obj) {
         audio_dma_stop(self);
     }
+    common_hal_mcu_disable_interrupts();
+
+    SAI_TxSetBitClockRate(self->sai, AUDIO_CLK_FREQ, audiosample_sample_rate(self->sample), 16, 2);
+
+    {
+        sai_transceiver_t sai_config;
+        SAI_GetClassicI2SConfig(&sai_config, 16, kSAI_Stereo, 1U << self->i2s_channel);
+        SAI_TransferTxSetConfigEDMA(self->sai, &tx_handles[self->dma_channel], &sai_config);
+    }
+
     audiorebuffer_set_sample(&self->rebuffer, sample, loop);
     fill_buffer(self);
+    common_hal_mcu_enable_interrupts();
 }
 
 void audio_dma_reset(void) {
@@ -106,15 +124,33 @@ static void callback(I2S_Type *base, sai_edma_handle_t *handle, status_t status,
 }
 
 
-uint8_t audio_dma_allocate_channel(audio_dma_t *self) {
-    int channel = audio_dma_get_available_channel();
-    self->dma_channel = channel;
-    MP_STATE_PORT(playing_audio)[channel] = self;
+uint8_t audio_dma_allocate_channel(audio_dma_t *self, bool transmit, int sai_peripheral, int i2s_channel) {
+    int dma_channel = audio_dma_get_available_channel();
+    self->sai = s_saiBases[sai_peripheral];
+    self->dma_channel = dma_channel;
+    self->i2s_channel = i2s_channel;
+    MP_STATE_PORT(playing_audio)[dma_channel] = self;
 
     edma_config_t dmaConfig = {0};
     EDMA_GetDefaultConfig(&dmaConfig);
-    EDMA_CreateHandle(&edma_handles[channel], DMA0, channel);
+    EDMA_CreateHandle(&edma_handles[dma_channel], DMA0, dma_channel);
 
-    SAI_TransferTxCreateHandleEDMA(self->sai, &tx_handles[channel], callback, self, &edma_handles[channel]);
-    return channel;
+    SAI_TransferTxCreateHandleEDMA(self->sai, &tx_handles[dma_channel], callback, self, &edma_handles[dma_channel]);
+    return dma_channel;
+}
+
+bool audio_dma_get_playing(audio_dma_t *self) {
+    return self->sample != NULL;
+}
+
+bool audio_dma_get_paused(audio_dma_t *self) {
+    return self->paused;
+}
+
+void audio_dma_pause(audio_dma_t *self) {
+    self->paused = true;
+}
+
+void audio_dma_resume(audio_dma_t *self) {
+    self->paused = false;
 }

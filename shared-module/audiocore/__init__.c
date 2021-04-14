@@ -166,7 +166,7 @@ void audiorebuffer_set_sample(audiocore_rebuffer_t *self, mp_obj_t *sample, bool
     self->sample_obj = sample;
     self->sample_data = self->sample_end = NULL;
 
-    if (sample) {
+    if (!sample) {
         return;
     }
 

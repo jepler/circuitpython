@@ -40,8 +40,9 @@ typedef struct {
     audiocore_rebuffer_t rebuffer;
     background_callback_t callback;
     sai_edma_handle_t *handle;
-    uint8_t dma_channel;
+    uint8_t dma_channel, i2s_channel;
     uint8_t buffer_count;
+    bool paused;
 } audio_dma_t;
 
 typedef enum {
@@ -57,26 +58,13 @@ uint8_t audiosample_channel_count(mp_obj_t sample_obj);
 void audio_dma_init(audio_dma_t *dma);
 void audio_dma_reset(void);
 
-uint8_t audio_dma_allocate_channel(audio_dma_t *self);
+uint8_t audio_dma_allocate_channel(audio_dma_t *self, bool transmit, int peripheral, int channel);
 void audio_dma_free_channel(uint8_t channel);
 
 // This sets everything up but doesn't start the timer.
 // Sample is the python object for the sample to play.
 // loop is true if we should loop the sample.
-// single_channel is true if we only output a single channel. When false, all channels will be
-//   output.
-// audio_channel is the index of the channel to dma. single_channel must be false in this case.
-// output_signed is true if the dma'd data should be signed. False and it will be unsigned.
-// output_register_address is the address to copy data to.
-// dma_trigger_source is the DMA trigger source which cause another copy
-audio_dma_result audio_dma_setup_playback(audio_dma_t *dma,
-    mp_obj_t sample,
-    bool loop,
-    bool single_channel,
-    uint8_t audio_channel,
-    bool output_signed,
-    uint32_t output_register_address,
-    uint8_t dma_trigger_source);
+void audio_dma_play(audio_dma_t *dma, mp_obj_t sample, bool loop);
 
 void audio_dma_disable_channel(uint8_t channel);
 void audio_dma_enable_channel(uint8_t channel);

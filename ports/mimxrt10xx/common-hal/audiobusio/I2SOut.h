@@ -27,6 +27,7 @@
 #pragma once
 
 #include "periph.h"
+#include "audio_dma.h"
 
 #include "py/obj.h"
 
@@ -36,6 +37,7 @@
 // We don't bit pack because we'll only have two at most. Its better to save code size instead.
 typedef struct {
     mp_obj_base_t base;
+    audio_dma_t dma;
     const mcu_sai_obj_t *bit_clock;
     const mcu_sai_obj_t *word_select;
     const mcu_sai_obj_t *data;

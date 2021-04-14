@@ -107,6 +107,6 @@ void audiosample_convert_s16m_s16s(int16_t *buffer_out, const int16_t *buffer_in
 void audiosample_convert_to_s16s(int16_t *buffer_out, const void *buffer_in, size_t nframes, audiosample_sample_type_t sample_type);
 
 void audiorebuffer_set_sample(audiocore_rebuffer_t *self, mp_obj_t *sample, bool loop);
-audioio_get_buffer_result_t audiorebuffer_fill_s16(audiocore_rebuffer_t *self, int16_t *sample_buffer, size_t nframes);
+audioio_get_buffer_result_t audiorebuffer_fill_s16s(audiocore_rebuffer_t *self, int16_t *sample_buffer, size_t nframes);
 
 #endif  // MICROPY_INCLUDED_SHARED_MODULE_AUDIOCORE__INIT__H
