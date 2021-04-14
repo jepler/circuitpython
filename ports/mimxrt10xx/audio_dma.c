@@ -143,6 +143,7 @@ uint8_t audio_dma_allocate_channel(audio_dma_t *self, bool transmit, int sai_per
     EDMA_GetDefaultConfig(&dmaConfig);
     EDMA_CreateHandle(&edma_handles[dma_channel], DMA0, dma_channel);
 
+    SAI_Init(self->sai);
     SAI_TransferTxCreateHandleEDMA(self->sai, &tx_handles[dma_channel], callback, self, &edma_handles[dma_channel]);
     return dma_channel;
 }
