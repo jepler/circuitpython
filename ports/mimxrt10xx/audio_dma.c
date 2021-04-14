@@ -85,7 +85,7 @@ void audio_dma_play(audio_dma_t *self, mp_obj_t sample, bool loop) {
     }
     common_hal_mcu_disable_interrupts();
 
-    SAI_TxSetBitClockRate(self->sai, AUDIO_CLK_FREQ, audiosample_sample_rate(self->sample), 16, 2);
+    audiorebuffer_set_sample(&self->rebuffer, sample, loop);
 
     {
         sai_transceiver_t sai_config;
@@ -93,7 +93,7 @@ void audio_dma_play(audio_dma_t *self, mp_obj_t sample, bool loop) {
         SAI_TransferTxSetConfigEDMA(self->sai, &tx_handles[self->dma_channel], &sai_config);
     }
 
-    audiorebuffer_set_sample(&self->rebuffer, sample, loop);
+    SAI_TxSetBitClockRate(self->sai, AUDIO_CLK_FREQ, audiosample_sample_rate(sample), 16, 2);
     fill_buffer(self);
     common_hal_mcu_enable_interrupts();
 }
