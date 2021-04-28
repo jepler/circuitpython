@@ -79,20 +79,20 @@ STATIC void module_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
         mp_obj_dict_t *dict = self->globals;
         if (dict->map.is_fixed) {
             mp_map_elem_t *elem = mp_map_lookup(&dict->map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
+            #if MICROPY_CAN_OVERRIDE_BUILTINS
+            if (dict == &mp_module_builtins_globals) {
+                if (MP_STATE_VM(mp_module_builtins_override_dict) == NULL) {
+                    MP_STATE_VM(mp_module_builtins_override_dict) = gc_make_long_lived(MP_OBJ_TO_PTR(mp_obj_new_dict(1)));
+                }
+                dict = MP_STATE_VM(mp_module_builtins_override_dict);
+            } else
+            #endif
             // Return success if the given value is already in the dictionary. This is the case for
             // native packages with native submodules.
             if (elem != NULL && elem->value == dest[1]) {
                 dest[0] = MP_OBJ_NULL; // indicate success
                 return;
             } else
-            #if MICROPY_CAN_OVERRIDE_BUILTINS
-            if (dict == &mp_module_builtins_globals) {
-                if (MP_STATE_VM(mp_module_builtins_override_dict) == NULL) {
-                    MP_STATE_VM(mp_module_builtins_override_dict) = MP_OBJ_TO_PTR(mp_obj_new_dict(1));
-                }
-                dict = MP_STATE_VM(mp_module_builtins_override_dict);
-            } else
-            #endif
             {
                 // can't delete or store to fixed map
                 return;
