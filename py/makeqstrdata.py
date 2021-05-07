@@ -423,6 +423,8 @@ def compute_huffman_coding(translations, compression_filename):
     max_translation_encoded_length = max(
         len(translation.encode("utf-8")) for (original, translation) in translations
     )
+    if max_translation_encoded_length > 255:
+        raise ValueError("Maximum encoded length too long")
 
     wends = list(len(w) - 2 for w in words)
     for i in range(1, len(wends)):
