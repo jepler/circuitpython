@@ -275,4 +275,25 @@ typedef union _mp_float_union_t {
 
 #endif // MICROPY_PY_BUILTINS_FLOAT
 
+/** NULL-protected mem* wrappers ****/
+// In ISO C, memcpy(dest, NULL, 0) and similar are undefined (the source
+// and destination pointers are annotated as "non-null").
+// This doesn't matter much, as the implementation provided on embedded
+// platforms never dereferences the source or destintaion pointer if the
+// length is zero.  However, on Linux and particularly under undefined
+// behavior sanitizers, this is treated as an error.
+//
+// Use the "0" alternative where a NULL pointer and a zero length can
+// occur together, and on systems where compliance with ISO C is
+// important, ensure that MICROPY_NONNULL_COMPLIANT is defined to (1).
+#if MICROPY_NONNULL_COMPLIANT
+#define memcpy0(dest, src, n) ((n) != 0 ? memcpy((dest), (src), (n)) : (dest))
+#define memmove0(dest, src, n) ((n) != 0 ? memmove((dest), (src), (n)) : (dest))
+#define memset0(s, c, n) ((n) != 0 ? memset((s), (c), (n)) : (s))
+#else
+#define memcpy0(dest, src, n) memcpy((dest), (src), (n))
+#define memmove0(dest, src, n) memmove((dest), (src), (n))
+#define memset0(s, c, n) memset((s), (c), (n))
+#endif
+
 #endif // MICROPY_INCLUDED_PY_MISC_H

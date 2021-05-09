@@ -212,12 +212,12 @@ long long mp_binary_get_int(size_t size, bool is_signed, bool big_endian, const 
         delta = 1;
     }
 
-    long long val = 0;
+    unsigned long long val = 0;
     if (is_signed && *src & 0x80) {
         val = -1;
     }
     for (uint i = 0; i < size; i++) {
-        val *= 256;
+        val <<= 8;
         val |= *src;
         src += delta;
     }

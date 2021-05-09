@@ -319,7 +319,7 @@ dispatch_loop:
                     DISPATCH();
 
                 ENTRY(MP_BC_LOAD_CONST_SMALL_INT): {
-                    mp_int_t num = 0;
+                    mp_uint_t num = 0;
                     if ((ip[0] & 0x40) != 0) {
                         // Number is negative
                         num--;

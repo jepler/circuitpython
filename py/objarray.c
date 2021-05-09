@@ -138,7 +138,7 @@ STATIC mp_obj_t array_construct(char typecode, mp_obj_t initializer) {
         }
         size_t len = bufinfo.len / sz;
         mp_obj_array_t *o = array_new(typecode, len);
-        memcpy(o->items, bufinfo.buf, len * sz);
+        memcpy0(o->items, bufinfo.buf, len * sz);
         return MP_OBJ_FROM_PTR(o);
     }
 
@@ -608,7 +608,7 @@ STATIC mp_obj_t array_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value
             #endif
             {
                 res = array_new(o->typecode, slice.stop - slice.start);
-                memcpy(res->items, (uint8_t *)o->items + slice.start * sz, (slice.stop - slice.start) * sz);
+                memcpy0(res->items, (uint8_t *)o->items + slice.start * sz, (slice.stop - slice.start) * sz);
             }
             return MP_OBJ_FROM_PTR(res);
         } else
@@ -773,7 +773,7 @@ size_t mp_obj_array_len(mp_obj_t self_in) {
 #if MICROPY_PY_BUILTINS_BYTEARRAY
 mp_obj_t mp_obj_new_bytearray(size_t n, void *items) {
     mp_obj_array_t *o = array_new(BYTEARRAY_TYPECODE, n);
-    memcpy(o->items, items, n);
+    memcpy0(o->items, items, n);
     return MP_OBJ_FROM_PTR(o);
 }
 
