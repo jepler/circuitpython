@@ -38,6 +38,7 @@
 #include "py/objlist.h"
 #include "py/objtype.h"
 #include "py/objmodule.h"
+#include "py/objproperty.h"
 #include "py/objgenerator.h"
 #include "py/smallint.h"
 #include "py/runtime.h"
@@ -1066,7 +1067,7 @@ void mp_convert_member_lookup(mp_obj_t self, const mp_obj_type_t *type, mp_obj_t
             dest[1] = MP_OBJ_FROM_PTR(type);
             #if MICROPY_PY_BUILTINS_PROPERTY
             // If self is MP_OBJ_NULL, we looking at the class itself, not an instance.
-        } else if (mp_obj_is_type(member, &mp_type_property) && mp_obj_is_native_type(type) && self != MP_OBJ_NULL) {
+        } else if (mp_obj_is_any_property(member) && mp_obj_is_native_type(type) && self != MP_OBJ_NULL) {
             // object member is a property; delegate the load to the property
             // Note: This is an optimisation for code size and execution time.
             // The proper way to do it is have the functionality just below
@@ -1189,7 +1190,7 @@ void mp_store_attr(mp_obj_t base, qstr attr, mp_obj_t value) {
         mp_map_t *locals_map = &type->locals_dict->map;
         mp_map_elem_t *elem = mp_map_lookup(locals_map, MP_OBJ_NEW_QSTR(attr), MP_MAP_LOOKUP);
         // If base is MP_OBJ_NULL, we looking at the class itself, not an instance.
-        if (elem != NULL && mp_obj_is_type(elem->value, &mp_type_property) && base != MP_OBJ_NULL) {
+        if (elem != NULL && mp_obj_is_settable_property(elem->value) && base != MP_OBJ_NULL) {
             // attribute exists and is a property; delegate the store/delete
             // Note: This is an optimisation for code size and execution time.
             // The proper way to do it is have the functionality just below in
@@ -1201,7 +1202,7 @@ void mp_store_attr(mp_obj_t base, qstr attr, mp_obj_t value) {
             mp_obj_t dest[2] = {base, value};
             if (value == MP_OBJ_NULL) {
                 // delete attribute
-                if (proxy[2] != mp_const_none) {
+                if (mp_obj_is_deletable_property(elem->value) && proxy[2] != mp_const_none) {
                     mp_call_function_n_kw(proxy[2], 1, 0, dest);
                     return;
                 }

@@ -356,10 +356,8 @@ typedef struct _mp_rom_obj_t { mp_const_obj_t o; } mp_rom_obj_t;
 #define MP_DEFINE_CONST_PROP_GET(obj_name, fun_name) \
     const mp_obj_fun_builtin_fixed_t fun_name##_obj = {{&mp_type_fun_builtin_1}, .fun._1 = fun_name}; \
     const mp_obj_property_t obj_name = { \
-        .base.type = &mp_type_property, \
-        .proxy = {(mp_obj_t)&fun_name##_obj, \
-                  MP_ROM_NONE, \
-                  MP_ROM_NONE}, }
+        .base.type = &mp_type_ro_property, \
+        .proxy = {(mp_obj_t)&fun_name##_obj }}
 
 // These macros are used to define constant or mutable map/dict objects
 // You can put "static" in front of the definition to make it local
@@ -670,6 +668,8 @@ extern const mp_obj_type_t mp_type_module;
 extern const mp_obj_type_t mp_type_staticmethod;
 extern const mp_obj_type_t mp_type_classmethod;
 extern const mp_obj_type_t mp_type_property;
+extern const mp_obj_type_t mp_type_rw_property;
+extern const mp_obj_type_t mp_type_ro_property;
 extern const mp_obj_type_t mp_type_stringio;
 extern const mp_obj_type_t mp_type_bytesio;
 extern const mp_obj_type_t mp_type_reversed;

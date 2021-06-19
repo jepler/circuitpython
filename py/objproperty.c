@@ -25,6 +25,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "py/nlr.h"
@@ -44,7 +45,7 @@ STATIC mp_obj_t property_make_new(const mp_obj_type_t *type, size_t n_args, cons
     mp_arg_val_t vals[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, vals);
 
-    mp_obj_property_t *o = m_new_obj(mp_obj_property_t);
+    mp_obj_property_t *o = m_new_obj_var(mp_obj_property_t, mp_obj_t, 3);
     o->base.type = type;
     o->proxy[0] = vals[ARG_fget].u_obj;
     o->proxy[1] = vals[ARG_fset].u_obj;
@@ -53,9 +54,16 @@ STATIC mp_obj_t property_make_new(const mp_obj_type_t *type, size_t n_args, cons
     return MP_OBJ_FROM_PTR(o);
 }
 
+STATIC mp_obj_property_t *dup_property(mp_obj_t src_in) {
+    mp_obj_property_t *src = MP_OBJ_TO_PTR(src_in);
+    mp_obj_property_t *result = m_new_obj_var(mp_obj_property_t, mp_obj_t, 3);
+    memcpy(result, src, sizeof(mp_obj_property_t) + 3 * sizeof(mp_obj_t));
+    return result;
+}
+
+
 STATIC mp_obj_t property_getter(mp_obj_t self_in, mp_obj_t getter) {
-    mp_obj_property_t *p2 = m_new_obj(mp_obj_property_t);
-    *p2 = *(mp_obj_property_t *)MP_OBJ_TO_PTR(self_in);
+    mp_obj_property_t *p2 = dup_property(self_in);
     p2->proxy[0] = getter;
     return MP_OBJ_FROM_PTR(p2);
 }
@@ -63,8 +71,7 @@ STATIC mp_obj_t property_getter(mp_obj_t self_in, mp_obj_t getter) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(property_getter_obj, property_getter);
 
 STATIC mp_obj_t property_setter(mp_obj_t self_in, mp_obj_t setter) {
-    mp_obj_property_t *p2 = m_new_obj(mp_obj_property_t);
-    *p2 = *(mp_obj_property_t *)MP_OBJ_TO_PTR(self_in);
+    mp_obj_property_t *p2 = dup_property(self_in);
     p2->proxy[1] = setter;
     return MP_OBJ_FROM_PTR(p2);
 }
@@ -72,8 +79,7 @@ STATIC mp_obj_t property_setter(mp_obj_t self_in, mp_obj_t setter) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(property_setter_obj, property_setter);
 
 STATIC mp_obj_t property_deleter(mp_obj_t self_in, mp_obj_t deleter) {
-    mp_obj_property_t *p2 = m_new_obj(mp_obj_property_t);
-    *p2 = *(mp_obj_property_t *)MP_OBJ_TO_PTR(self_in);
+    mp_obj_property_t *p2 = dup_property(self_in);
     p2->proxy[2] = deleter;
     return MP_OBJ_FROM_PTR(p2);
 }
@@ -95,10 +101,53 @@ const mp_obj_type_t mp_type_property = {
     .locals_dict = (mp_obj_dict_t *)&property_locals_dict,
 };
 
+const mp_obj_type_t mp_type_rw_property = {
+    { &mp_type_type },
+    .name = MP_QSTR_property,
+    .make_new = property_make_new,
+};
+
+const mp_obj_type_t mp_type_ro_property = {
+    { &mp_type_type },
+    .name = MP_QSTR_property,
+    .make_new = property_make_new,
+};
+
+
 const mp_obj_t *mp_obj_property_get(mp_obj_t self_in) {
-    mp_check_self(mp_obj_is_type(self_in, &mp_type_property));
+    mp_check_self(mp_obj_is_any_property(self_in));
     mp_obj_property_t *self = MP_OBJ_TO_PTR(self_in);
     return self->proxy;
+}
+
+STATIC bool mp_type_is_deletable_property(const mp_obj_type_t *type) {
+    return type == &mp_type_property;
+}
+
+STATIC bool mp_type_is_settable_property(const mp_obj_type_t *type) {
+    if (type == &mp_type_rw_property) {
+        return true;
+    }
+    return mp_type_is_deletable_property(type);
+}
+
+STATIC bool mp_type_is_any_property(const mp_obj_type_t *type) {
+    if (type == &mp_type_ro_property) {
+        return true;
+    }
+    return mp_type_is_settable_property(type);
+}
+
+bool mp_obj_is_any_property(const mp_obj_t *obj) {
+    return mp_type_is_any_property(mp_obj_get_type(obj));
+}
+
+bool mp_obj_is_settable_property(const mp_obj_t *obj) {
+    return mp_type_is_settable_property(mp_obj_get_type(obj));
+}
+
+bool mp_obj_is_deletable_property(const mp_obj_t *obj) {
+    return mp_type_is_deletable_property(mp_obj_get_type(obj));
 }
 
 #endif // MICROPY_PY_BUILTINS_PROPERTY

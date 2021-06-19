@@ -32,8 +32,13 @@
 
 typedef struct _mp_obj_property_t {
     mp_obj_base_t base;
-    mp_obj_t proxy[3]; // getter, setter, deleter
+    mp_obj_t proxy[]; // getter, setter, deleter
 } mp_obj_property_t;
+
+// Each category includes the categories above it
+bool mp_obj_is_any_property(const mp_obj_t *obj); // Has slot allocated for at least get (mp_type_roproperty)
+bool mp_obj_is_settable_property(const mp_obj_t *obj); // Has slots allocated for at least get and set (mp_type_rwproperty)
+bool mp_obj_is_deletable_property(const mp_obj_t *obj); // Has slots allocated for get, set, and del (mp_type_property)
 
 #endif  // MICROPY_PY_BUILTINS_PROPERTY
 

@@ -179,7 +179,7 @@ STATIC void mp_obj_class_lookup(struct class_lookup_data *lookup, const mp_obj_t
                     // do a lookup, not a (base) type in which we found the class method.
                     const mp_obj_type_t *org_type = (const mp_obj_type_t *)lookup->obj;
                     mp_convert_member_lookup(MP_OBJ_NULL, org_type, elem->value, lookup->dest);
-                } else if (mp_obj_is_type(elem->value, &mp_type_property)) {
+                } else if (mp_obj_is_any_property(elem->value)) {
                     lookup->dest[0] = elem->value;
                     return;
                 } else {
@@ -639,7 +639,7 @@ STATIC void mp_obj_instance_load_attr(mp_obj_t self_in, qstr attr, mp_obj_t *des
         }
 
         #if MICROPY_PY_BUILTINS_PROPERTY
-        if (mp_obj_is_type(member, &mp_type_property)) {
+        if (mp_obj_is_any_property(member)) {
             // object member is a property; delegate the load to the property
             // Note: This is an optimisation for code size and execution time.
             // The proper way to do it is have the functionality just below
@@ -719,7 +719,7 @@ STATIC bool mp_obj_instance_store_attr(mp_obj_t self_in, qstr attr, mp_obj_t val
 
     if (member[0] != MP_OBJ_NULL) {
         #if MICROPY_PY_BUILTINS_PROPERTY
-        if (mp_obj_is_type(member[0], &mp_type_property)) {
+        if (mp_obj_is_settable_property(member[0])) {
             // attribute exists and is a property; delegate the store/delete
             // Note: This is an optimisation for code size and execution time.
             // The proper way to do it is have the functionality just below in
@@ -731,7 +731,7 @@ STATIC bool mp_obj_instance_store_attr(mp_obj_t self_in, qstr attr, mp_obj_t val
             mp_obj_t dest[2] = {self_in, value};
             if (value == MP_OBJ_NULL) {
                 // delete attribute
-                if (proxy[2] == mp_const_none) {
+                if (!mp_obj_is_deletable_property(member[0]) || proxy[2] == mp_const_none) {
                     // TODO better error message?
                     return false;
                 } else {
@@ -962,7 +962,7 @@ STATIC bool check_for_special_accessors(mp_obj_t key, mp_obj_t value) {
     }
     #endif
     #if MICROPY_PY_BUILTINS_PROPERTY
-    if (mp_obj_is_type(value, &mp_type_property)) {
+    if (mp_obj_is_any_property(value)) {
         return true;
     }
     #endif
@@ -1358,7 +1358,7 @@ STATIC void super_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
             // changes to mp_obj_instance_load_attr may require changes
             // here...
             #if MICROPY_PY_BUILTINS_PROPERTY
-            if (mp_obj_is_type(member, &mp_type_property)) {
+            if (mp_obj_is_any_property(member)) {
                 const mp_obj_t *proxy = mp_obj_property_get(member);
                 if (proxy[0] == mp_const_none) {
                     mp_raise_AttributeError(MP_ERROR_TEXT("unreadable attribute"));
