@@ -146,10 +146,9 @@ STATIC mp_obj_t audioio_wavefile_obj_set_sample_rate(mp_obj_t self_in, mp_obj_t 
 MP_DEFINE_CONST_FUN_OBJ_2(audioio_wavefile_set_sample_rate_obj, audioio_wavefile_obj_set_sample_rate);
 
 const mp_obj_property_t audioio_wavefile_sample_rate_obj = {
-    .base.type = &mp_type_property,
+    .base.type = &mp_type_rw_property,
     .proxy = {(mp_obj_t)&audioio_wavefile_get_sample_rate_obj,
-              (mp_obj_t)&audioio_wavefile_set_sample_rate_obj,
-              MP_ROM_NONE},
+              (mp_obj_t)&audioio_wavefile_set_sample_rate_obj},
 };
 
 //|     bits_per_sample: int
@@ -163,10 +162,8 @@ STATIC mp_obj_t audioio_wavefile_obj_get_bits_per_sample(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(audioio_wavefile_get_bits_per_sample_obj, audioio_wavefile_obj_get_bits_per_sample);
 
 const mp_obj_property_t audioio_wavefile_bits_per_sample_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&audioio_wavefile_get_bits_per_sample_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&audioio_wavefile_get_bits_per_sample_obj},
 };
 //|     channel_count: int
 //|     """Number of audio channels. (read only)"""
@@ -179,10 +176,8 @@ STATIC mp_obj_t audioio_wavefile_obj_get_channel_count(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(audioio_wavefile_get_channel_count_obj, audioio_wavefile_obj_get_channel_count);
 
 const mp_obj_property_t audioio_wavefile_channel_count_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&audioio_wavefile_get_channel_count_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&audioio_wavefile_get_channel_count_obj},
 };
 
 

@@ -70,10 +70,8 @@ STATIC mp_obj_t supervisor_runtime_get_usb_connected(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_usb_connected_obj, supervisor_runtime_get_usb_connected);
 
 const mp_obj_property_t supervisor_runtime_usb_connected_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&supervisor_runtime_get_usb_connected_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&supervisor_runtime_get_usb_connected_obj},
 };
 
 //|     serial_connected: bool
@@ -85,10 +83,8 @@ STATIC mp_obj_t supervisor_runtime_get_serial_connected(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_serial_connected_obj, supervisor_runtime_get_serial_connected);
 
 const mp_obj_property_t supervisor_runtime_serial_connected_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&supervisor_runtime_get_serial_connected_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&supervisor_runtime_get_serial_connected_obj},
 };
 
 //|     serial_bytes_available: int
@@ -102,10 +98,8 @@ STATIC mp_obj_t supervisor_runtime_get_serial_bytes_available(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_serial_bytes_available_obj, supervisor_runtime_get_serial_bytes_available);
 
 const mp_obj_property_t supervisor_runtime_serial_bytes_available_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&supervisor_runtime_get_serial_bytes_available_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&supervisor_runtime_get_serial_bytes_available_obj},
 };
 
 //|     run_reason: RunReason
@@ -117,10 +111,8 @@ STATIC mp_obj_t supervisor_runtime_get_run_reason(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_run_reason_obj, supervisor_runtime_get_run_reason);
 
 const mp_obj_property_t supervisor_runtime_run_reason_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&supervisor_runtime_get_run_reason_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&supervisor_runtime_get_run_reason_obj},
 };
 
 void supervisor_set_run_reason(supervisor_run_reason_t run_reason) {

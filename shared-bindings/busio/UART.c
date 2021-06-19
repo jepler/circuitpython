@@ -283,10 +283,9 @@ MP_DEFINE_CONST_FUN_OBJ_2(busio_uart_set_baudrate_obj, busio_uart_obj_set_baudra
 
 
 const mp_obj_property_t busio_uart_baudrate_obj = {
-    .base.type = &mp_type_property,
+    .base.type = &mp_type_rw_property,
     .proxy = {(mp_obj_t)&busio_uart_get_baudrate_obj,
-              (mp_obj_t)&busio_uart_set_baudrate_obj,
-              MP_ROM_NONE},
+              (mp_obj_t)&busio_uart_set_baudrate_obj},
 };
 
 //|     in_waiting: int
@@ -300,10 +299,8 @@ STATIC mp_obj_t busio_uart_obj_get_in_waiting(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(busio_uart_get_in_waiting_obj, busio_uart_obj_get_in_waiting);
 
 const mp_obj_property_t busio_uart_in_waiting_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&busio_uart_get_in_waiting_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&busio_uart_get_in_waiting_obj},
 };
 
 //|     timeout: float
@@ -328,10 +325,9 @@ MP_DEFINE_CONST_FUN_OBJ_2(busio_uart_set_timeout_obj, busio_uart_obj_set_timeout
 
 
 const mp_obj_property_t busio_uart_timeout_obj = {
-    .base.type = &mp_type_property,
+    .base.type = &mp_type_rw_property,
     .proxy = {(mp_obj_t)&busio_uart_get_timeout_obj,
-              (mp_obj_t)&busio_uart_set_timeout_obj,
-              MP_ROM_NONE},
+              (mp_obj_t)&busio_uart_set_timeout_obj},
 };
 
 //|     def reset_input_buffer(self) -> None:

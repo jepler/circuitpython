@@ -149,10 +149,8 @@ STATIC mp_obj_t usb_hid_device_obj_get_last_received_report(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(usb_hid_device_get_last_received_report_obj, usb_hid_device_obj_get_last_received_report);
 
 const mp_obj_property_t usb_hid_device_last_received_report_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&usb_hid_device_get_last_received_report_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&usb_hid_device_get_last_received_report_obj},
 };
 
 //|     usage_page: int
@@ -165,10 +163,8 @@ STATIC mp_obj_t usb_hid_device_obj_get_usage_page(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(usb_hid_device_get_usage_page_obj, usb_hid_device_obj_get_usage_page);
 
 const mp_obj_property_t usb_hid_device_usage_page_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&usb_hid_device_get_usage_page_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&usb_hid_device_get_usage_page_obj},
 };
 
 //|     usage: int
@@ -185,10 +181,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(usb_hid_device_get_usage_obj,
     usb_hid_device_obj_get_usage);
 
 const mp_obj_property_t usb_hid_device_usage_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&usb_hid_device_get_usage_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&usb_hid_device_get_usage_obj},
 };
 
 STATIC const mp_rom_map_elem_t usb_hid_device_locals_dict_table[] = {

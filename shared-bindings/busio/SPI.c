@@ -399,10 +399,8 @@ STATIC mp_obj_t busio_spi_obj_get_frequency(mp_obj_t self_in) {
 MP_DEFINE_CONST_FUN_OBJ_1(busio_spi_get_frequency_obj, busio_spi_obj_get_frequency);
 
 const mp_obj_property_t busio_spi_frequency_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&busio_spi_get_frequency_obj,
-              MP_ROM_NONE,
-              MP_ROM_NONE},
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&busio_spi_get_frequency_obj},
 };
 #endif // CIRCUITPY_BUSIO_SPI
 

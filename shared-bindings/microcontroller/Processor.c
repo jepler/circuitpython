@@ -68,11 +68,8 @@ STATIC mp_obj_t mcu_processor_get_frequency(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_frequency_obj, mcu_processor_get_frequency);
 
 const mp_obj_property_t mcu_processor_frequency_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&mcu_processor_get_frequency_obj,  // getter
-              MP_ROM_NONE,            // no setter
-              MP_ROM_NONE,            // no deleter
-    },
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_frequency_obj},
 };
 
 //|     reset_reason: microcontroller.ResetReason
@@ -85,11 +82,8 @@ STATIC mp_obj_t mcu_processor_get_reset_reason(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_reset_reason_obj, mcu_processor_get_reset_reason);
 
 const mp_obj_property_t mcu_processor_reset_reason_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&mcu_processor_get_reset_reason_obj,  // getter
-              MP_ROM_NONE,            // no setter
-              MP_ROM_NONE,            // no deleter
-    },
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_reset_reason_obj},
 };
 
 //|     temperature: Optional[float]
@@ -105,11 +99,8 @@ STATIC mp_obj_t mcu_processor_get_temperature(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_temperature_obj, mcu_processor_get_temperature);
 
 const mp_obj_property_t mcu_processor_temperature_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&mcu_processor_get_temperature_obj,  // getter
-              MP_ROM_NONE,            // no setter
-              MP_ROM_NONE,            // no deleter
-    },
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_temperature_obj},
 };
 
 //|     uid: bytearray
@@ -124,11 +115,8 @@ STATIC mp_obj_t mcu_processor_get_uid(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_uid_obj, mcu_processor_get_uid);
 
 const mp_obj_property_t mcu_processor_uid_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&mcu_processor_get_uid_obj,  // getter
-              MP_ROM_NONE,      // no setter
-              MP_ROM_NONE,      // no deleter
-    },
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_uid_obj},
 };
 
 //|     voltage: Optional[float]
@@ -144,11 +132,8 @@ STATIC mp_obj_t mcu_processor_get_voltage(mp_obj_t self) {
 MP_DEFINE_CONST_FUN_OBJ_1(mcu_processor_get_voltage_obj, mcu_processor_get_voltage);
 
 const mp_obj_property_t mcu_processor_voltage_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&mcu_processor_get_voltage_obj,  // getter
-              MP_ROM_NONE,            // no setter
-              MP_ROM_NONE,            // no deleter
-    },
+    .base.type = &mp_type_ro_property,
+    .proxy = {(mp_obj_t)&mcu_processor_get_voltage_obj},
 };
 
 STATIC const mp_rom_map_elem_t mcu_processor_locals_dict_table[] = {

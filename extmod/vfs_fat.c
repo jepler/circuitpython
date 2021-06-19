@@ -438,10 +438,9 @@ STATIC mp_obj_t vfs_fat_setlabel(mp_obj_t self_in, mp_obj_t label_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(fat_vfs_setlabel_obj, vfs_fat_setlabel);
 STATIC const mp_obj_property_t fat_vfs_label_obj = {
-    .base.type = &mp_type_property,
+    .base.type = &mp_type_rw_property,
     .proxy = {(mp_obj_t)&fat_vfs_getlabel_obj,
-              (mp_obj_t)&fat_vfs_setlabel_obj,
-              MP_ROM_NONE},
+              (mp_obj_t)&fat_vfs_setlabel_obj}
 };
 #endif
 
