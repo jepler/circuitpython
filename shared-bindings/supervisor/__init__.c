@@ -222,7 +222,17 @@ MP_DEFINE_CONST_FUN_OBJ_0(supervisor_reset_monotonic_epoch_obj, supervisor_reset
 //|     """Return the time in milliseconds since an unknown reference point, wrapping after 2**29ms"""
 STATIC mp_obj_t supervisor_ticks_ms(void) {
     uint64_t ticks_ms = common_hal_time_monotonic_ms();
-    return mp_obj_new_int((ticks_ms + 0x1fff7777) % (1 << 29));
+    // The wrap value of (1<<29) was chosen so that not only do all ticks_ms
+    // values fit in short ints, but so do their sums and differences.  This
+    // eases the implementation of pure python arithmetic on wrapped tick
+    // values.
+    //
+    // The added value 0x1fff0000 causes the first overflow to occur 65.536
+    // seconds after boot-up, making it feasible (and necessary!) to make sure
+    // your program works properly around an overflow.  Additionally, by not
+    // having any lower bits set, the representation of the constant is a bit
+    // smaller in the Cortex M4 instruction set.
+    return mp_obj_new_int((ticks_ms + 0x1fff0000) % (1 << 29));
 }
 MP_DEFINE_CONST_FUN_OBJ_0(supervisor_ticks_ms_obj, supervisor_ticks_ms);
 
