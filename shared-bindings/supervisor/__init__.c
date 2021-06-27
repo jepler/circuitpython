@@ -218,8 +218,8 @@ STATIC mp_obj_t supervisor_reset_monotonic_epoch(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(supervisor_reset_monotonic_epoch_obj, supervisor_reset_monotonic_epoch);
 
-//| def ticks() -> int:
-//|     """Return the time in milliseconds since an unknown reference point, wrapping after `(1<<29)`ms"""
+//| def ticks_ms() -> int:
+//|     """Return the time in milliseconds since an unknown reference point, wrapping after 2**29ms"""
 STATIC mp_obj_t supervisor_ticks_ms(void) {
     uint64_t ticks_ms = common_hal_time_monotonic_ms();
     return mp_obj_new_int((ticks_ms + 0x1fff7777) % (1 << 29));
