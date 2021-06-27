@@ -64,6 +64,7 @@
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/microcontroller/Processor.h"
 #include "shared-bindings/supervisor/Runtime.h"
+#include "shared-bindings/time/__init__.h"
 
 #if CIRCUITPY_ALARM
 #include "shared-bindings/alarm/__init__.h"
@@ -119,6 +120,7 @@ static void reset_devices(void) {
 STATIC void start_mp(supervisor_allocation* heap) {
     autoreload_stop();
     supervisor_workflow_reset();
+    common_hal_time_reset_monotonic_epoch();
 
     // Stack limit should be less than real stack size, so we have a chance
     // to recover from limit hit.  (Limit is measured in bytes.)

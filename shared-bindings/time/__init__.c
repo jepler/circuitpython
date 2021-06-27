@@ -51,7 +51,7 @@
 //|     ...
 //|
 STATIC mp_obj_t time_monotonic(void) {
-    uint64_t ticks_ms = common_hal_time_monotonic_ms();
+    uint64_t ticks_ms = common_hal_time_monotonic_ms_since_epoch();
     return mp_obj_new_float(uint64_to_float(ticks_ms) / 1000.0f);
 }
 MP_DEFINE_CONST_FUN_OBJ_0(time_monotonic_obj, time_monotonic);
@@ -221,7 +221,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(time_time_obj, time_time);
 //|     ...
 //|
 STATIC mp_obj_t time_monotonic_ns(void) {
-    uint64_t time64 = common_hal_time_monotonic_ns();
+    uint64_t time64 = common_hal_time_monotonic_ns_since_epoch();
     return mp_obj_new_int_from_ll((long long)time64);
 }
 MP_DEFINE_CONST_FUN_OBJ_0(time_monotonic_ns_obj, time_monotonic_ns);

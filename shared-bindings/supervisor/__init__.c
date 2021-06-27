@@ -40,6 +40,7 @@
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/supervisor/__init__.h"
 #include "shared-bindings/supervisor/Runtime.h"
+#include "shared-bindings/time/__init__.h"
 
 //| """Supervisor settings"""
 //|
@@ -207,6 +208,26 @@ STATIC mp_obj_t supervisor_set_next_code_file(size_t n_args, const mp_obj_t *pos
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(supervisor_set_next_code_file_obj, 0, supervisor_set_next_code_file);
 
+//| def reset_monotonic_epoch() -> None:
+//|     """Reset the epoch used by the monotonic clock functions."""
+//|     ...
+//|
+STATIC mp_obj_t supervisor_reset_monotonic_epoch(void) {
+    common_hal_time_reset_monotonic_epoch();
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_0(supervisor_reset_monotonic_epoch_obj, supervisor_reset_monotonic_epoch);
+
+//| def ticks() -> int:
+//|     """Return the time in milliseconds since an unknown reference point, wrapping after `(1<<29)`ms"""
+STATIC mp_obj_t supervisor_ticks_ms(void) {
+    uint64_t ticks_ms = common_hal_time_monotonic_ms();
+    return mp_obj_new_int(ticks_ms % (1 << 29));
+}
+MP_DEFINE_CONST_FUN_OBJ_0(supervisor_ticks_ms_obj, supervisor_ticks_ms);
+
+
+
 STATIC const mp_rom_map_elem_t supervisor_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_supervisor) },
     { MP_ROM_QSTR(MP_QSTR_enable_autoreload),  MP_ROM_PTR(&supervisor_enable_autoreload_obj) },
@@ -217,6 +238,8 @@ STATIC const mp_rom_map_elem_t supervisor_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_RunReason),  MP_ROM_PTR(&supervisor_run_reason_type) },
     { MP_ROM_QSTR(MP_QSTR_set_next_stack_limit),  MP_ROM_PTR(&supervisor_set_next_stack_limit_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_next_code_file),  MP_ROM_PTR(&supervisor_set_next_code_file_obj) },
+    { MP_ROM_QSTR(MP_QSTR_reset_monotonic_epoch),  MP_ROM_PTR(&supervisor_reset_monotonic_epoch_obj) },
+    { MP_ROM_QSTR(MP_QSTR_ticks_ms),  MP_ROM_PTR(&supervisor_ticks_ms_obj) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(supervisor_module_globals, supervisor_module_globals_table);

@@ -27,6 +27,17 @@
 #include "py/mphal.h"
 #include "supervisor/port.h"
 #include "supervisor/shared/tick.h"
+#include "shared-bindings/time/__init__.h"
+
+static uint64_t monotonic_epoch_ms;
+
+uint64_t common_hal_time_monotonic_ms_since_epoch(void) {
+    return common_hal_time_monotonic_ms() - monotonic_epoch_ms;
+}
+
+uint64_t common_hal_time_monotonic_ns_since_epoch(void) {
+    return common_hal_time_monotonic_ns() - monotonic_epoch_ms * (1000 * 1000);
+}
 
 uint64_t common_hal_time_monotonic_ms(void) {
     return supervisor_ticks_ms64();
@@ -42,4 +53,8 @@ uint64_t common_hal_time_monotonic_ns(void) {
 
 void common_hal_time_delay_ms(uint32_t delay) {
     mp_hal_delay_ms(delay);
+}
+
+void common_hal_time_reset_monotonic_epoch() {
+    monotonic_epoch_ms = common_hal_time_monotonic_ms();
 }
