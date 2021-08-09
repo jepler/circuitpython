@@ -35,11 +35,11 @@ msgid ""
 "https://github.com/adafruit/circuitpython/issues\n"
 msgstr ""
 
-#: py/obj.c shared-bindings/traceback/__init__.c
+#: py/obj.c shared-module/traceback/__init__.c
 msgid "  File \"%q\""
 msgstr ""
 
-#: py/obj.c shared-bindings/traceback/__init__.c
+#: py/obj.c shared-module/traceback/__init__.c
 msgid "  File \"%q\", line %d"
 msgstr ""
 
@@ -103,6 +103,10 @@ msgstr ""
 msgid "%q must be %d-%d"
 msgstr ""
 
+#: py/argcheck.c
+msgid "%q must be %d-%d%s"
+msgstr ""
+
 #: shared-bindings/usb_hid/Device.c
 msgid "%q must be 0-255"
 msgstr ""
@@ -132,6 +136,10 @@ msgid "%q must be None or between 1 and len(report_descriptor)-1"
 msgstr ""
 
 #: py/argcheck.c
+msgid "%q must be a power of 2"
+msgstr ""
+
+#: py/argcheck.c
 msgid "%q must be a string"
 msgstr ""
 
@@ -149,6 +157,10 @@ msgstr ""
 
 #: py/argcheck.c
 msgid "%q must of type %q"
+msgstr ""
+
+#: py/argcheck.c
+msgid "%q must of type %q or a subclass"
 msgstr ""
 
 #: ports/raspberrypi/common-hal/rp2pio/StateMachine.c
@@ -322,7 +334,7 @@ msgstr ""
 msgid "*x must be assignment target"
 msgstr ""
 
-#: py/obj.c shared-bindings/traceback/__init__.c
+#: py/obj.c shared-module/traceback/__init__.c
 msgid ", in %q\n"
 msgstr ""
 
@@ -2211,7 +2223,7 @@ msgstr ""
 msgid "Touch alarms not available"
 msgstr ""
 
-#: py/obj.c shared-bindings/traceback/__init__.c
+#: py/obj.c shared-module/traceback/__init__.c
 msgid "Traceback (most recent call last):\n"
 msgstr ""
 
@@ -3903,6 +3915,10 @@ msgstr ""
 #: ports/esp32s2/boards/espressif_saola_1_wrover/mpconfigboard.h
 #: ports/esp32s2/boards/franzininho_wifi_wroom/mpconfigboard.h
 #: ports/esp32s2/boards/franzininho_wifi_wrover/mpconfigboard.h
+#: ports/esp32s2/boards/gravitech_cucumber_m/mpconfigboard.h
+#: ports/esp32s2/boards/gravitech_cucumber_ms/mpconfigboard.h
+#: ports/esp32s2/boards/gravitech_cucumber_r/mpconfigboard.h
+#: ports/esp32s2/boards/gravitech_cucumber_rs/mpconfigboard.h
 #: ports/esp32s2/boards/lilygo_ttgo_t8_s2_st7789/mpconfigboard.h
 #: ports/esp32s2/boards/microdev_micro_s2/mpconfigboard.h
 #: ports/esp32s2/boards/muselab_nanoesp32_s2_wroom/mpconfigboard.h

@@ -39,20 +39,100 @@ typedef enum {
     MP_VM_RETURN_EXCEPTION,
 } mp_vm_return_kind_t;
 
+// Note: there's space for 16 bits in the structure
 typedef enum {
+    // The corresponding argument is converted as if by bool() and stored in .u_bool
     MP_ARG_BOOL      = 0x001,
-    MP_ARG_INT       = 0x002,
-    MP_ARG_OBJ       = 0x003,
-    MP_ARG_KIND_MASK = 0x0ff,
+
+    // The corresponding object is stored in u_obj
+    MP_ARG_OBJ       = 0x002,
+
+    // The corresponding argument is converted to an integer (or a float, if
+    // MP_ARG_FLOAT is or'd in) and stored in u_int or u_float.  The default
+    // is the mp_arg_val_t's u_int or u_float.
+    MP_ARG_NUMBER    = 0x003,
+    MP_ARG_INT       = MP_ARG_NUMBER,
+
+    // The corresponding object is passed to a function, which may return
+    // a populated mp_arg_val_t or raise an exception
+    MP_ARG_FUNC      = 0x004,
+
+    // The corresponding value must be an instance of the type stored in u_obj, or
+    // one of its subtypes
+    MP_ARG_TYPE      = 0x005,
+
+    // The corresponding value must be an instance of exactly the type stored in u_obj
+    MP_ARG_XTYPE     = 0x006,
+
+    // The corresponding value must be an integer or float in the signed
+    // inclusive range given by u_slo..u_shi.  The default is None if
+    // MP_ARG_OR_NONE is specified, else -1 if MP_ARG_OR_MINUS1 is specified,
+    // else u_slo.
+    MP_ARG_RANGE16   = 0x007,
+
+    // The corresponding value must be an integer or float in the unsigned
+    // inclusive range given by u_ulo..u_uhi.  The default is None if
+    // MP_ARG_OR_NONE is specified, else -1 if MP_ARG_OR_MINUS1 is specified,
+    // else u_lo.
+
+    MP_ARG_URANGE16  = 0x008,
+    // The corresponding value must be an integer or float in the signed
+    // inclusive 0..u_int or u..u_float.  The default is none if MP_ARG_OR_NONE
+    // is specified, else -1 if MP_ARG_OR_MINUS1 is specified, else 0.
+    MP_ARG_0_TO_N    = 0x009,
+
+    // The corresponding value must be an integer or float in the signed
+    // inclusive 1..u_int or u..u_float.  The default is none if MP_ARG_OR_NONE
+    // is specified, else -1 if MP_ARG_OR_MINUS1 is specified, else 1.
+    MP_ARG_1_TO_N    = 0x00a,
+
+    // The corresponding value must be an a power of two in the range
+    // 2^u_ulo .. 2^u_uhi inclusive. The default is None if MP_ARG_OR_NONE is
+    // specified, else -1 if MP_ARG_OR_MINUS1 is specified, else 2^u_ulo.
+    // Incompatible with MP_ARG_FLOAT.
+    MP_ARG_POW2      = 0x00b,
+
+    // A bitmask that includes all enumerated values above
+    MP_ARG_KIND_MASK = 0x01f,
+
+    // A numeric argument (MP_ARG_NUMBER, MP_ARG_RANGExx, etc) is a float,
+    // not an int
+    MP_ARG_FLOAT     = 0x020,
+
+    // None is also accepted.  If a u_int is to be stored, it is stored as -1.
+    // If a u_float is to be stored, it is stored as a NaN.  None will be used
+    // as the default value if the defval field's meaning is overloaded.
+    MP_ARG_OR_NONE   = 0x040,
+
+    // -1 is also accepted.  -1 will be used as the default value if the defval
+    // field's meaning is overloaded, unless MP_ARG_OR_NONE is also specified.
+    MP_ARG_OR_MINUS1 = 0x080,
+
     MP_ARG_REQUIRED  = 0x100,
     MP_ARG_KW_ONLY   = 0x200,
+
+    // Instead of a single argument, a sequence where all items conform to the
+    // value specification is required.  MP_ARG_FUNC becomes a predicate only,
+    // the transformed value is discarded.
+    MP_ARG_SEQUENCE_OF = 0x400,
 } mp_arg_flag_t;
+
+struct _mp_arg_t;
+typedef union _mp_arg_val_t (*mp_arg_function_t)(const struct _mp_arg_t *arginfo, const mp_obj_t obj);
 
 typedef union _mp_arg_val_t {
     bool u_bool;
     mp_int_t u_int;
+    mp_float_t u_float;
     mp_obj_t u_obj;
     mp_rom_obj_t u_rom_obj;
+    mp_arg_function_t u_func;
+    struct {
+        uint16_t u_ulo, u_uhi;
+    };
+    struct {
+        uint16_t u_slo, u_shi;
+    };
 } mp_arg_val_t;
 
 typedef struct _mp_arg_t {
