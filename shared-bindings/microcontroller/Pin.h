@@ -29,6 +29,7 @@
 
 #include "common-hal/microcontroller/Pin.h"
 #include "py/obj.h"
+#include "py/runtime.h"
 
 // Type object used in Python. Should be shared between ports.
 extern const mp_obj_type_t mcu_pin_type;
@@ -49,6 +50,9 @@ uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t *pin);
 void common_hal_mcu_pin_claim(const mcu_pin_obj_t *pin);
 void common_hal_mcu_pin_claim_number(uint8_t pin_no);
 void common_hal_mcu_pin_reset_number(uint8_t pin_no);
+
+mp_arg_val_t arg_is_free_pin(const mp_arg_t *arginfo, const mp_obj_t obj);
+mp_arg_val_t arg_is_free_pin_or_none(const mp_arg_t *arginfo, const mp_obj_t obj);
 
 #define COMMON_HAL_MCU_NO_PIN ((uint8_t)0xff)
 

@@ -145,3 +145,17 @@ void validate_pins(qstr what, uint8_t *pin_nos, mp_int_t max_pins, mp_obj_t seq,
         pin_nos[i] = common_hal_mcu_pin_number(pins[i]);
     }
 }
+
+mp_arg_val_t arg_is_free_pin(const mp_arg_t *arginfo, const mp_obj_t obj) {
+    mp_arg_validate_type(obj, &mcu_pin_type, arginfo->qst);
+    const mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(obj);
+    assert_pin_free(pin);
+    return MP_ARG_VAL(.u_cptr = pin);
+}
+
+mp_arg_val_t arg_is_free_pin_or_none(const mp_arg_t *arginfo, const mp_obj_t obj) {
+    if (obj == mp_const_none) {
+        return MP_ARG_VAL(.u_ptr = NULL);
+    }
+    return arg_is_free_pin(arginfo, obj);
+}
