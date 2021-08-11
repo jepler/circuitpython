@@ -118,8 +118,11 @@ static mp_arg_val_t validate_convert_argument(const mp_arg_t *arginfo, mp_obj_t 
     int kind = arginfo->flags & MP_ARG_KIND_MASK;
 
     if (arginfo->flags & MP_ARG_OR_MINUS1) {
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wfloat-equal"
         if ((mp_obj_is_int(given_arg) && mp_obj_get_int(given_arg) == -1)
             || ((kind & MP_ARG_FLOAT) && mp_obj_is_float(given_arg) && mp_obj_get_float(given_arg) == MICROPY_FLOAT_CONST(-1.))) {
+            #pragma GCC diagnostic pop
             if (kind & MP_ARG_FLOAT) {
                 result.u_float = MICROPY_FLOAT_CONST(-1.);
             }
@@ -142,7 +145,7 @@ static mp_arg_val_t validate_convert_argument(const mp_arg_t *arginfo, mp_obj_t 
         }
     }
 
-    int lo = 0, hi;
+    int lo = 0, hi = 0;
 
     switch (kind) {
 
