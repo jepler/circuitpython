@@ -127,6 +127,8 @@ typedef union _mp_arg_val_t {
     mp_obj_t u_obj;
     mp_rom_obj_t u_rom_obj;
     mp_arg_function_t u_func;
+    void *u_ptr;
+    const void *u_cptr;
     struct {
         uint16_t u_ulo, u_uhi;
     };
@@ -135,6 +137,7 @@ typedef union _mp_arg_val_t {
     };
 } mp_arg_val_t;
 
+#define MP_ARG_VAL(arg) ((mp_arg_val_t) {arg})
 typedef struct _mp_arg_t {
     uint16_t qst;
     uint16_t flags;
