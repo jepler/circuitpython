@@ -64,11 +64,11 @@
 STATIC mp_obj_t busio_onewire_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_pin };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pins },}
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-    const mcu_pin_obj_t *pin = validate_obj_is_free_pin(args[ARG_pin].u_obj);
+    const mcu_pin_obj_t *pin = args[ARG_pin].u_cptr;
 
     busio_onewire_obj_t *self = m_new_obj(busio_onewire_obj_t);
     self->base.type = &busio_onewire_type;
