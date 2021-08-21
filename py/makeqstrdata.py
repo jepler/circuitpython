@@ -331,7 +331,6 @@ def compute_huffman_coding(translations, compression_filename):
                 end_unused = min(ord_c, end_unused)
     max_words = end_unused - 0x80
 
-    bits_per_codepoint = 16 if max_ord > 255 else 8
     values_type = "uint16_t" if max_ord > 255 else "uint8_t"
     while len(words) < max_words:
         # Until the dictionary is filled to capacity, use a heuristic to find
@@ -381,7 +380,7 @@ def compute_huffman_coding(translations, compression_filename):
         # The difference between the two is the estimated net savings, in bits.
         def est_net_savings(s, occ):
             savings = occ * (bit_length(s) - est_len(occ))
-            cost = len(s) * bits_per_codepoint + 24
+            cost = len(s.encode("utf-8")) + 24
             return savings - cost
 
         counter = collections.Counter()
@@ -463,6 +462,10 @@ def compute_huffman_coding(translations, compression_filename):
     maxlen = len(words[-1])
     minlen = len(words[0])
     wlencount = [len([None for w in words if len(w) == l]) for l in range(minlen, maxlen + 1)]
+    utf8_wlencount = [
+        len([None for w in words if len(w.encode("utf-8")) == l])
+        for l in range(minlen, maxlen + 1)
+    ]
 
     with open(compression_filename, "w") as f:
         f.write("typedef {} mchar_t;".format(values_type))
@@ -475,13 +478,17 @@ def compute_huffman_coding(translations, compression_filename):
                 max_translation_encoded_length.bit_length()
             )
         )
+        utf8_words = [word.encode("utf-8") for word in words]
+        joined_utf8_words = b"".join(utf8_words)
         f.write(
-            "const mchar_t words[] = {{ {} }};\n".format(
-                ", ".join(str(ord(c)) for w in words for c in w)
+            "const uint8_t words[] = {{ {} }};\n".format(
+                ", ".join(str(c) for c in joined_utf8_words)
             )
         )
         f.write(
-            "const uint8_t wlencount[] = {{ {} }};\n".format(", ".join(str(p) for p in wlencount))
+            "const uint8_t wlencount[] = {{ {} }};\n".format(
+                ", ".join(str(p) for p in utf8_wlencount)
+            )
         )
         f.write("#define word_start {}\n".format(word_start))
         f.write("#define word_end {}\n".format(word_end))
