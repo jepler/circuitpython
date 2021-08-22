@@ -422,7 +422,13 @@ def compute_huffman_coding(translations, compression_filename):
         if not scores or scores[0][-1] >= 0:
             break
 
-        word = scores[0][0]
+        word = s = scores[0][0]
+        occ = counter[s]
+        blen = bit_length(word)
+        savings = occ * (bit_length(s) - est_len(occ))
+        cost = len(s) * encoded_value_bits + 24
+
+        # print("word", repr(word), "occ", occ, "blen", blen, "savings", savings, "cost", cost, "net", savings - cost, file=sys.stderr)
         words.append(word)
 
     words.sort(key=len)
@@ -510,15 +516,15 @@ def compute_huffman_coding(translations, compression_filename):
             )
         )
         joined_encoded_words = b"".join(encoded_words)
-        print("Number of words", len(words), file=sys.stderr)
-        print("Total code points in words", sum(len(w) for w in words), file=sys.stderr)
-        print(
-            "average length of encoded code-point from word",
-            len(joined_encoded_words) / sum(len(w) for w in words),
-            file=sys.stderr,
-        )
-        print("distinct values", distinct_values, file=sys.stderr)
-        print("Used estimated cost", encoded_value_bits / 8, file=sys.stderr)
+        # print("Number of words", len(words), file=sys.stderr)
+        # print("Total code points in words", sum(len(w) for w in words), file=sys.stderr)
+        # print(
+        #     "average length of encoded code-point from word",
+        #     len(joined_encoded_words) / sum(len(w) for w in words),
+        #     file=sys.stderr,
+        # )
+        # print("distinct values", distinct_values, file=sys.stderr)
+        # print("Used estimated cost", encoded_value_bits / 8, file=sys.stderr)
 
         f.write(
             "const uint8_t words[] = {{ {} }};\n".format(
@@ -775,6 +781,7 @@ def print_qstr_data(encoding_table, qcfgs, qstrs, i18ns):
         )
         total_text_compressed_size += len(compressed)
         decompressed = decompress(encoding_table, compressed, encoded_length_bits)
+        # print("asserting round trip", (decompressed, translation), file=sys.stderr)
         assert decompressed == translation
         for c in C_ESCAPES:
             decompressed = decompressed.replace(c, C_ESCAPES[c])
