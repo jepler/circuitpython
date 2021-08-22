@@ -323,15 +323,33 @@ def compute_huffman_coding(translations, compression_filename):
     start_unused = 0x80
     end_unused = 0xFF
     max_ord = 0
+    used = set()
     for text in texts:
         for c in text:
             ord_c = ord(c)
+            used.add(c)
             max_ord = max(ord_c, max_ord)
             if 0x80 <= ord_c < 0xFF:
                 end_unused = min(ord_c, end_unused)
     max_words = end_unused - 0x80
 
     values_type = "uint16_t" if max_ord > 255 else "uint8_t"
+    distinct_values = len(used)
+    # Estimate the cost per code point of a dictionary word
+    # The cost is 1 byte per code-point if "values" has less than 256
+    # entries, or 2 bytes if "values" has more than 256 entries and the
+    # particular code point is above 128.
+    #
+    # We don't know the length of `values` yet (just the number of code points)
+    # since the number of words it is feasible to place in the dictionary
+    # affects the size of `values`.
+    #
+    # The empirical formula is derived from the ja and ko translations
+    # on trinket_m0, but may not be ideal.
+    encoded_value_cost = (
+        1 if distinct_values < (256 - max_words) else (1 + (distinct_values - 128) ** 0.5 / 43)
+    )
+
     while len(words) < max_words:
         # Until the dictionary is filled to capacity, use a heuristic to find
         # the best "word" (2- to 11-gram) to add to it.
@@ -380,7 +398,7 @@ def compute_huffman_coding(translations, compression_filename):
         # The difference between the two is the estimated net savings, in bits.
         def est_net_savings(s, occ):
             savings = occ * (bit_length(s) - est_len(occ))
-            cost = len(s.encode("utf-8")) + 24
+            cost = len(s) * encoded_value_cost + 24
             return savings - cost
 
         counter = collections.Counter()
@@ -449,6 +467,13 @@ def compute_huffman_coding(translations, compression_filename):
     lengths = bytearray()
     print("// length count", length_count)
 
+    all_word_chars = set(c for w in words for c in w)
+    set_values = set(values)
+    # print("values", set_values, file=sys.stderr)
+    # print("all_word_chars", all_word_chars, file=sys.stderr)
+    # print("exending values with outliers", all_word_chars - set_values, file=sys.stderr)
+    values.extend(all_word_chars - set_values)
+
     for i in range(1, max(length_count) + 2):
         lengths.append(length_count.get(i, 0))
     print("// values", values, "lengths", len(lengths), lengths)
@@ -461,12 +486,20 @@ def compute_huffman_coding(translations, compression_filename):
 
     maxlen = len(words[-1])
     minlen = len(words[0])
-    wlencount = [len([None for w in words if len(w) == l]) for l in range(minlen, maxlen + 1)]
-    utf8_wlencount = [
-        len([None for w in words if len(w.encode("utf-8")) == l])
-        for l in range(minlen, maxlen + 1)
-    ]
+    if len(values) > 256:
 
+        def encode_word(w):
+            return b"".join(chr(values.index(c)).encode("utf-8") for c in w)
+
+    else:
+
+        def encode_word(w):
+            return bytes(values.index(c) for c in w)
+
+    encoded_words = [encode_word(w) for w in words]
+    encoded_wlencount = [
+        len([None for w in encoded_words if len(w) == l]) for l in range(minlen, maxlen + 1)
+    ]
     with open(compression_filename, "w") as f:
         f.write("typedef {} mchar_t;".format(values_type))
         f.write("const uint8_t lengths[] = {{ {} }};\n".format(", ".join(map(str, lengths))))
@@ -478,16 +511,25 @@ def compute_huffman_coding(translations, compression_filename):
                 max_translation_encoded_length.bit_length()
             )
         )
-        utf8_words = [word.encode("utf-8") for word in words]
-        joined_utf8_words = b"".join(utf8_words)
+        joined_encoded_words = b"".join(encoded_words)
+        print("Number of words", len(words), file=sys.stderr)
+        print("Total code points in words", sum(len(w) for w in words), file=sys.stderr)
+        print(
+            "average length of encoded code-point from word",
+            len(joined_encoded_words) / sum(len(w) for w in words),
+            file=sys.stderr,
+        )
+        print("distinct values", distinct_values, file=sys.stderr)
+        print("Used estimated cost", encoded_value_cost, file=sys.stderr)
+
         f.write(
             "const uint8_t words[] = {{ {} }};\n".format(
-                ", ".join(str(c) for c in joined_utf8_words)
+                ", ".join(str(c) for c in joined_encoded_words)
             )
         )
         f.write(
             "const uint8_t wlencount[] = {{ {} }};\n".format(
-                ", ".join(str(p) for p in utf8_wlencount)
+                ", ".join(str(p) for p in encoded_wlencount)
             )
         )
         f.write("#define word_start {}\n".format(word_start))

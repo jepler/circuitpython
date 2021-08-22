@@ -42,7 +42,7 @@ void serial_write_compressed(const compressed_string_t *compressed) {
     mp_printf(MP_PYTHON_PRINTER, "%S", compressed);
 }
 
-STATIC uint8_t get_word(int n, const uint8_t **pos) {
+STATIC void get_word(int n, const byte **pos, const byte **end) {
     int len = minlen;
     int i = 0;
     *pos = words;
@@ -53,7 +53,7 @@ STATIC uint8_t get_word(int n, const uint8_t **pos) {
         len++;
     }
     *pos += len * n;
-    return len;
+    *end = *pos + len;
 }
 
 STATIC int put_utf8(char *buf, int u) {
@@ -62,11 +62,26 @@ STATIC int put_utf8(char *buf, int u) {
         return 1;
     } else if (word_start <= u && u <= word_end) {
         uint n = (u - word_start);
-        const uint8_t *pos;
-        uint8_t len = get_word(n, &pos);
-        memcpy(buf, pos, len);
-        buf += len;
-        return len;
+        const byte *pos, *end;
+        get_word(n, &pos, &end);
+        int ret = 0;
+        // note that at present, entries in the words table are
+        // guaranteed not to represent words themselves, so this adds
+        // at most 1 level of recursive call
+        if (MP_ARRAY_SIZE(values) > 256) {
+            for (; pos < end; pos = utf8_next_char(pos)) {
+                int len = put_utf8(buf, values[utf8_get_char(pos)]);
+                buf += len;
+                ret += len;
+            }
+        } else {
+            for (; pos < end; pos++) {
+                int len = put_utf8(buf, values[*(uint8_t *)pos]);
+                buf += len;
+                ret += len;
+            }
+        }
+        return ret;
     } else if (u <= 0x07ff) {
         *buf++ = 0b11000000 | (u >> 6);
         *buf = 0b10000000 | (u & 0b00111111);
