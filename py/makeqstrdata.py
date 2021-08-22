@@ -346,9 +346,7 @@ def compute_huffman_coding(translations, compression_filename):
     #
     # The empirical formula is derived from the ja and ko translations
     # on trinket_m0, but may not be ideal.
-    encoded_value_cost = (
-        1 if distinct_values < (256 - max_words) else (1 + (distinct_values - 128) ** 0.5 / 43)
-    )
+    encoded_value_bits = 8 if distinct_values < (256 - max_words) else 11
 
     while len(words) < max_words:
         # Until the dictionary is filled to capacity, use a heuristic to find
@@ -398,7 +396,7 @@ def compute_huffman_coding(translations, compression_filename):
         # The difference between the two is the estimated net savings, in bits.
         def est_net_savings(s, occ):
             savings = occ * (bit_length(s) - est_len(occ))
-            cost = len(s) * encoded_value_cost + 24
+            cost = len(s) * encoded_value_bits + 24
             return savings - cost
 
         counter = collections.Counter()
@@ -520,7 +518,7 @@ def compute_huffman_coding(translations, compression_filename):
             file=sys.stderr,
         )
         print("distinct values", distinct_values, file=sys.stderr)
-        print("Used estimated cost", encoded_value_cost, file=sys.stderr)
+        print("Used estimated cost", encoded_value_bits / 8, file=sys.stderr)
 
         f.write(
             "const uint8_t words[] = {{ {} }};\n".format(
