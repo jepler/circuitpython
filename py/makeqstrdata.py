@@ -321,7 +321,7 @@ def compute_huffman_coding(translations, compression_filename):
     words = []
 
     start_unused = 0x80
-    end_unused = 0xFF
+    end_unused = 0x100
     max_ord = 0
     used = set()
     for text in texts:
@@ -331,7 +331,7 @@ def compute_huffman_coding(translations, compression_filename):
             max_ord = max(ord_c, max_ord)
             if 0x80 <= ord_c < 0xFF:
                 end_unused = min(ord_c, end_unused)
-    max_words = end_unused - 0x80
+    max_words = end_unused - start_unused
 
     values_type = "uint16_t" if max_ord > 255 else "uint8_t"
     distinct_values = len(used)
