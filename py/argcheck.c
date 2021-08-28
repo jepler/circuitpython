@@ -119,12 +119,18 @@ void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n
                 given_arg = kw->value;
             }
         }
-        if ((allowed[i].flags & MP_ARG_KIND_MASK) == MP_ARG_BOOL) {
+        int flags = allowed[i].flags;
+        int kind = flags & MP_ARG_KIND_MASK;
+        if (kind == MP_ARG_BOOL) {
             out_vals[i].u_bool = mp_obj_is_true(given_arg);
-        } else if ((allowed[i].flags & MP_ARG_KIND_MASK) == MP_ARG_INT) {
-            out_vals[i].u_int = mp_obj_get_int(given_arg);
+        } else if (kind == MP_ARG_NUMBER) {
+            if (flags & MP_ARG_AS_FLOAT) {
+                out_vals[i].u_float = mp_obj_get_float(given_arg);
+            } else {
+                out_vals[i].u_int = mp_obj_get_int(given_arg);
+            }
         } else {
-            assert((allowed[i].flags & MP_ARG_KIND_MASK) == MP_ARG_OBJ);
+            assert(kind == MP_ARG_OBJ);
             out_vals[i].u_obj = given_arg;
         }
     }

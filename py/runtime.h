@@ -41,9 +41,21 @@ typedef enum {
 
 typedef enum {
     MP_ARG_BOOL      = 0x001,
-    MP_ARG_INT       = 0x002,
+
+    // The corresponding argument is converted to an integer (or a float, if
+    // MP_ARG_FLOAT is or'd in) and stored in u_int or u_float.  The default
+    // is the mp_arg_val_t's u_int or u_float.
+    MP_ARG_NUMBER    = 0x003,
+    MP_ARG_INT       = MP_ARG_NUMBER,
+
     MP_ARG_OBJ       = 0x003,
-    MP_ARG_KIND_MASK = 0x0ff,
+    MP_ARG_KIND_MASK = 0x01f,
+
+    // A numeric argument (MP_ARG_NUMBER, MP_ARG_RANGExx, etc) is a float,
+    // not an int
+    MP_ARG_AS_FLOAT  = 0x020,
+    MP_ARG_FLOAT     = MP_ARG_AS_FLOAT | MP_ARG_NUMBER,
+
     MP_ARG_REQUIRED  = 0x100,
     MP_ARG_KW_ONLY   = 0x200,
 } mp_arg_flag_t;
@@ -51,6 +63,7 @@ typedef enum {
 typedef union _mp_arg_val_t {
     bool u_bool;
     mp_int_t u_int;
+    mp_float_t u_float;
     mp_obj_t u_obj;
     mp_rom_obj_t u_rom_obj;
 } mp_arg_val_t;
