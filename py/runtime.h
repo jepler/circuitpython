@@ -41,6 +41,7 @@ typedef enum {
 
 typedef enum {
     MP_ARG_BOOL      = 0x001,
+    MP_ARG_OBJ       = 0x002,
 
     // The corresponding argument is converted to an integer (or a float, if
     // MP_ARG_FLOAT is or'd in) and stored in u_int or u_float.  The default
@@ -48,7 +49,15 @@ typedef enum {
     MP_ARG_NUMBER    = 0x003,
     MP_ARG_INT       = MP_ARG_NUMBER,
 
-    MP_ARG_OBJ       = 0x003,
+    // The corresponding object is passed to a function, which may return
+    // a populated mp_arg_val_t or raise an exception.  If MP_OBJ_NULL is passed,
+    // return the default value.
+    MP_ARG_FUNC      = 0x004,
+
+    // The corresponding value must be an instance of the type stored in u_obj, or
+    // one of its subtypes
+    MP_ARG_TYPE      = 0x005,
+
     MP_ARG_KIND_MASK = 0x01f,
 
     // A numeric argument (MP_ARG_NUMBER, MP_ARG_RANGExx, etc) is a float,
@@ -56,16 +65,27 @@ typedef enum {
     MP_ARG_AS_FLOAT  = 0x020,
     MP_ARG_FLOAT     = MP_ARG_AS_FLOAT | MP_ARG_NUMBER,
 
+    // Instead of a single argument, an mp_obj_get_array-compatible sequence
+    // where all items conform to the value specification is required.
+    // MP_ARG_FUNC becomes a predicate only, the transformed value is
+    // discarded.
+    MP_ARG_ARRAY_OF  = 0x040,
+
     MP_ARG_REQUIRED  = 0x100,
     MP_ARG_KW_ONLY   = 0x200,
 } mp_arg_flag_t;
+
+struct _mp_arg_t;
+typedef union _mp_arg_val_t (*mp_arg_function_t)(const struct _mp_arg_t *arginfo, const mp_obj_t obj);
 
 typedef union _mp_arg_val_t {
     bool u_bool;
     mp_int_t u_int;
     mp_float_t u_float;
     mp_obj_t u_obj;
+    void *u_ptr;
     mp_rom_obj_t u_rom_obj;
+    mp_arg_function_t u_func;
 } mp_arg_val_t;
 
 typedef struct _mp_arg_t {

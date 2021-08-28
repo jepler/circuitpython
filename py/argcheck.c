@@ -32,22 +32,25 @@
 #include "supervisor/shared/translate.h"
 
 static mp_arg_val_t validate_convert_argument(const mp_arg_t *arginfo, mp_obj_t *given_arg) {
-    mp_arg_val_t result = {.u_obj = given_arg };
     int flags = arginfo->flags;
     int kind = flags & MP_ARG_KIND_MASK;
     if (kind == MP_ARG_BOOL) {
-        result.u_bool = mp_obj_is_true(given_arg);
+        return (mp_arg_val_t) {.u_bool = mp_obj_is_true(given_arg)};
     } else if (kind == MP_ARG_NUMBER) {
         if (flags & MP_ARG_AS_FLOAT) {
-            result.u_float = mp_obj_get_float(given_arg);
+            return (mp_arg_val_t) {.u_float = mp_obj_get_float(given_arg)};
         } else {
-            result.u_int = mp_obj_get_int(given_arg);
+            return (mp_arg_val_t) {.u_int = mp_obj_get_int(given_arg)};
         }
+    } else if (kind == MP_ARG_FUNC) {
+        return arginfo->defval.u_func(arginfo, given_arg);
+    } else if (kind == MP_ARG_TYPE) {
+        mp_arg_validate_type(given_arg, arginfo->defval.u_obj, arginfo->qst);
     } else {
         assert(kind == MP_ARG_OBJ);
-        result.u_obj = given_arg;
+        return (mp_arg_val_t) {.u_obj = given_arg };
     }
-    return result;
+    return (mp_arg_val_t) {.u_obj = given_arg };
 }
 
 void mp_arg_check_num_sig(size_t n_args, size_t n_kw, uint32_t sig) {
@@ -108,6 +111,18 @@ inline void mp_arg_check_num_kw_array(size_t n_args, size_t n_kw, size_t n_args_
     mp_arg_check_num_sig(n_args, n_kw, MP_OBJ_FUN_MAKE_SIG(n_args_min, n_args_max, takes_kw));
 }
 
+static mp_arg_val_t default_value(const mp_arg_t *arginfo) {
+    int flags = arginfo->flags;
+    int kind = flags & MP_ARG_KIND_MASK;
+    if (kind <= MP_ARG_NUMBER) {
+        return arginfo->defval;
+    }
+    if (kind == MP_ARG_FUNC) {
+        return arginfo->defval.u_func(arginfo, MP_OBJ_NULL);
+    }
+    return (mp_arg_val_t) {.u_obj = MP_OBJ_NULL};
+}
+
 void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals) {
     size_t pos_found = 0, kws_found = 0;
     for (size_t i = 0; i < n_allowed; i++) {
@@ -131,14 +146,24 @@ void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n
                     mp_raise_TypeError_varg(MP_ERROR_TEXT("'%q' argument required"), allowed[i].qst);
                     #endif
                 }
-                out_vals[i] = allowed[i].defval;
+                out_vals[i] = default_value(&allowed[i]);
                 continue;
             } else {
                 kws_found++;
                 given_arg = kw->value;
             }
         }
-        out_vals[i] = validate_convert_argument(&allowed[i], given_arg);
+        if (allowed[i].flags & MP_ARG_ARRAY_OF) {
+            mp_obj_t *items;
+            size_t len;
+            mp_obj_get_array(given_arg, &len, &items);
+            for (; len--; items++) {
+                validate_convert_argument(&allowed[i], *items);
+            }
+            out_vals[i].u_obj = given_arg;
+        } else {
+            out_vals[i] = validate_convert_argument(&allowed[i], given_arg);
+        }
     }
     if (pos_found < n_pos) {
     extra_positional:
