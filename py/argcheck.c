@@ -31,6 +31,25 @@
 
 #include "supervisor/shared/translate.h"
 
+static mp_arg_val_t validate_convert_argument(const mp_arg_t *arginfo, mp_obj_t *given_arg) {
+    mp_arg_val_t result = {.u_obj = given_arg };
+    int flags = arginfo->flags;
+    int kind = flags & MP_ARG_KIND_MASK;
+    if (kind == MP_ARG_BOOL) {
+        result.u_bool = mp_obj_is_true(given_arg);
+    } else if (kind == MP_ARG_NUMBER) {
+        if (flags & MP_ARG_AS_FLOAT) {
+            result.u_float = mp_obj_get_float(given_arg);
+        } else {
+            result.u_int = mp_obj_get_int(given_arg);
+        }
+    } else {
+        assert(kind == MP_ARG_OBJ);
+        result.u_obj = given_arg;
+    }
+    return result;
+}
+
 void mp_arg_check_num_sig(size_t n_args, size_t n_kw, uint32_t sig) {
     // TODO maybe take the function name as an argument so we can print nicer error messages
 
@@ -119,20 +138,7 @@ void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n
                 given_arg = kw->value;
             }
         }
-        int flags = allowed[i].flags;
-        int kind = flags & MP_ARG_KIND_MASK;
-        if (kind == MP_ARG_BOOL) {
-            out_vals[i].u_bool = mp_obj_is_true(given_arg);
-        } else if (kind == MP_ARG_NUMBER) {
-            if (flags & MP_ARG_AS_FLOAT) {
-                out_vals[i].u_float = mp_obj_get_float(given_arg);
-            } else {
-                out_vals[i].u_int = mp_obj_get_int(given_arg);
-            }
-        } else {
-            assert(kind == MP_ARG_OBJ);
-            out_vals[i].u_obj = given_arg;
-        }
+        out_vals[i] = validate_convert_argument(&allowed[i], given_arg);
     }
     if (pos_found < n_pos) {
     extra_positional:
