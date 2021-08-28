@@ -62,23 +62,23 @@
 STATIC mp_obj_t displayio_parallelbus_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_data0, ARG_command, ARG_chip_select, ARG_write, ARG_read, ARG_reset, ARG_frequency };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_data0, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_command, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_chip_select, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_write, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_read, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_reset, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
+        { MP_QSTR_data0, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_command, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_chip_select, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_write, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_read, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_reset, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_frequency, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 30000000 } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mcu_pin_obj_t *data0 = validate_obj_is_free_pin(args[ARG_data0].u_obj);
-    mcu_pin_obj_t *command = validate_obj_is_free_pin(args[ARG_command].u_obj);
-    mcu_pin_obj_t *chip_select = validate_obj_is_free_pin(args[ARG_chip_select].u_obj);
-    mcu_pin_obj_t *write = validate_obj_is_free_pin(args[ARG_write].u_obj);
-    mcu_pin_obj_t *read = validate_obj_is_free_pin(args[ARG_read].u_obj);
-    mcu_pin_obj_t *reset = validate_obj_is_free_pin(args[ARG_reset].u_obj);
+    mcu_pin_obj_t *data0 = args[ARG_data0].u_ptr;
+    mcu_pin_obj_t *command = args[ARG_command].u_ptr;
+    mcu_pin_obj_t *chip_select = args[ARG_chip_select].u_ptr;
+    mcu_pin_obj_t *write = args[ARG_write].u_ptr;
+    mcu_pin_obj_t *read = args[ARG_read].u_ptr;
+    mcu_pin_obj_t *reset = args[ARG_reset].u_ptr;
 
     displayio_parallelbus_obj_t *self = &allocate_display_bus_or_raise()->parallel_bus;
     self->base.type = &displayio_parallelbus_type;

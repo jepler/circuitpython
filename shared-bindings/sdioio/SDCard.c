@@ -83,9 +83,9 @@ STATIC mp_obj_t sdioio_sdcard_make_new(const mp_obj_type_t *type, size_t n_args,
     self->base.type = &sdioio_SDCard_type;
     enum { ARG_clock, ARG_command, ARG_data, ARG_frequency, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_clock, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_OBJ },
-        { MP_QSTR_command, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_OBJ },
-        { MP_QSTR_data, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_OBJ },
+        { MP_QSTR_clock, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_command, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_data, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARRAY_OF | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_frequency, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_INT },
     };
     MP_STATIC_ASSERT(MP_ARRAY_SIZE(allowed_args) == NUM_ARGS);
@@ -93,8 +93,8 @@ STATIC mp_obj_t sdioio_sdcard_make_new(const mp_obj_type_t *type, size_t n_args,
 
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *clock = validate_obj_is_free_pin(args[ARG_clock].u_obj);
-    const mcu_pin_obj_t *command = validate_obj_is_free_pin(args[ARG_command].u_obj);
+    const mcu_pin_obj_t *clock = args[ARG_clock].u_ptr;
+    const mcu_pin_obj_t *command = args[ARG_command].u_ptr;
     mcu_pin_obj_t *data_pins[4];
     uint8_t num_data;
     validate_list_is_free_pins(MP_QSTR_data, data_pins, MP_ARRAY_SIZE(data_pins), args[ARG_data].u_obj, &num_data);

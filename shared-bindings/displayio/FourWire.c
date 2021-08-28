@@ -64,9 +64,9 @@ STATIC mp_obj_t displayio_fourwire_make_new(const mp_obj_type_t *type, size_t n_
     enum { ARG_spi_bus, ARG_command, ARG_chip_select, ARG_reset, ARG_baudrate, ARG_polarity, ARG_phase };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_spi_bus, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_command, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_chip_select, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_reset, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
+        { MP_QSTR_command, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_chip_select, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_chip_reset, MP_ARG_KW_ONLY | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_baudrate, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 24000000} },
         { MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
@@ -74,9 +74,9 @@ STATIC mp_obj_t displayio_fourwire_make_new(const mp_obj_type_t *type, size_t n_
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mcu_pin_obj_t *command = validate_obj_is_free_pin(args[ARG_command].u_obj);
-    mcu_pin_obj_t *chip_select = validate_obj_is_free_pin(args[ARG_chip_select].u_obj);
-    mcu_pin_obj_t *reset = validate_obj_is_free_pin_or_none(args[ARG_reset].u_obj);
+    mcu_pin_obj_t *command = args[ARG_command].u_ptr;
+    mcu_pin_obj_t *chip_select = args[ARG_chip_select].u_ptr;
+    mcu_pin_obj_t *reset = args[ARG_reset].u_ptr;
 
     mp_obj_t spi = args[ARG_spi_bus].u_obj;
     displayio_fourwire_obj_t *self = &allocate_display_bus_or_raise()->fourwire_bus;

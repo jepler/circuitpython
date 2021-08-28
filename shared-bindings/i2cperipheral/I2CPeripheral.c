@@ -68,16 +68,16 @@ STATIC mp_obj_t i2cperipheral_i2c_peripheral_make_new(const mp_obj_type_t *type,
     self->base.type = &i2cperipheral_i2c_peripheral_type;
     enum { ARG_scl, ARG_sda, ARG_addresses, ARG_smbus };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_scl, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_sda, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_scl, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_sda, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_addresses, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_smbus, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *scl = validate_obj_is_free_pin(args[ARG_scl].u_obj);
-    const mcu_pin_obj_t *sda = validate_obj_is_free_pin(args[ARG_sda].u_obj);
+    const mcu_pin_obj_t *scl = args[ARG_scl].u_ptr;
+    const mcu_pin_obj_t *sda = args[ARG_sda].u_ptr;
 
     mp_obj_iter_buf_t iter_buf;
     mp_obj_t iterable = mp_getiter(args[ARG_addresses].u_obj, &iter_buf);

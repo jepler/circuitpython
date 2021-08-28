@@ -208,7 +208,7 @@ STATIC mp_obj_t displayio_bitmap_obj_blit(size_t n_args, const mp_obj_t *pos_arg
     static const mp_arg_t allowed_args[] = {
         {MP_QSTR_x, MP_ARG_REQUIRED | MP_ARG_INT},
         {MP_QSTR_y, MP_ARG_REQUIRED | MP_ARG_INT},
-        {MP_QSTR_source_bitmap, MP_ARG_REQUIRED | MP_ARG_OBJ},
+        {MP_QSTR_source_bitmap, MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &displayio_bitmap_type}},
         {MP_QSTR_x1, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         {MP_QSTR_y1, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         {MP_QSTR_x2, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to source->width

@@ -105,6 +105,16 @@ mcu_pin_obj_t *validate_obj_is_free_pin(mp_obj_t obj) {
     return pin;
 }
 
+mp_arg_val_t arg_is_free_pin(const mp_arg_t *arginfo, const mp_obj_t obj) {
+    if (obj == MP_OBJ_NULL) {
+        return (mp_arg_val_t) {.u_ptr = NULL};
+    }
+    mp_arg_validate_type(obj, &mcu_pin_type, arginfo->qst);
+    mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(obj);
+    assert_pin_free(pin);
+    return (mp_arg_val_t) {.u_ptr = pin};
+}
+
 // Validate every element in the list is a unique pin
 void validate_no_duplicate_pins(mp_obj_t seq, qstr arg_name) {
     const size_t num_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(seq));

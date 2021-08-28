@@ -67,8 +67,8 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
     self->base.type = &keypad_keymatrix_type;
     enum { ARG_row_pins, ARG_column_pins, ARG_columns_to_anodes, ARG_interval, ARG_max_events };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_row_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_column_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_row_pins, MP_ARG_REQUIRED | MP_ARG_ARRAY_OF | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_column_pins, MP_ARG_REQUIRED | MP_ARG_ARRAY_OF | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_columns_to_anodes, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_max_events, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
@@ -77,11 +77,7 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_obj_t row_pins = args[ARG_row_pins].u_obj;
-    // mp_obj_len() will be >= 0.
-    const size_t num_row_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(row_pins));
-
     mp_obj_t column_pins = args[ARG_column_pins].u_obj;
-    const size_t num_column_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(column_pins));
 
     const mp_float_t interval =
         mp_arg_validate_obj_float_non_negative(args[ARG_interval].u_obj, 0.020f, MP_QSTR_interval);
@@ -92,15 +88,19 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
 
     validate_no_duplicate_pins_2(row_pins, column_pins, MP_QSTR_row_pins, MP_QSTR_column_pins);
 
+
+    mp_obj_t *items;
+    size_t num_row_pins;
+    mp_obj_get_array(row_pins, &num_row_pins, &items);
     for (size_t row = 0; row < num_row_pins; row++) {
-        mcu_pin_obj_t *pin =
-            validate_obj_is_free_pin(mp_obj_subscr(row_pins, MP_OBJ_NEW_SMALL_INT(row), MP_OBJ_SENTINEL));
+        mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(items[row]);
         row_pins_array[row] = pin;
     }
 
+    size_t num_column_pins;
+    mp_obj_get_array(column_pins, &num_column_pins, &items);
     for (size_t column = 0; column < num_column_pins; column++) {
-        mcu_pin_obj_t *pin =
-            validate_obj_is_free_pin(mp_obj_subscr(column_pins, MP_OBJ_NEW_SMALL_INT(column), MP_OBJ_SENTINEL));
+        mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(items[column]);
         column_pins_array[column] = pin;
     }
 

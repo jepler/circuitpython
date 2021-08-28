@@ -68,9 +68,9 @@ STATIC mp_obj_t pewpew_make_new(const mp_obj_type_t *type, size_t n_args,
     enum { ARG_buffer, ARG_rows, ARG_cols, ARG_buttons };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_rows, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_cols, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_buttons, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_rows, MP_ARG_FUNC | MP_ARG_REQUIRED | MP_ARG_SEQUENCE_OF, {.u_func = shared_modules_digitalio_digitalio_validate } },
+        { MP_QSTR_cols, MP_ARG_FUNC | MP_ARG_REQUIRED | MP_ARG_SEQUENCE_OF, {.u_func = shared_modules_digitalio_digitalio_validate } },
+        { MP_QSTR_buttons, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = shared_modules_digitalio_digitalio_validate } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args),
@@ -89,36 +89,6 @@ STATIC mp_obj_t pewpew_make_new(const mp_obj_type_t *type, size_t n_args,
 
     if (bufinfo.len != rows_size * cols_size) {
         mp_raise_ValueError(translate("Incorrect buffer size"));
-    }
-
-    for (size_t i = 0; i < rows_size; ++i) {
-        if (!mp_obj_is_type(rows[i], &digitalio_digitalinout_type)) {
-            mp_raise_TypeError(translate("Row entry must be digitalio.DigitalInOut"));
-        }
-        digitalio_digitalinout_obj_t *pin = MP_OBJ_TO_PTR(rows[i]);
-        if (common_hal_digitalio_digitalinout_deinited(pin)) {
-            raise_deinited_error();
-        }
-    }
-
-    for (size_t i = 0; i < cols_size; ++i) {
-        if (!mp_obj_is_type(cols[i], &digitalio_digitalinout_type)) {
-            mp_raise_TypeError(translate("Column entry must be digitalio.DigitalInOut"));
-        }
-        digitalio_digitalinout_obj_t *pin = MP_OBJ_TO_PTR(cols[i]);
-        if (common_hal_digitalio_digitalinout_deinited(pin)) {
-            raise_deinited_error();
-        }
-    }
-
-    if (!mp_obj_is_type(args[ARG_buttons].u_obj,
-        &digitalio_digitalinout_type)) {
-        mp_raise_TypeError(translate("buttons must be digitalio.DigitalInOut"));
-    }
-    digitalio_digitalinout_obj_t *buttons = MP_OBJ_TO_PTR(
-        args[ARG_buttons].u_obj);
-    if (common_hal_digitalio_digitalinout_deinited(buttons)) {
-        raise_deinited_error();
     }
 
     pew_obj_t *pew = MP_STATE_VM(pew_singleton);

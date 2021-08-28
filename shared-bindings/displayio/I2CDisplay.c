@@ -60,12 +60,12 @@ STATIC mp_obj_t displayio_i2cdisplay_make_new(const mp_obj_type_t *type, size_t 
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_i2c_bus, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_device_address, MP_ARG_INT | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_reset, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
+        { MP_QSTR_reset, MP_ARG_FUNC | MP_ARG_KW_ONLY, {.u_func = arg_is_free_pin } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mcu_pin_obj_t *reset = validate_obj_is_free_pin_or_none(args[ARG_reset].u_obj);
+    mcu_pin_obj_t *reset = args[ARG_reset].u_obj;
 
     mp_obj_t i2c = args[ARG_i2c_bus].u_obj;
     displayio_i2cdisplay_obj_t *self = &allocate_display_bus_or_raise()->i2cdisplay_bus;

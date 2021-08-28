@@ -97,17 +97,17 @@ STATIC mp_obj_t audiobusio_i2sout_make_new(const mp_obj_type_t *type, size_t n_a
     #else
     enum { ARG_bit_clock, ARG_word_select, ARG_data, ARG_left_justified };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_bit_clock, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_word_select, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_data, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_bit_clock, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_word_select, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_data, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = arg_is_free_pin} },
         { MP_QSTR_left_justified, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_bool = false} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *bit_clock = validate_obj_is_free_pin(args[ARG_bit_clock].u_obj);
-    const mcu_pin_obj_t *word_select = validate_obj_is_free_pin(args[ARG_word_select].u_obj);
-    const mcu_pin_obj_t *data = validate_obj_is_free_pin(args[ARG_data].u_obj);
+    const mcu_pin_obj_t *bit_clock = args[ARG_bit_clock].u_ptr;
+    const mcu_pin_obj_t *word_select = args[ARG_word_select].u_ptr;
+    const mcu_pin_obj_t *data = args[ARG_data].u_ptr;
 
     audiobusio_i2sout_obj_t *self = m_new_obj_with_finaliser(audiobusio_i2sout_obj_t);
     self->base.type = &audiobusio_i2sout_type;

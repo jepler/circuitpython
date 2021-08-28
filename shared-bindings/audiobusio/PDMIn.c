@@ -89,8 +89,8 @@ STATIC mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_ar
     #else
     enum { ARG_clock_pin, ARG_data_pin, ARG_sample_rate, ARG_bit_depth, ARG_mono, ARG_oversample, ARG_startup_delay };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_clock_pin,     MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_data_pin,      MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_clock_pin,     MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_data_pin,      MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_sample_rate,   MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 16000} },
         { MP_QSTR_bit_depth,     MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
         { MP_QSTR_mono,          MP_ARG_KW_ONLY | MP_ARG_BOOL,{.u_bool = true} },
@@ -103,8 +103,8 @@ STATIC mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_ar
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *clock_pin = validate_obj_is_free_pin(args[ARG_clock_pin].u_obj);
-    const mcu_pin_obj_t *data_pin = validate_obj_is_free_pin(args[ARG_data_pin].u_obj);
+    const mcu_pin_obj_t *clock_pin = args[ARG_clock_pin].u_ptr;
+    const mcu_pin_obj_t *data_pin = args[ARG_data_pin].u_ptr;
 
     // create PDMIn object from the given pin
     audiobusio_pdmin_obj_t *self = m_new_obj(audiobusio_pdmin_obj_t);

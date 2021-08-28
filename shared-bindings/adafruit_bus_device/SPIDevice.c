@@ -76,7 +76,7 @@ STATIC mp_obj_t adafruit_bus_device_spidevice_make_new(const mp_obj_type_t *type
     enum { ARG_spi, ARG_chip_select, ARG_baudrate, ARG_polarity, ARG_phase, ARG_extra_clocks };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_spi, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_chip_select, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+        { MP_QSTR_chip_select, MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_baudrate, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 100000} },
         { MP_QSTR_polarity, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_phase, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },

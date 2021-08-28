@@ -60,7 +60,7 @@ STATIC void raise_error_if_not_connected(bleio_characteristic_buffer_obj_t *self
 STATIC mp_obj_t bleio_characteristic_buffer_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_characteristic, ARG_timeout, ARG_buffer_size, };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_characteristic,  MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_characteristic,  MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &bleio_characteristic_buffer_type} },
         { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(1.0) } },
         { MP_QSTR_buffer_size, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
     };
@@ -78,10 +78,6 @@ STATIC mp_obj_t bleio_characteristic_buffer_make_new(const mp_obj_type_t *type, 
     const int buffer_size = args[ARG_buffer_size].u_int;
     if (buffer_size < 1) {
         mp_raise_ValueError_varg(translate("%q must be >= 1"), MP_QSTR_buffer_size);
-    }
-
-    if (!mp_obj_is_type(characteristic, &bleio_characteristic_type)) {
-        mp_raise_TypeError(translate("Expected a Characteristic"));
     }
 
     bleio_characteristic_buffer_obj_t *self = m_new_obj(bleio_characteristic_buffer_obj_t);

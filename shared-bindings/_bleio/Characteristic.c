@@ -80,8 +80,8 @@ STATIC mp_obj_t bleio_characteristic_add_to_service(size_t n_args, const mp_obj_
     enum { ARG_service, ARG_uuid, ARG_properties, ARG_read_perm, ARG_write_perm,
            ARG_max_length, ARG_fixed_length, ARG_initial_value, ARG_user_description };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_service,  MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_uuid,  MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_service,  MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &bleio_service_type} },
+        { MP_QSTR_uuid,  MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &bleio_uuid_type} },
         { MP_QSTR_properties, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_read_perm, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = SECURITY_MODE_OPEN} },
         { MP_QSTR_write_perm, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = SECURITY_MODE_OPEN} },
@@ -93,16 +93,6 @@ STATIC mp_obj_t bleio_characteristic_add_to_service(size_t n_args, const mp_obj_
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-
-    const mp_obj_t service_obj = args[ARG_service].u_obj;
-    if (!mp_obj_is_type(service_obj, &bleio_service_type)) {
-        mp_raise_TypeError(translate("Expected a Service"));
-    }
-
-    const mp_obj_t uuid_obj = args[ARG_uuid].u_obj;
-    if (!mp_obj_is_type(uuid_obj, &bleio_uuid_type)) {
-        mp_raise_TypeError(translate("Expected a UUID"));
-    }
 
     const bleio_characteristic_properties_t properties = args[ARG_properties].u_int;
     if (properties & ~CHAR_PROP_ALL) {

@@ -91,8 +91,8 @@ STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, co
     enum { ARG_tx, ARG_rx, ARG_baudrate, ARG_bits, ARG_parity, ARG_stop, ARG_timeout, ARG_receiver_buffer_size,
            ARG_rts, ARG_cts, ARG_rs485_dir,ARG_rs485_invert};
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_tx, MP_ARG_OBJ, {.u_obj = mp_const_none} },
-        { MP_QSTR_rx, MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_tx, MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_rx, MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_baudrate, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 9600} },
         { MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
         { MP_QSTR_parity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },

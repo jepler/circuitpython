@@ -74,9 +74,9 @@ STATIC mp_obj_t keypad_shiftregisterkeys_make_new(const mp_obj_type_t *type, siz
     self->base.type = &keypad_shiftregisterkeys_type;
     enum { ARG_clock, ARG_data, ARG_latch, ARG_value_to_latch, ARG_key_count, ARG_value_when_pressed, ARG_interval, ARG_max_events };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_clock, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_data, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_latch, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_clock, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_data, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_latch, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_value_to_latch, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_key_count, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_INT },
         { MP_QSTR_value_when_pressed, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_BOOL },
@@ -86,9 +86,9 @@ STATIC mp_obj_t keypad_shiftregisterkeys_make_new(const mp_obj_type_t *type, siz
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mcu_pin_obj_t *clock = validate_obj_is_free_pin(args[ARG_clock].u_obj);
-    mcu_pin_obj_t *data = validate_obj_is_free_pin(args[ARG_data].u_obj);
-    mcu_pin_obj_t *latch = validate_obj_is_free_pin(args[ARG_latch].u_obj);
+    mcu_pin_obj_t *clock = args[ARG_clock].u_ptr;
+    mcu_pin_obj_t *data = args[ARG_data].u_ptr;
+    mcu_pin_obj_t *latch = args[ARG_latch].u_ptr;
     const bool value_to_latch = args[ARG_value_to_latch].u_bool;
 
     const size_t key_count = (size_t)mp_arg_validate_int_min(args[ARG_key_count].u_int, 1, MP_QSTR_key_count);

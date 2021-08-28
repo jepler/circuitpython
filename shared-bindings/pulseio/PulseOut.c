@@ -72,14 +72,14 @@
 STATIC mp_obj_t pulseio_pulseout_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_pin, ARG_frequency, ARG_duty_cycle};
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_frequency, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 38000} },
         { MP_QSTR_duty_cycle, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 1 << 15} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *pin = args[ARG_pin].u_obj;
+    const mcu_pin_obj_t *pin = args[ARG_pin].u_ptr;
     mp_int_t frequency = args[ARG_frequency].u_int;
     mp_int_t duty_cycle = args[ARG_duty_cycle].u_int;
     if (mp_obj_is_type(args[ARG_pin].u_obj, &pwmio_pwmout_type)) {

@@ -76,8 +76,8 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
         { MP_QSTR_byteorder, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = MP_OBJ_NEW_QSTR(MP_QSTR_BGR) } },
         { MP_QSTR_brightness, MP_ARG_KW_ONLY | MP_ARG_FLOAT, { .u_float = MICROPY_FLOAT_CONST(1.0) } },
         { MP_QSTR_auto_write, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
-        { MP_QSTR_header, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
-        { MP_QSTR_trailer, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
+        { MP_QSTR_header, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = MP_ROM_QSTR(MP_QSTR_) } },
+        { MP_QSTR_trailer, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = MP_ROM_QSTR(MP_QSTR_) } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -88,14 +88,8 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
     mp_buffer_info_t header_bufinfo;
     mp_buffer_info_t trailer_bufinfo;
 
-    if (!mp_get_buffer(args[ARG_header].u_obj, &header_bufinfo, MP_BUFFER_READ)) {
-        header_bufinfo.buf = NULL;
-        header_bufinfo.len = 0;
-    }
-    if (!mp_get_buffer(args[ARG_trailer].u_obj, &trailer_bufinfo, MP_BUFFER_READ)) {
-        trailer_bufinfo.buf = NULL;
-        trailer_bufinfo.len = 0;
-    }
+    mp_get_buffer_raise(args[ARG_header].u_obj, &header_bufinfo, MP_BUFFER_READ);
+    mp_get_buffer_raise(args[ARG_trailer].u_obj, &trailer_bufinfo, MP_BUFFER_READ);
 
     float brightness = args[ARG_brightness].u_float;
     if (brightness < 0) {

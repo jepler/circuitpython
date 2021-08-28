@@ -68,7 +68,7 @@ STATIC mp_obj_t keypad_keys_make_new(const mp_obj_type_t *type, size_t n_args, c
     self->base.type = &keypad_keys_type;
     enum { ARG_pins, ARG_value_when_pressed, ARG_pull, ARG_interval, ARG_max_events };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_pins, MP_ARG_REQUIRED | MP_ARG_ARRAY_OF | MP_ARG_FUNC, {.u_func = arg_is_free_pin} },
         { MP_QSTR_value_when_pressed, MP_ARG_REQUIRED | MP_ARG_KW_ONLY | MP_ARG_BOOL },
         { MP_QSTR_pull, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL } },
@@ -78,9 +78,12 @@ STATIC mp_obj_t keypad_keys_make_new(const mp_obj_type_t *type, size_t n_args, c
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_obj_t pins = args[ARG_pins].u_obj;
-    validate_no_duplicate_pins(pins, MP_QSTR_row_pins);
+    validate_no_duplicate_pins(pins, MP_QSTR_pins);
+
     // mp_obj_len() will be >= 0.
-    const size_t num_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(pins));
+    mp_obj_t *items;
+    size_t num_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(pins));
+    mp_obj_get_array(pins, &num_pins, &items);
 
     const bool value_when_pressed = args[ARG_value_when_pressed].u_bool;
     const mp_float_t interval =
@@ -90,8 +93,7 @@ STATIC mp_obj_t keypad_keys_make_new(const mp_obj_type_t *type, size_t n_args, c
     mcu_pin_obj_t *pins_array[num_pins];
 
     for (mp_uint_t i = 0; i < num_pins; i++) {
-        mcu_pin_obj_t *pin =
-            validate_obj_is_free_pin(mp_obj_subscr(pins, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL));
+        mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(items[i]);
         pins_array[i] = pin;
     }
 

@@ -65,7 +65,7 @@ STATIC mp_obj_t alarm_pin_pinalarm_make_new(const mp_obj_type_t *type, mp_uint_t
     self->base.type = &alarm_pin_pinalarm_type;
     enum { ARG_pin, ARG_value, ARG_edge, ARG_pull };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_pin, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
         { MP_QSTR_value, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_BOOL },
         { MP_QSTR_edge, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_pull, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
@@ -73,7 +73,7 @@ STATIC mp_obj_t alarm_pin_pinalarm_make_new(const mp_obj_type_t *type, mp_uint_t
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(0, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const mcu_pin_obj_t *pin = validate_obj_is_free_pin(args[ARG_pin].u_obj);
+    const mcu_pin_obj_t *pin = args[ARG_pin].u_ptr;
 
     common_hal_alarm_pin_pinalarm_construct(self,
         pin,

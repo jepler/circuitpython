@@ -72,8 +72,8 @@ STATIC mp_obj_t bleio_descriptor_add_to_characteristic(size_t n_args, const mp_o
     enum { ARG_characteristic, ARG_uuid, ARG_read_perm, ARG_write_perm,
            ARG_max_length, ARG_fixed_length, ARG_initial_value };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_characteristic,  MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_uuid,  MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_characteristic,  MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &bleio_characteristic_type} },
+        { MP_QSTR_uuid,  MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &bleio_uuid_type} },
         { MP_QSTR_read_perm, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = SECURITY_MODE_OPEN} },
         { MP_QSTR_write_perm, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = SECURITY_MODE_OPEN} },
         { MP_QSTR_max_length, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 20} },
@@ -85,14 +85,7 @@ STATIC mp_obj_t bleio_descriptor_add_to_characteristic(size_t n_args, const mp_o
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     const mp_obj_t characteristic_obj = args[ARG_characteristic].u_obj;
-    if (!mp_obj_is_type(characteristic_obj, &bleio_characteristic_type)) {
-        mp_raise_TypeError(translate("Expected a Characteristic"));
-    }
-
     const mp_obj_t uuid_obj = args[ARG_uuid].u_obj;
-    if (!mp_obj_is_type(uuid_obj, &bleio_uuid_type)) {
-        mp_raise_TypeError(translate("Expected a UUID"));
-    }
 
     const bleio_attribute_security_mode_t read_perm = args[ARG_read_perm].u_int;
     common_hal_bleio_attribute_security_mode_check_valid(read_perm);

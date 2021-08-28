@@ -54,17 +54,17 @@ STATIC mp_obj_t gamepadshift_make_new(const mp_obj_type_t *type, size_t n_args,
 
     enum { ARG_clock, ARG_data, ARG_latch };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_clock, MP_ARG_REQUIRED | MP_ARG_OBJ},
-        { MP_QSTR_data, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_latch, MP_ARG_REQUIRED | MP_ARG_OBJ},
+        { MP_QSTR_clock, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_data, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
+        { MP_QSTR_latch, MP_ARG_REQUIRED | MP_ARG_FUNC, {.u_func = arg_is_free_pin } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args),
         allowed_args, args);
 
-    digitalio_digitalinout_obj_t *clock_pin = assert_digitalinout(args[ARG_clock].u_obj);
-    digitalio_digitalinout_obj_t *data_pin = assert_digitalinout(args[ARG_data].u_obj);
-    digitalio_digitalinout_obj_t *latch_pin = assert_digitalinout(args[ARG_latch].u_obj);
+    digitalio_digitalinout_obj_t *clock_pin = args[ARG_clock].u_ptr;
+    digitalio_digitalinout_obj_t *data_pin = args[ARG_data].u_ptr;
+    digitalio_digitalinout_obj_t *latch_pin = args[ARG_latch].u_ptr;
 
     gamepadshift_obj_t *gamepad_singleton = MP_STATE_VM(gamepad_singleton);
     if (!gamepad_singleton ||

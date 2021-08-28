@@ -29,16 +29,12 @@ static mp_obj_t vectorio_polygon_make_new(const mp_obj_type_t *type, size_t n_ar
     enum { ARG_pixel_shader, ARG_points_list, ARG_x, ARG_y };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_pixel_shader, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED },
-        { MP_QSTR_points, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+        { MP_QSTR_points, MP_ARG_REQUIRED | MP_ARG_TYPE, {.u_obj = &mp_type_list} },
         { MP_QSTR_x, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0} },
         { MP_QSTR_y, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-
-    if (!mp_obj_is_type(args[ARG_points_list].u_obj, &mp_type_list)) {
-        mp_raise_TypeError_varg(translate("%q list must be a list"), MP_QSTR_point);
-    }
 
     vectorio_polygon_t *self = m_new_obj(vectorio_polygon_t);
     self->base.type = &vectorio_polygon_type;

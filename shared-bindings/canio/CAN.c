@@ -66,8 +66,8 @@
 STATIC mp_obj_t canio_can_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_tx, ARG_rx, ARG_baudrate, ARG_loopback, ARG_silent, ARG_auto_restart, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_tx, MP_ARG_OBJ | MP_ARG_REQUIRED },
-        { MP_QSTR_rx, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_tx, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = arg_is_free_pin} },
+        { MP_QSTR_rx, MP_ARG_FUNC | MP_ARG_REQUIRED, {.u_func = arg_is_free_pin} },
         { MP_QSTR_baudrate, MP_ARG_INT, {.u_int = 250000} },
         { MP_QSTR_loopback, MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_silent, MP_ARG_BOOL, {.u_bool = false} },
@@ -240,7 +240,7 @@ STATIC mp_obj_t canio_can_listen(size_t n_args, const mp_obj_t *pos_args, mp_map
 
     enum { ARG_matches, ARG_timeout, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_matches, MP_ARG_OBJ, {.u_obj = 0} },
+        { MP_QSTR_matches, MP_ARG_TYPE | MP_ARG_ARRAY_OF, {.u_obj = &canio_match_type} },
         { MP_QSTR_timeout, MP_ARG_FLOAT, {.u_float = MICROPY_CONST_FLOAT(10)} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -251,16 +251,8 @@ STATIC mp_obj_t canio_can_listen(size_t n_args, const mp_obj_t *pos_args, mp_map
     size_t nmatch = 0;
     mp_obj_t *match_objects = NULL;
 
-    if (args[ARG_matches].u_obj) {
-        mp_obj_get_array(args[ARG_matches].u_obj, &nmatch, &match_objects);
-    }
-
     canio_match_obj_t *matches[nmatch];
     for (size_t i = 0; i < nmatch; i++) {
-        const mp_obj_type_t *type = mp_obj_get_type(match_objects[i]);
-        if (type != &canio_match_type) {
-            mp_raise_TypeError_varg(translate("expected '%q' but got '%q'"), MP_QSTR_Match, type->name);
-        }
         matches[i] = MP_OBJ_TO_PTR(match_objects[i]);
     }
 
