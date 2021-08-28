@@ -744,11 +744,13 @@ typedef long long mp_longint_impl_t;
 #define MICROPY_PY_BUILTINS_FLOAT (1)
 #define MICROPY_FLOAT_CONST(x) x##F
 #define MICROPY_FLOAT_C_FUN(fun) fun##f
+#define MICROPY_CONST_NAN (MICROPY_FLOAT_C_FUN(nan)(""))
 typedef float mp_float_t;
 #elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
 #define MICROPY_PY_BUILTINS_FLOAT (1)
 #define MICROPY_FLOAT_CONST(x) x
 #define MICROPY_FLOAT_C_FUN(fun) fun
+#define MICROPY_CONST_NAN (MICROPY_FLOAT_C_FUN(nan)(""))
 typedef double mp_float_t;
 #else
 #define MICROPY_PY_BUILTINS_FLOAT (0)
