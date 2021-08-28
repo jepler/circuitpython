@@ -149,17 +149,12 @@ STATIC mp_obj_t i2cperipheral_i2c_peripheral_request(size_t n_args, const mp_obj
     }
     enum { ARG_timeout };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_timeout,      MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NEW_SMALL_INT(-1)} },
+        { MP_QSTR_timeout,      MP_ARG_KW_ONLY | MP_ARG_FLOAT, { .u_float = MICROPY_CONST_FLOAT(-1) } },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    #if MICROPY_PY_BUILTINS_FLOAT
-    float f = mp_obj_get_float(args[ARG_timeout].u_obj) * 1000;
-    int timeout_ms = (int)f;
-    #else
-    int timeout_ms = mp_obj_get_int(args[ARG_timeout].u_obj) * 1000;
-    #endif
+    int timeout_ms = (int)(args[ARG_timeout].u_float * 1000);
 
     bool forever = false;
     uint64_t timeout_end = 0;

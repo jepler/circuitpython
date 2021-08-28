@@ -223,7 +223,7 @@ STATIC mp_obj_t bleio_adapter_start_advertising(mp_uint_t n_args, const mp_obj_t
         { MP_QSTR_connectable, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_anonymous, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
-        { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+        { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(ADV_INTERVAL_DEFAULT) } },
         { MP_QSTR_tx_power, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_directed_to, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     };
@@ -240,11 +240,7 @@ STATIC mp_obj_t bleio_adapter_start_advertising(mp_uint_t n_args, const mp_obj_t
         mp_get_buffer_raise(args[ARG_scan_response].u_obj, &scan_response_bufinfo, MP_BUFFER_READ);
     }
 
-    if (args[ARG_interval].u_obj == MP_OBJ_NULL) {
-        args[ARG_interval].u_obj = mp_obj_new_float(ADV_INTERVAL_DEFAULT);
-    }
-
-    const mp_float_t interval = mp_obj_get_float(args[ARG_interval].u_obj);
+    const mp_float_t interval = args[ARG_interval].u_float;
     if (interval < ADV_INTERVAL_MIN || interval > ADV_INTERVAL_MAX) {
         mp_raise_ValueError_varg(translate("interval must be in range %s-%s"),
             ADV_INTERVAL_MIN_STRING, ADV_INTERVAL_MAX_STRING);
@@ -312,9 +308,9 @@ STATIC mp_obj_t bleio_adapter_start_scan(size_t n_args, const mp_obj_t *pos_args
         { MP_QSTR_prefixes,  MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_buffer_size,  MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 512} },
         { MP_QSTR_extended,  MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
-        { MP_QSTR_timeout,  MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-        { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_window,   MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+        { MP_QSTR_timeout,  MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(0.0) } },
+        { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(INTERVAL_DEFAULT) } },
+        { MP_QSTR_window,   MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(WINDOW_DEFAULT) } },
         { MP_QSTR_minimum_rssi,  MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -80} },
         { MP_QSTR_active,  MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
     };
@@ -323,32 +319,20 @@ STATIC mp_obj_t bleio_adapter_start_scan(size_t n_args, const mp_obj_t *pos_args
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_float_t timeout = 0.0f;
-    if (args[ARG_timeout].u_obj != mp_const_none) {
-        timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
-    }
-
-    if (args[ARG_interval].u_obj == MP_OBJ_NULL) {
-        args[ARG_interval].u_obj = mp_obj_new_float(INTERVAL_DEFAULT);
-    }
-
-    if (args[ARG_window].u_obj == MP_OBJ_NULL) {
-        args[ARG_window].u_obj = mp_obj_new_float(WINDOW_DEFAULT);
-    }
-
-    const mp_float_t interval = mp_obj_get_float(args[ARG_interval].u_obj);
+    const mp_float_t interval = args[ARG_interval].u_float;
     if (interval < INTERVAL_MIN || interval > INTERVAL_MAX) {
         mp_raise_ValueError_varg(translate("interval must be in range %s-%s"), INTERVAL_MIN_STRING, INTERVAL_MAX_STRING);
     }
 
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wfloat-equal"
+    const mp_float_t timeout = args[ARG_timeout].u_float;
     if (timeout != 0.0f && timeout < interval) {
         mp_raise_ValueError(translate("non-zero timeout must be >= interval"));
     }
     #pragma GCC diagnostic pop
 
-    const mp_float_t window = mp_obj_get_float(args[ARG_window].u_obj);
+    const mp_float_t window = args[ARG_window].u_float;
     if (window > interval) {
         mp_raise_ValueError(translate("window must be <= interval"));
     }
@@ -441,7 +425,7 @@ STATIC mp_obj_t bleio_adapter_connect(mp_uint_t n_args, const mp_obj_t *pos_args
     enum { ARG_address, ARG_timeout };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_address, MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_FLOAT },
     };
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -452,7 +436,7 @@ STATIC mp_obj_t bleio_adapter_connect(mp_uint_t n_args, const mp_obj_t *pos_args
     }
 
     bleio_address_obj_t *address = MP_OBJ_TO_PTR(args[ARG_address].u_obj);
-    mp_float_t timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
+    mp_float_t timeout = args[ARG_timeout].u_float;
 
     return common_hal_bleio_adapter_connect(self, address, timeout);
 }

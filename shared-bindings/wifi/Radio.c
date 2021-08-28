@@ -292,17 +292,14 @@ STATIC mp_obj_t wifi_radio_connect(size_t n_args, const mp_obj_t *pos_args, mp_m
         { MP_QSTR_password,  MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_channel, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_bssid, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_CONST_FLOAT(0) } },
     };
 
     wifi_radio_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_float_t timeout = 0;
-    if (args[ARG_timeout].u_obj != mp_const_none) {
-        timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
-    }
+    mp_float_t timeout = args[ARG_timeout].u_float;
 
     mp_buffer_info_t ssid;
     mp_get_buffer_raise(args[ARG_ssid].u_obj, &ssid, MP_BUFFER_READ);
@@ -478,17 +475,14 @@ STATIC mp_obj_t wifi_radio_ping(size_t n_args, const mp_obj_t *pos_args, mp_map_
     enum { ARG_ip, ARG_timeout };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_ip, MP_ARG_REQUIRED | MP_ARG_OBJ, },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_FLOAT, { .u_float = MICROPY_CONST_FLOAT(0.5) } },
     };
 
     wifi_radio_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_float_t timeout = 0.5;
-    if (args[ARG_timeout].u_obj != mp_const_none) {
-        timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
-    }
+    mp_float_t timeout = args[ARG_timeout].u_float;
 
     mp_int_t time_ms = common_hal_wifi_radio_ping(self, args[ARG_ip].u_obj, timeout);
     if (time_ms == -1) {

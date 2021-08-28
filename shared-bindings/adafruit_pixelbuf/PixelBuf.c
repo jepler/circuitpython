@@ -74,7 +74,7 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_size, MP_ARG_REQUIRED | MP_ARG_INT },
         { MP_QSTR_byteorder, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = MP_OBJ_NEW_QSTR(MP_QSTR_BGR) } },
-        { MP_QSTR_brightness, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
+        { MP_QSTR_brightness, MP_ARG_KW_ONLY | MP_ARG_FLOAT, { .u_float = MICROPY_FLOAT_CONST(1.0) } },
         { MP_QSTR_auto_write, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_header, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
         { MP_QSTR_trailer, MP_ARG_KW_ONLY | MP_ARG_OBJ, { .u_obj = mp_const_none } },
@@ -97,14 +97,11 @@ STATIC mp_obj_t pixelbuf_pixelbuf_make_new(const mp_obj_type_t *type, size_t n_a
         trailer_bufinfo.len = 0;
     }
 
-    float brightness = 1.0;
-    if (args[ARG_brightness].u_obj != mp_const_none) {
-        brightness = mp_obj_get_float(args[ARG_brightness].u_obj);
-        if (brightness < 0) {
-            brightness = 0;
-        } else if (brightness > 1) {
-            brightness = 1;
-        }
+    float brightness = args[ARG_brightness].u_float;
+    if (brightness < 0) {
+        brightness = 0;
+    } else if (brightness > 1) {
+        brightness = 1;
     }
 
     // Validation complete, allocate and populate object.

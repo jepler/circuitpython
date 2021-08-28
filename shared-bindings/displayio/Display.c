@@ -144,7 +144,7 @@ STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_a
         { MP_QSTR_set_vertical_scroll, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x0} },
         { MP_QSTR_backlight_pin, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
         { MP_QSTR_brightness_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = NO_BRIGHTNESS_COMMAND} },
-        { MP_QSTR_brightness, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_OBJ_NEW_SMALL_INT(1)} },
+        { MP_QSTR_brightness, MP_ARG_FLOAT | MP_ARG_KW_ONLY, {.u_float = MICROPY_CONST_FLOAT(1.0) } },
         { MP_QSTR_auto_brightness, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_single_byte_bounds, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_data_as_commands, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
@@ -163,7 +163,7 @@ STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_a
 
     const mcu_pin_obj_t *backlight_pin = validate_obj_is_free_pin_or_none(args[ARG_backlight_pin].u_obj);
 
-    mp_float_t brightness = mp_obj_get_float(args[ARG_brightness].u_obj);
+    mp_float_t brightness = args[ARG_brightness].u_float;
 
     mp_int_t rotation = args[ARG_rotation].u_int;
     if (rotation % 90 != 0) {

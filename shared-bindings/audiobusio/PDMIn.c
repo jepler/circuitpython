@@ -95,10 +95,10 @@ STATIC mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_ar
         { MP_QSTR_bit_depth,     MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
         { MP_QSTR_mono,          MP_ARG_KW_ONLY | MP_ARG_BOOL,{.u_bool = true} },
         { MP_QSTR_oversample,    MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
-        { MP_QSTR_startup_delay, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
+// Default microphone startup delay is 110msecs. Have seen mics that need 100 msecs plus a bit.
+#define STARTUP_DELAY_DEFAULT MICROPY_FLOAT_CONST(0.110)
+        { MP_QSTR_startup_delay, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = STARTUP_DELAY_DEFAULT } },
     };
-    // Default microphone startup delay is 110msecs. Have seen mics that need 100 msecs plus a bit.
-    static const float STARTUP_DELAY_DEFAULT = 0.110F;
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -121,9 +121,7 @@ STATIC mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_ar
     }
     bool mono = args[ARG_mono].u_bool;
 
-    mp_float_t startup_delay = (args[ARG_startup_delay].u_obj == MP_OBJ_NULL)
-        ? (mp_float_t)STARTUP_DELAY_DEFAULT
-        : mp_obj_get_float(args[ARG_startup_delay].u_obj);
+    mp_float_t startup_delay = args[ARG_startup_delay].u_float;
     if (startup_delay < 0.0 || startup_delay > 1.0) {
         mp_raise_ValueError(translate("Microphone startup delay must be in range 0.0 to 1.0"));
     }

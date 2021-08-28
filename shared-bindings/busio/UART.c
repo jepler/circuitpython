@@ -97,7 +97,7 @@ STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, co
         { MP_QSTR_bits, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 8} },
         { MP_QSTR_parity, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_stop, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 1} },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NEW_SMALL_INT(1)} },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(1.0) } },
         { MP_QSTR_receiver_buffer_size, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
         { MP_QSTR_rts, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
         { MP_QSTR_cts, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
@@ -131,7 +131,7 @@ STATIC mp_obj_t busio_uart_make_new(const mp_obj_type_t *type, size_t n_args, co
         mp_raise_ValueError(translate("stop must be 1 or 2"));
     }
 
-    mp_float_t timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
+    mp_float_t timeout = args[ARG_timeout].u_float;
     validate_timeout(timeout);
 
     const mcu_pin_obj_t *rts = validate_obj_is_free_pin_or_none(args[ARG_rts].u_obj);

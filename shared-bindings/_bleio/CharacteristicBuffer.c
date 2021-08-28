@@ -61,7 +61,7 @@ STATIC mp_obj_t bleio_characteristic_buffer_make_new(const mp_obj_type_t *type, 
     enum { ARG_characteristic, ARG_timeout, ARG_buffer_size, };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_characteristic,  MP_ARG_REQUIRED | MP_ARG_OBJ },
-        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NEW_SMALL_INT(1)} },
+        { MP_QSTR_timeout, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_FLOAT_CONST(1.0) } },
         { MP_QSTR_buffer_size, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
     };
 
@@ -70,7 +70,7 @@ STATIC mp_obj_t bleio_characteristic_buffer_make_new(const mp_obj_type_t *type, 
 
     const mp_obj_t characteristic = args[ARG_characteristic].u_obj;
 
-    mp_float_t timeout = mp_obj_get_float(args[ARG_timeout].u_obj);
+    mp_float_t timeout = args[ARG_timeout].u_float;
     if (timeout < 0.0f) {
         mp_raise_ValueError(translate("timeout must be >= 0.0"));
     }

@@ -241,7 +241,7 @@ STATIC mp_obj_t canio_can_listen(size_t n_args, const mp_obj_t *pos_args, mp_map
     enum { ARG_matches, ARG_timeout, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_matches, MP_ARG_OBJ, {.u_obj = 0} },
-        { MP_QSTR_timeout, MP_ARG_OBJ, {.u_obj = 0} },
+        { MP_QSTR_timeout, MP_ARG_FLOAT, {.u_float = MICROPY_CONST_FLOAT(10)} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     MP_STATIC_ASSERT(MP_ARRAY_SIZE(allowed_args) == NUM_ARGS);
@@ -264,7 +264,7 @@ STATIC mp_obj_t canio_can_listen(size_t n_args, const mp_obj_t *pos_args, mp_map
         matches[i] = MP_OBJ_TO_PTR(match_objects[i]);
     }
 
-    float timeout = args[ARG_timeout].u_obj ? mp_obj_get_float(args[ARG_timeout].u_obj) : 10.0f;
+    float timeout = args[ARG_timeout].u_float;
     canio_listener_obj_t *listener = m_new_obj(canio_listener_obj_t);
     listener->base.type = &canio_listener_type;
     common_hal_canio_listener_construct(listener, self, nmatch, matches, timeout);

@@ -36,12 +36,12 @@
 //| """Collection of bitmap manipulation tools"""
 //|
 
-STATIC int16_t validate_point(mp_obj_t point, int16_t default_value) {
+STATIC int16_t validate_point(int point, int16_t default_value) {
     // Checks if point is None and returns default_value, otherwise decodes integer value
-    if (point == mp_const_none) {
+    if (point == -1) {
         return default_value;
     }
-    return mp_obj_get_int(point);
+    return point;
 }
 
 STATIC void extract_tuple(mp_obj_t xy_tuple, int16_t *x, int16_t *y, int16_t x_default, int16_t y_default) {
@@ -154,19 +154,19 @@ STATIC mp_obj_t bitmaptools_obj_rotozoom(size_t n_args, const mp_obj_t *pos_args
         {MP_QSTR_dest_bitmap, MP_ARG_REQUIRED | MP_ARG_OBJ},
         {MP_QSTR_source_bitmap, MP_ARG_REQUIRED | MP_ARG_OBJ},
 
-        {MP_QSTR_ox, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to destination->width  / 2
-        {MP_QSTR_oy, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to destination->height / 2
-        {MP_QSTR_dest_clip0, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-        {MP_QSTR_dest_clip1, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        {MP_QSTR_ox, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} }, // -1 convert to destination->width  / 2
+        {MP_QSTR_oy, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = -1} }, // -1 convert to destination->height / 2
+        {MP_QSTR_dest_clip0, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} },
+        {MP_QSTR_dest_clip1, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} },
 
-        {MP_QSTR_px, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to source->width  / 2
-        {MP_QSTR_py, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to source->height / 2
-        {MP_QSTR_source_clip0, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
-        {MP_QSTR_source_clip1, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        {MP_QSTR_px, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} }, // -1 convert to source->width  / 2
+        {MP_QSTR_py, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} }, // -1 convert to source->height / 2
+        {MP_QSTR_source_clip0, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} },
+        {MP_QSTR_source_clip1, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_int = -1} },
 
-        {MP_QSTR_angle, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to 0.0
-        {MP_QSTR_scale, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} }, // None convert to 1.0
-        {MP_QSTR_skip_index, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
+        {MP_QSTR_angle, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_CONST_FLOAT(0.0)} },
+        {MP_QSTR_scale, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_CONST_FLOAT(1.0)} },
+        {MP_QSTR_skip_index, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_int = -1} },
     };
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -183,13 +183,13 @@ STATIC mp_obj_t bitmaptools_obj_rotozoom(size_t n_args, const mp_obj_t *pos_args
 
     // Confirm the destination location target (ox,oy); if None, default to bitmap midpoint
     int16_t ox, oy;
-    ox = validate_point(args[ARG_ox].u_obj, destination->width / 2);
-    oy = validate_point(args[ARG_oy].u_obj, destination->height / 2);
+    ox = validate_point(args[ARG_ox].u_int, destination->width / 2);
+    oy = validate_point(args[ARG_oy].u_int, destination->height / 2);
 
     // Confirm the source location target (px,py); if None, default to bitmap midpoint
     int16_t px, py;
-    px = validate_point(args[ARG_px].u_obj, source->width / 2);
-    py = validate_point(args[ARG_py].u_obj, source->height / 2);
+    px = validate_point(args[ARG_px].u_int, source->width / 2);
+    py = validate_point(args[ARG_py].u_int, source->height / 2);
 
     // Validate the clipping regions for the destination bitmap
     int16_t dest_clip0_x, dest_clip0_y, dest_clip1_x, dest_clip1_y;
@@ -204,16 +204,10 @@ STATIC mp_obj_t bitmaptools_obj_rotozoom(size_t n_args, const mp_obj_t *pos_args
         args[ARG_source_clip1].u_obj, &source_clip1_x, &source_clip1_y);
 
     // Confirm the angle value
-    float angle = 0.0;
-    if (args[ARG_angle].u_obj != mp_const_none) {
-        angle = mp_obj_get_float(args[ARG_angle].u_obj);
-    }
+    float angle = args[ARG_angle].u_float;
 
     // Confirm the scale value
-    float scale = 1.0;
-    if (args[ARG_scale].u_obj != mp_const_none) {
-        scale = mp_obj_get_float(args[ARG_scale].u_obj);
-    }
+    float scale = args[ARG_scale].u_float;
     if (scale < 0) { // ensure scale >= 0
         scale = 1.0;
     }

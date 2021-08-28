@@ -128,14 +128,14 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
         { MP_QSTR_set_current_row_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = NO_COMMAND} },
         { MP_QSTR_write_black_ram_command, MP_ARG_INT | MP_ARG_REQUIRED },
         { MP_QSTR_black_bits_inverted, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
-        { MP_QSTR_write_color_ram_command, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
+        { MP_QSTR_write_color_ram_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = NO_COMMAND } },
         { MP_QSTR_color_bits_inverted, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_highlight_color, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x000000} },
         { MP_QSTR_refresh_display_command, MP_ARG_INT | MP_ARG_REQUIRED },
-        { MP_QSTR_refresh_time, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_OBJ_NEW_SMALL_INT(40)} },
+        { MP_QSTR_refresh_time, MP_ARG_FLOAT | MP_ARG_KW_ONLY, {.u_float = MICROPY_CONST_FLOAT(40) } },
         { MP_QSTR_busy_pin, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
         { MP_QSTR_busy_state, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = true} },
-        { MP_QSTR_seconds_per_frame, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_OBJ_NEW_SMALL_INT(180)} },
+        { MP_QSTR_seconds_per_frame, MP_ARG_FLOAT | MP_ARG_KW_ONLY, {.u_float = MICROPY_CONST_FLOAT(180) } },
         { MP_QSTR_always_toggle_chip_select, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
         { MP_QSTR_grayscale, MP_ARG_BOOL | MP_ARG_KW_ONLY, {.u_bool = false} },
     };
@@ -161,14 +161,11 @@ STATIC mp_obj_t displayio_epaperdisplay_make_new(const mp_obj_type_t *type, size
     displayio_epaperdisplay_obj_t *self = &disp->epaper_display;
     ;
 
-    mp_float_t refresh_time = mp_obj_get_float(args[ARG_refresh_time].u_obj);
-    mp_float_t seconds_per_frame = mp_obj_get_float(args[ARG_seconds_per_frame].u_obj);
+    mp_float_t refresh_time = args[ARG_refresh_time].u_float;
+    mp_float_t seconds_per_frame = args[ARG_seconds_per_frame].u_float;
 
-    mp_int_t write_color_ram_command = NO_COMMAND;
+    mp_int_t write_color_ram_command = args[ARG_write_color_ram_command].u_int;
     mp_int_t highlight_color = args[ARG_highlight_color].u_int;
-    if (args[ARG_write_color_ram_command].u_obj != mp_const_none) {
-        write_color_ram_command = mp_obj_get_int(args[ARG_write_color_ram_command].u_obj);
-    }
 
     self->base.type = &displayio_epaperdisplay_type;
     common_hal_displayio_epaperdisplay_construct(

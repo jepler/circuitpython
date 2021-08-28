@@ -63,25 +63,21 @@ STATIC mp_obj_t alarm_time_timealarm_make_new(const mp_obj_type_t *type,
 
     enum { ARG_monotonic_time, ARG_epoch_time };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_monotonic_time, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        { MP_QSTR_monotonic_time, MP_ARG_KW_ONLY | MP_ARG_FLOAT, {.u_float = MICROPY_CONST_NAN } },
         { MP_QSTR_epoch_time, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
     };
 
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    bool have_monotonic = args[ARG_monotonic_time].u_obj != mp_const_none;
+    bool have_monotonic = !isnan(args[ARG_monotonic_time].u_float);
     bool have_epoch = args[ARG_epoch_time].u_obj != mp_const_none;
 
     if (!(have_monotonic ^ have_epoch)) {
         mp_raise_ValueError(translate("Supply one of monotonic_time or epoch_time"));
     }
 
-    mp_float_t monotonic_time = 0;   // To avoid compiler warning.
-    if (have_monotonic) {
-        monotonic_time = mp_obj_get_float(args[ARG_monotonic_time].u_obj);
-    }
-
+    mp_float_t monotonic_time = args[ARG_monotonic_time].u_float;
     mp_float_t monotonic_time_now = common_hal_time_monotonic_ms() / 1000.0;
 
     if (have_epoch) {
