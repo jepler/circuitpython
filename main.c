@@ -212,10 +212,7 @@ STATIC bool maybe_run_list(const char * const * filenames, pyexec_result_t* exec
         return false;
     }
     mp_hal_stdout_tx_str(filename);
-    const compressed_string_t* compressed = translate(" output:\n");
-    char decompressed[decompress_length(compressed)];
-    decompress(compressed, decompressed);
-    mp_hal_stdout_tx_str(decompressed);
+    serial_write_compressed(translate(" output:\n"));
     pyexec_file(filename, exec_result);
     #if CIRCUITPY_ATEXIT
     shared_module_atexit_execute(exec_result);
@@ -694,6 +691,9 @@ STATIC void __attribute__ ((noinline)) run_boot_py(safe_mode_t safe_mode) {
 
             // Write version info to boot_out.txt.
             mp_hal_stdout_tx_str(MICROPY_FULL_VERSION_INFO);
+            // Write the board ID (board directory and ID on circuitpython.org)
+            mp_hal_stdout_tx_str("\r\n" "Board ID:");
+            mp_hal_stdout_tx_str(CIRCUITPY_BOARD_ID);
             mp_hal_stdout_tx_str("\r\n");
         }
         #endif
@@ -755,7 +755,7 @@ STATIC int run_repl(void) {
     usb_setup_with_vm();
     #endif
 
-    autoreload_suspend();
+    autoreload_suspend(AUTORELOAD_LOCK_REPL);
 
     // Set the status LED to the REPL color before running the REPL. For
     // NeoPixels and DotStars this will be sticky but for PWM or single LED it
@@ -785,7 +785,7 @@ STATIC int run_repl(void) {
     status_led_deinit();
     #endif
 
-    autoreload_resume();
+    autoreload_resume(AUTORELOAD_LOCK_REPL);
     return exit_code;
 }
 

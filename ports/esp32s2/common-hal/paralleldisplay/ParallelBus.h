@@ -24,44 +24,24 @@
  * THE SOFTWARE.
  */
 
-#include "shared-bindings/displayio/ParallelBus.h"
+#ifndef MICROPY_INCLUDED_ESP32S2_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
+#define MICROPY_INCLUDED_ESP32S2_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 
-#include <stdint.h>
+#include "common-hal/digitalio/DigitalInOut.h"
 
-#include "common-hal/microcontroller/Pin.h"
-#include "py/runtime.h"
-#include "shared-bindings/digitalio/DigitalInOut.h"
-#include "shared-bindings/microcontroller/__init__.h"
+typedef struct {
+    mp_obj_base_t base;
+    uint32_t *bus; // pointer where 8 bits of data are written to the display
+    digitalio_digitalinout_obj_t command;
+    digitalio_digitalinout_obj_t chip_select;
+    digitalio_digitalinout_obj_t reset;
+    digitalio_digitalinout_obj_t write;
+    digitalio_digitalinout_obj_t read;
+    uint8_t data0_pin; // pin number for the lowest number data pin.  Must be 8-bit aligned
+    bool data_write_same_register; // if data and write pins are in the sare
+    uint32_t *write_set_register; // pointer to the write group for setting the write bit to latch the data on the LCD
+    uint32_t *write_clear_register; // pointer to the write group for clearing the write bit to latch the data on the LCD
+    uint32_t write_mask; // bit mask for the single bit for the write pin register
+} paralleldisplay_parallelbus_obj_t;
 
-void common_hal_displayio_parallelbus_construct(displayio_parallelbus_obj_t *self,
-    const mcu_pin_obj_t *data0, const mcu_pin_obj_t *command, const mcu_pin_obj_t *chip_select,
-    const mcu_pin_obj_t *write, const mcu_pin_obj_t *read, const mcu_pin_obj_t *reset, uint32_t frequency) {
-
-    mp_raise_NotImplementedError(translate("ParallelBus not yet supported"));
-}
-
-void common_hal_displayio_parallelbus_deinit(displayio_parallelbus_obj_t *self) {
-
-}
-
-bool common_hal_displayio_parallelbus_reset(mp_obj_t obj) {
-    return false;
-}
-
-bool common_hal_displayio_parallelbus_bus_free(mp_obj_t obj) {
-    return false;
-}
-
-bool common_hal_displayio_parallelbus_begin_transaction(mp_obj_t obj) {
-
-    return false;
-}
-
-void common_hal_displayio_parallelbus_send(mp_obj_t obj, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
-
-}
-
-void common_hal_displayio_parallelbus_end_transaction(mp_obj_t obj) {
-
-}
+#endif // MICROPY_INCLUDED_ESP32S2_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H

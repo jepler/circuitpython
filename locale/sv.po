@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-04 12:55-0600\n"
-"PO-Revision-Date: 2021-08-23 23:02+0000\n"
+"PO-Revision-Date: 2021-08-26 21:34+0000\n"
 "Last-Translator: Jonny Bergdahl <jonny@bergdahl.it>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: sv\n"
@@ -41,6 +41,16 @@ msgstr ""
 "\n"
 "Vänligen skapa ett ärende med innehållet i din CIRCUITPY-enhet på\n"
 "https://github.com/adafruit/circuitpython/issues\n"
+
+#: lib/utils/pyexec.c
+msgid ""
+"\n"
+"paste mode; Ctrl-C to cancel, Ctrl-D to finish\n"
+"=== "
+msgstr ""
+"\n"
+"klistra in-läge; Ctrl-C för att avbryta, Ctrl-D för att avsluta\n"
+"=== "
 
 #: py/obj.c
 msgid "  File \"%q\""
@@ -104,8 +114,8 @@ msgid "%q indices must be integers, not %s"
 msgstr "Indexet %q måste vara ett heltal, inte %s"
 
 #: py/argcheck.c
-msgid "%q length must be %q"
-msgstr "längden på %q måste vara %q"
+msgid "%q length must be %d-%d"
+msgstr "längden på %q måste vara %d-%d"
 
 #: shared-bindings/usb_hid/Device.c
 msgid "%q length must be >= 1"
@@ -1244,7 +1254,7 @@ msgstr "Otillräcklig autentisering"
 msgid "Insufficient encryption"
 msgstr "Otillräcklig kryptering"
 
-#: ports/raspberrypi/audio_dma.c
+#: ports/atmel-samd/audio_dma.c ports/raspberrypi/audio_dma.c
 msgid "Internal audio buffer too small"
 msgstr "Intern ljudbuffert för liten"
 
@@ -1411,7 +1421,8 @@ msgstr "Ogiltig pinne för höger kanal"
 #: ports/mimxrt10xx/common-hal/busio/SPI.c ports/nrf/common-hal/busio/I2C.c
 #: ports/raspberrypi/common-hal/busio/I2C.c
 #: ports/raspberrypi/common-hal/busio/SPI.c
-#: ports/raspberrypi/common-hal/busio/UART.c
+#: ports/raspberrypi/common-hal/busio/UART.c shared-bindings/busio/SPI.c
+#: shared-bindings/busio/UART.c
 msgid "Invalid pins"
 msgstr "Ogiltiga pinnar"
 
@@ -3974,8 +3985,10 @@ msgstr "pow() med 3 argument kräver heltal"
 #: ports/esp32s2/boards/adafruit_funhouse/mpconfigboard.h
 #: ports/esp32s2/boards/adafruit_magtag_2.9_grayscale/mpconfigboard.h
 #: ports/esp32s2/boards/adafruit_metro_esp32s2/mpconfigboard.h
+#: ports/esp32s2/boards/ai_thinker_esp_12k_nodemcu/mpconfigboard.h
 #: ports/esp32s2/boards/artisense_rd00/mpconfigboard.h
 #: ports/esp32s2/boards/atmegazero_esp32s2/mpconfigboard.h
+#: ports/esp32s2/boards/crumpspace_crumps2/mpconfigboard.h
 #: ports/esp32s2/boards/electroniccats_bastwifi/mpconfigboard.h
 #: ports/esp32s2/boards/espressif_kaluga_1.3/mpconfigboard.h
 #: ports/esp32s2/boards/espressif_kaluga_1/mpconfigboard.h
@@ -3988,10 +4001,12 @@ msgstr "pow() med 3 argument kräver heltal"
 #: ports/esp32s2/boards/gravitech_cucumber_r/mpconfigboard.h
 #: ports/esp32s2/boards/gravitech_cucumber_rs/mpconfigboard.h
 #: ports/esp32s2/boards/lilygo_ttgo_t8_s2_st7789/mpconfigboard.h
+#: ports/esp32s2/boards/lolin_s2_mini/mpconfigboard.h
 #: ports/esp32s2/boards/microdev_micro_s2/mpconfigboard.h
 #: ports/esp32s2/boards/morpheans_morphesp-240/mpconfigboard.h
 #: ports/esp32s2/boards/muselab_nanoesp32_s2_wroom/mpconfigboard.h
 #: ports/esp32s2/boards/muselab_nanoesp32_s2_wrover/mpconfigboard.h
+#: ports/esp32s2/boards/odt_pixelwing_esp32_s2/mpconfigboard.h
 #: ports/esp32s2/boards/targett_module_clip_wroom/mpconfigboard.h
 #: ports/esp32s2/boards/targett_module_clip_wrover/mpconfigboard.h
 #: ports/esp32s2/boards/unexpectedmaker_feathers2/mpconfigboard.h
@@ -4027,6 +4042,10 @@ msgstr "push_threshold måste vara mellan 1 och 32"
 #: extmod/modutimeq.c
 msgid "queue overflow"
 msgstr "köstorlek överskreds"
+
+#: lib/utils/pyexec.c
+msgid "raw REPL; CTRL-B to exit\n"
+msgstr "rå REPL. CTRL-B för att avsluta\n"
 
 #: py/parse.c
 msgid "raw f-strings are not implemented"
@@ -4521,6 +4540,9 @@ msgstr "zi måste vara av typ float"
 #: extmod/ulab/code/scipy/signal/signal.c
 msgid "zi must be of shape (n_section, 2)"
 msgstr "zi måste vara i formen (n_section, 2)"
+
+#~ msgid "%q length must be %q"
+#~ msgstr "längden på %q måste vara %q"
 
 #~ msgid "%q must be 0-255"
 #~ msgstr "%q måste vara 0-255"

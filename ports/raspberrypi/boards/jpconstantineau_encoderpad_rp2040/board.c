@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Lucian Copeland for Adafruit Industries
+ * Copyright (c) 2021 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,24 +24,22 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_ESP32S2_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
-#define MICROPY_INCLUDED_ESP32S2_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
+#include "shared-bindings/board/__init__.h"
+#include "shared-bindings/microcontroller/Pin.h"
+#include "src/rp2_common/hardware_gpio/include/hardware/gpio.h"
+#include "supervisor/shared/board.h"
 
-#include "common-hal/digitalio/DigitalInOut.h"
+void board_init(void) {
+}
 
-typedef struct {
-    mp_obj_base_t base;
-    uint32_t *bus; // pointer where 8 bits of data are written to the display
-    digitalio_digitalinout_obj_t command;
-    digitalio_digitalinout_obj_t chip_select;
-    digitalio_digitalinout_obj_t reset;
-    digitalio_digitalinout_obj_t write;
-    digitalio_digitalinout_obj_t read;
-    uint8_t data0_pin; // pin number for the lowest number data pin.  Must be 8-bit aligned
-    bool data_write_same_register; // if data and write pins are in the sare
-    uint32_t *write_set_register; // pointer to the write group for setting the write bit to latch the data on the LCD
-    uint32_t *write_clear_register; // pointer to the write group for clearing the write bit to latch the data on the LCD
-    uint32_t write_mask; // bit mask for the single bit for the write pin register
-} displayio_parallelbus_obj_t;
+bool board_requests_safe_mode(void) {
+    return false;
+}
 
-#endif // MICROPY_INCLUDED_ESP32S2_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
+void reset_board(void) {
+    // turn off any left over LED
+    board_reset_user_neopixels(&pin_GPIO15, 9);
+}
+
+void board_deinit(void) {
+}

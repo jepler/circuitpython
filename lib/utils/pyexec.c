@@ -370,7 +370,7 @@ STATIC int pyexec_raw_repl_process_char(int c) {
             }
             goto reset;
         }
-        mp_hal_stdout_tx_str("raw REPL; CTRL-B to exit\r\n");
+        serial_write_compressed(translate("raw REPL; CTRL-B to exit\n"));
         goto reset;
     } else if (c == CHAR_CTRL_B) {
         // change to friendly REPL
@@ -469,7 +469,7 @@ STATIC int pyexec_friendly_repl_process_char(int c) {
             return PYEXEC_FORCED_EXIT;
         } else if (ret == CHAR_CTRL_E) {
             // paste mode
-            mp_hal_stdout_tx_str("\r\npaste mode; Ctrl-C to cancel, Ctrl-D to finish\r\n=== ");
+            serial_write_compressed(translate("\npaste mode; Ctrl-C to cancel, Ctrl-D to finish\n=== "));
             vstr_reset(MP_STATE_VM(repl_line));
             repl.paste_mode = true;
             return 0;
@@ -545,7 +545,7 @@ int pyexec_raw_repl(void) {
     vstr_init(&line, 32);
 
 raw_repl_reset:
-    mp_hal_stdout_tx_str("raw REPL; CTRL-B to exit\r\n");
+    serial_write_compressed(translate("raw REPL; CTRL-B to exit\n"));
 
     for (;;) {
         vstr_reset(&line);
@@ -650,7 +650,21 @@ friendly_repl_reset:
         }
 
         vstr_reset(&line);
-        int ret = readline(&line, ">>> ");
+
+        nlr_buf_t nlr;
+        nlr.ret_val = NULL;
+        int ret = 0;
+        if (nlr_push(&nlr) == 0) {
+            ret = readline(&line, ">>> ");
+        } else {
+            // Uncaught exception
+            mp_handle_pending(false); // clear any pending exceptions (and run any callbacks)
+
+            // Print exceptions but stay in the REPL. There are very few delayed
+            // exceptions. The WatchDogTimer can raise one though.
+            mp_hal_stdout_tx_str("\r\n");
+            mp_obj_print_exception(&mp_plat_print, MP_OBJ_FROM_PTR(nlr.ret_val));
+        }
         mp_parse_input_kind_t parse_input_kind = MP_PARSE_SINGLE_INPUT;
 
         if (ret == CHAR_CTRL_A) {

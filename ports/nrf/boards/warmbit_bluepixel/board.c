@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,22 +24,15 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
-#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
+#include "supervisor/board.h"
 
-#include "common-hal/digitalio/DigitalInOut.h"
+void board_init(void) {
+}
 
-typedef struct {
-    mp_obj_base_t base;
-    uint8_t *bus;
-    digitalio_digitalinout_obj_t command;
-    digitalio_digitalinout_obj_t chip_select;
-    digitalio_digitalinout_obj_t reset;
-    digitalio_digitalinout_obj_t write;
-    digitalio_digitalinout_obj_t read;
-    uint8_t data0_pin;
-    PortGroup *write_group;
-    uint32_t write_mask;
-} displayio_parallelbus_obj_t;
+bool board_requests_safe_mode(void) {
+    return false;
+}
 
-#endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_DISPLAYIO_PARALLELBUS_H
+void reset_board(void) {
+
+}

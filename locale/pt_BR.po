@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-01-04 12:55-0600\n"
-"PO-Revision-Date: 2021-08-25 15:34+0000\n"
+"PO-Revision-Date: 2021-08-28 01:34+0000\n"
 "Last-Translator: Wellington Terumi Uemura <wellingtonuemura@gmail.com>\n"
 "Language-Team: \n"
 "Language: pt_BR\n"
@@ -41,6 +41,16 @@ msgstr ""
 "\n"
 "Registre um problema com o conteúdo do seu controlador no CIRCUITPY\n"
 "https://github.com/adafruit/circuitpython/issues\n"
+
+#: lib/utils/pyexec.c
+msgid ""
+"\n"
+"paste mode; Ctrl-C to cancel, Ctrl-D to finish\n"
+"=== "
+msgstr ""
+"\n"
+"modo colar; Ctrl-C para cancelar, Ctrl-D para concluir\n"
+"=== "
 
 #: py/obj.c
 msgid "  File \"%q\""
@@ -105,8 +115,8 @@ msgid "%q indices must be integers, not %s"
 msgstr "Os índices %q devem ser inteiros, e não %s"
 
 #: py/argcheck.c
-msgid "%q length must be %q"
-msgstr "o comprimento %q deve ser %q"
+msgid "%q length must be %d-%d"
+msgstr "o comprimento %q deve ser %d-%d"
 
 #: shared-bindings/usb_hid/Device.c
 msgid "%q length must be >= 1"
@@ -1259,7 +1269,7 @@ msgstr "Autenticação insuficiente"
 msgid "Insufficient encryption"
 msgstr "Criptografia insuficiente"
 
-#: ports/raspberrypi/audio_dma.c
+#: ports/atmel-samd/audio_dma.c ports/raspberrypi/audio_dma.c
 msgid "Internal audio buffer too small"
 msgstr "O buffer interno de áudio é muito pequeno"
 
@@ -1426,7 +1436,8 @@ msgstr "Pino inválido para canal direito"
 #: ports/mimxrt10xx/common-hal/busio/SPI.c ports/nrf/common-hal/busio/I2C.c
 #: ports/raspberrypi/common-hal/busio/I2C.c
 #: ports/raspberrypi/common-hal/busio/SPI.c
-#: ports/raspberrypi/common-hal/busio/UART.c
+#: ports/raspberrypi/common-hal/busio/UART.c shared-bindings/busio/SPI.c
+#: shared-bindings/busio/UART.c
 msgid "Invalid pins"
 msgstr "Pinos inválidos"
 
@@ -4015,8 +4026,10 @@ msgstr "o pow() com 3 argumentos requer números inteiros"
 #: ports/esp32s2/boards/adafruit_funhouse/mpconfigboard.h
 #: ports/esp32s2/boards/adafruit_magtag_2.9_grayscale/mpconfigboard.h
 #: ports/esp32s2/boards/adafruit_metro_esp32s2/mpconfigboard.h
+#: ports/esp32s2/boards/ai_thinker_esp_12k_nodemcu/mpconfigboard.h
 #: ports/esp32s2/boards/artisense_rd00/mpconfigboard.h
 #: ports/esp32s2/boards/atmegazero_esp32s2/mpconfigboard.h
+#: ports/esp32s2/boards/crumpspace_crumps2/mpconfigboard.h
 #: ports/esp32s2/boards/electroniccats_bastwifi/mpconfigboard.h
 #: ports/esp32s2/boards/espressif_kaluga_1.3/mpconfigboard.h
 #: ports/esp32s2/boards/espressif_kaluga_1/mpconfigboard.h
@@ -4029,10 +4042,12 @@ msgstr "o pow() com 3 argumentos requer números inteiros"
 #: ports/esp32s2/boards/gravitech_cucumber_r/mpconfigboard.h
 #: ports/esp32s2/boards/gravitech_cucumber_rs/mpconfigboard.h
 #: ports/esp32s2/boards/lilygo_ttgo_t8_s2_st7789/mpconfigboard.h
+#: ports/esp32s2/boards/lolin_s2_mini/mpconfigboard.h
 #: ports/esp32s2/boards/microdev_micro_s2/mpconfigboard.h
 #: ports/esp32s2/boards/morpheans_morphesp-240/mpconfigboard.h
 #: ports/esp32s2/boards/muselab_nanoesp32_s2_wroom/mpconfigboard.h
 #: ports/esp32s2/boards/muselab_nanoesp32_s2_wrover/mpconfigboard.h
+#: ports/esp32s2/boards/odt_pixelwing_esp32_s2/mpconfigboard.h
 #: ports/esp32s2/boards/targett_module_clip_wroom/mpconfigboard.h
 #: ports/esp32s2/boards/targett_module_clip_wrover/mpconfigboard.h
 #: ports/esp32s2/boards/unexpectedmaker_feathers2/mpconfigboard.h
@@ -4068,6 +4083,10 @@ msgstr "O pull_threshold deve ser entre 1 e 32"
 #: extmod/modutimeq.c
 msgid "queue overflow"
 msgstr "estouro de fila"
+
+#: lib/utils/pyexec.c
+msgid "raw REPL; CTRL-B to exit\n"
+msgstr "REPL bruto; CTRL-B para encerrar\n"
 
 #: py/parse.c
 msgid "raw f-strings are not implemented"
@@ -4562,6 +4581,9 @@ msgstr "zi deve ser de um tipo float"
 #: extmod/ulab/code/scipy/signal/signal.c
 msgid "zi must be of shape (n_section, 2)"
 msgstr "zi deve estar na forma (n_section, 2)"
+
+#~ msgid "%q length must be %q"
+#~ msgstr "o comprimento %q deve ser %q"
 
 #~ msgid "%q must be 0-255"
 #~ msgstr "%q deve ser entre 0-255"
