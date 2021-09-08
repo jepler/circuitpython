@@ -456,6 +456,11 @@ esp_err_t i2s_lcd_acquire(i2s_lcd_handle_t handle) {
     return ESP_OK;
 }
 
+bool i2s_lcd_acquire_nonblocking(i2s_lcd_handle_t handle, TickType_t ticks_to_wait) {
+    i2s_lcd_driver_t *i2s_lcd_drv = (i2s_lcd_driver_t *)handle;
+    return xSemaphoreTake(i2s_lcd_drv->mutex, ticks_to_wait);
+}
+
 esp_err_t i2s_lcd_release(i2s_lcd_handle_t handle) {
     i2s_lcd_driver_t *i2s_lcd_drv = (i2s_lcd_driver_t *)handle;
     I2S_CHECK(NULL != i2s_lcd_drv, "handle pointer invalid", ESP_ERR_INVALID_ARG);
