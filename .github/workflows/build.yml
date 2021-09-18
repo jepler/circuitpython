@@ -33,6 +33,31 @@ jobs:
       run: |
         git describe --dirty --tags
         echo >>$GITHUB_ENV CP_VERSION=$(git describe --dirty --tags)
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        # Enable listing of files matching each filter.
+        # Paths to files will be available in `${FILTER_NAME}_files` output variable.
+        # Paths will be formatted as JSON array
+        list-files: json
+
+        # Compare against this branch. (Ignored for PRs.)
+        base: ${{ github.ref }}
+
+        # In this example all changed files are passed to the following action to do
+        # some custom processing.
+        filters: |
+          changed:
+            - '**'
+    - name: "Set boards to build"
+      id: set-matrix
+      working-directory: tools
+      env:
+        CHANGED_FILES: ${{ steps.filter.outputs.changed_files }}
+      run: |
+        builtin echo "I AM A TEAPOT"
+        builtin echo $CHANGED_FILES | (unset CHANGED_FILES; python3 -u ci_changed_board_list.py)
+
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
@@ -140,30 +165,6 @@ jobs:
         # setup.py sdist was run by 'make stubs'
         [ -z "$TWINE_USERNAME" ] || echo "Uploading dev release to PyPi"
         [ -z "$TWINE_USERNAME" ] || twine upload circuitpython-stubs/dist/*
-    - uses: dorny/paths-filter@v2
-      id: filter
-      with:
-        # Enable listing of files matching each filter.
-        # Paths to files will be available in `${FILTER_NAME}_files` output variable.
-        # Paths will be formatted as JSON array
-        list-files: json
-
-        # Compare against this branch. (Ignored for PRs.)
-        base: ${{ github.ref }}
-
-        # In this example all changed files are passed to the following action to do
-        # some custom processing.
-        filters: |
-          changed:
-            - '**'
-    - name: "Set boards to build"
-      id: set-matrix
-      working-directory: tools
-      env:
-        CHANGED_FILES: ${{ steps.filter.outputs.changed_files }}
-      run: |
-        builtin echo "I AM A TEAPOT"
-        builtin echo $CHANGED_FILES | (unset CHANGED_FILES; python3 -u ci_changed_board_list.py)
 
   mpy-cross-mac:
     runs-on: macos-10.15
