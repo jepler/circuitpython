@@ -162,7 +162,8 @@ jobs:
       env:
         CHANGED_FILES: ${{ steps.filter.outputs.changed_files }}
       run: |
-        python3 -u ci_changed_board_list.py
+        builtin echo "I AM A TEAPOT"
+        builtin echo $CHANGED_FILES | (unset CHANGED_FILES; python3 -u ci_changed_board_list.py)
 
   mpy-cross-mac:
     runs-on: macos-10.15
