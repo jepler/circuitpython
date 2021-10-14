@@ -35,7 +35,7 @@
 #include "py/runtime.h"
 #include "py/mperrno.h"
 
-#include "lib/netutils/netutils.h"
+#include "shared/netutils/netutils.h"
 
 //| class SSLSocket:
 //|     """Implements TLS security on a subset of `socketpool.Socket` functions. Cannot be created

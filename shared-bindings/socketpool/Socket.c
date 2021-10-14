@@ -36,7 +36,7 @@
 #include "py/runtime.h"
 #include "py/mperrno.h"
 
-#include "lib/netutils/netutils.h"
+#include "shared/netutils/netutils.h"
 
 //| class Socket:
 //|     """TCP, UDP and RAW socket. Cannot be created directly. Instead, call
