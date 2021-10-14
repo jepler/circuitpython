@@ -1,8 +1,6 @@
 :mod:`uctypes` -- access binary data in a structured way
 ========================================================
 
-.. include:: ../templates/unsupported_in_circuitpython.inc
-
 .. module:: uctypes
    :synopsis: access binary data in a structured way
 

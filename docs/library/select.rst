@@ -3,6 +3,7 @@
 
 .. include:: ../templates/unsupported_in_circuitpython.inc
 
+.. module:: select
    :synopsis: wait for events on a set of streams
 
 |see_cpython_module| :mod:`cpython:select`.
