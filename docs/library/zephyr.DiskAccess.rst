@@ -35,4 +35,3 @@ Methods
     These methods implement the simple and extended
     :ref:`block protocol <block-device-interface>` defined by
     :class:`uos.AbstractBlockDev`.
-
