@@ -29,9 +29,9 @@
 #include "shared-bindings/time/__init__.h"
 #include "shared-bindings/util.h"
 
-#include "lib/utils/buffer_helper.h"
-#include "lib/utils/context_manager_helpers.h"
-#include "lib/utils/interrupt_char.h"
+#include "shared/runtime/buffer_helper.h"
+#include "shared/runtime/context_manager_helpers.h"
+#include "shared/runtime/interrupt_char.h"
 
 #include "py/mperrno.h"
 #include "py/mphal.h"

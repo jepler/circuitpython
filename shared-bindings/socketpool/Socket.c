@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "lib/utils/context_manager_helpers.h"
+#include "shared/runtime/context_manager_helpers.h"
 #include "py/objtuple.h"
 #include "py/objlist.h"
 #include "py/runtime.h"

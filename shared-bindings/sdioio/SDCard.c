@@ -33,8 +33,8 @@
 #include "shared-bindings/sdioio/SDCard.h"
 #include "shared-bindings/util.h"
 
-#include "lib/utils/buffer_helper.h"
-#include "lib/utils/context_manager_helpers.h"
+#include "shared/runtime/buffer_helper.h"
+#include "shared/runtime/context_manager_helpers.h"
 #include "py/mperrno.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
