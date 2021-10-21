@@ -104,8 +104,20 @@ STATIC void wait_for_ready(sdcardio_sdcard_obj_t *self) {
     }
 }
 
+STATIC bool cmd_nodata(sdcardio_sdcard_obj_t *self, int cmd, int response);
+
+STATIC void exit_cmd25(sdcardio_sdcard_obj_t *self) {
+    if (self->in_cmd25) {
+        DEBUG_PRINT("exit cmd25\n");
+        self->in_cmd25 = false;
+        cmd_nodata(self, TOKEN_STOP_TRAN, 0);
+    }
+}
+
 // In Python API, defaults are response=None, data_block=True, wait=True
 STATIC int cmd(sdcardio_sdcard_obj_t *self, int cmd, int arg, void *response_buf, size_t response_len, bool data_block, bool wait) {
+    exit_cmd25(self);
+
     DEBUG_PRINT("cmd % 3d [%02x] arg=% 11d [%08x] len=%d%s%s\n", cmd, cmd, arg, arg, response_len, data_block ? " data" : "", wait ? " wait" : "");
     uint8_t cmdbuf[6];
     cmdbuf[0] = cmd | 0x40;
@@ -162,6 +174,7 @@ STATIC int block_cmd(sdcardio_sdcard_obj_t *self, int cmd_, int block, void *res
 }
 
 STATIC bool cmd_nodata(sdcardio_sdcard_obj_t *self, int cmd, int response) {
+    exit_cmd25(self);
     uint8_t cmdbuf[2] = {cmd, 0xff};
 
     common_hal_busio_spi_write(self->bus, cmdbuf, sizeof(cmdbuf));
@@ -423,34 +436,32 @@ STATIC int _write(sdcardio_sdcard_obj_t *self, uint8_t token, void *buf, size_t 
 STATIC int writeblocks(sdcardio_sdcard_obj_t *self, uint32_t start_block, mp_buffer_info_t *buf) {
     common_hal_sdcardio_check_for_deinit(self);
     uint32_t nblocks = buf->len / 512;
-    if (nblocks == 1) {
-        //  Use CMD24 to write a single block
-        int r = block_cmd(self, 24, start_block, NULL, 0, true, true);
-        if (r < 0) {
-            return r;
-        }
-        r = _write(self, TOKEN_DATA, buf->buf, buf->len);
-        if (r < 0) {
-            return r;
-        }
-    } else {
+
+    DEBUG_PRINT("cmd25? %d next_block %d start_block %d\n", self->in_cmd25, self->next_block, start_block);
+
+    if (!self->in_cmd25 || start_block != self->next_block) {
+        DEBUG_PRINT("entering CMD25 at %d\n", (int)start_block);
         //  Use CMD25 to write multiple block
         int r = block_cmd(self, 25, start_block, NULL, 0, true, true);
         if (r < 0) {
             return r;
         }
-
-        uint8_t *ptr = buf->buf;
-        while (nblocks--) {
-            r = _write(self, TOKEN_CMD25, ptr, 512);
-            if (r < 0) {
-                return r;
-            }
-            ptr += 512;
-        }
-
-        cmd_nodata(self, TOKEN_STOP_TRAN, 0);
+        self->in_cmd25 = true;
     }
+
+    self->next_block = start_block;
+
+    uint8_t *ptr = buf->buf;
+    while (nblocks--) {
+        int r = _write(self, TOKEN_CMD25, ptr, 512);
+        if (r < 0) {
+            self->in_cmd25 = false;
+            return r;
+        }
+        self->next_block++;
+        ptr += 512;
+    }
+
     return 0;
 }
 
