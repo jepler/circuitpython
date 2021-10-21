@@ -104,11 +104,11 @@ msgid "%q length must be >= 1"
 msgstr ""
 
 #: py/argcheck.c
-msgid "%q must <= %d"
+msgid "%q must be %d-%d"
 msgstr ""
 
-#: py/argcheck.c
-msgid "%q must be %d-%d"
+#: py/argcheck.c shared-bindings/gifio/GifWriter.c
+msgid "%q must be <= %d"
 msgstr ""
 
 #: py/argcheck.c
@@ -1924,6 +1924,7 @@ msgstr ""
 msgid "Pull not used when direction is output."
 msgstr ""
 
+#: ports/atmel-samd/common-hal/watchdog/WatchDogTimer.c
 #: ports/raspberrypi/common-hal/watchdog/WatchDogTimer.c
 msgid "RAISE mode is not implemented"
 msgstr ""
@@ -2413,6 +2414,7 @@ msgstr ""
 msgid "WARNING: Your code filename has two extensions\n"
 msgstr ""
 
+#: ports/atmel-samd/common-hal/watchdog/WatchDogTimer.c
 #: ports/nrf/common-hal/watchdog/WatchDogTimer.c
 #: ports/raspberrypi/common-hal/watchdog/WatchDogTimer.c
 msgid "WatchDogTimer cannot be deinitialized once mode is set to RESET"
@@ -3067,6 +3069,7 @@ msgstr ""
 
 #: shared-bindings/audiocore/WaveFile.c shared-bindings/audiomp3/MP3Decoder.c
 #: shared-bindings/displayio/OnDiskBitmap.c shared-bindings/synthio/__init__.c
+#: shared-module/gifio/GifWriter.c
 msgid "file must be a file opened in byte mode"
 msgstr ""
 
@@ -3323,10 +3326,6 @@ msgstr ""
 
 #: py/parsenum.c
 msgid "int() arg 2 must be >= 2 and <= 36"
-msgstr ""
-
-#: py/objstr.c
-msgid "integer required"
 msgstr ""
 
 #: extmod/ulab/code/numpy/approx.c
@@ -3902,6 +3901,7 @@ msgstr ""
 #: ports/espressif/boards/gravitech_cucumber_rs/mpconfigboard.h
 #: ports/espressif/boards/lilygo_ttgo_t8_s2_st7789/mpconfigboard.h
 #: ports/espressif/boards/lolin_s2_mini/mpconfigboard.h
+#: ports/espressif/boards/lolin_s2_pico/mpconfigboard.h
 #: ports/espressif/boards/microdev_micro_c3/mpconfigboard.h
 #: ports/espressif/boards/microdev_micro_s2/mpconfigboard.h
 #: ports/espressif/boards/morpheans_morphesp-240/mpconfigboard.h
@@ -4155,6 +4155,7 @@ msgstr ""
 msgid "time.struct_time() takes a 9-sequence"
 msgstr ""
 
+#: ports/atmel-samd/common-hal/watchdog/WatchDogTimer.c
 #: ports/espressif/common-hal/watchdog/WatchDogTimer.c
 #: ports/nrf/common-hal/watchdog/WatchDogTimer.c
 #: ports/raspberrypi/common-hal/watchdog/WatchDogTimer.c
@@ -4324,6 +4325,10 @@ msgstr ""
 #: py/emitinlinextensa.c
 #, c-format
 msgid "unsupported Xtensa instruction '%s' with %d arguments"
+msgstr ""
+
+#: shared-module/gifio/GifWriter.c
+msgid "unsupported colorspace for GifWriter"
 msgstr ""
 
 #: py/objstr.c
