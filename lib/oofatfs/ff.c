@@ -28,6 +28,8 @@
 #include "ff.h"         /* Declarations of FatFs API */
 #include "diskio.h"     /* Declarations of device I/O functions */
 
+#include "py/runtime.h"
+
 // DIR has been renamed FF_DIR in the public API so it doesn't clash with POSIX
 #define DIR FF_DIR
 
@@ -1085,7 +1087,9 @@ static FRESULT sync_fs (    /* Returns FR_OK or FR_DISK_ERR */
             fs->fsi_flag = 0;
         }
         /* Make sure that no pending write process in the lower layer */
+mp_printf(&mp_plat_print, "disk_ioctl(CTRL_SYNC)\n");
         if (disk_ioctl(fs->drv, CTRL_SYNC, 0) != RES_OK) res = FR_DISK_ERR;
+mp_printf(&mp_plat_print, "res -> %d\n", res);
     }
 
     return res;

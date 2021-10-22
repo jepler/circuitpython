@@ -121,7 +121,9 @@ mp_obj_t mp_vfs_blockdev_ioctl(mp_vfs_blockdev_t *self, uintptr_t cmd, uintptr_t
         switch (cmd) {
             case MP_BLOCKDEV_IOCTL_SYNC:
                 if (self->u.old.sync[0] != MP_OBJ_NULL) {
+                    mp_printf(&mp_plat_print, "calling sync()\n");
                     mp_call_method_n_kw(0, 0, self->u.old.sync);
+                    mp_printf(&mp_plat_print, "called sync()\n");
                 }
                 break;
 

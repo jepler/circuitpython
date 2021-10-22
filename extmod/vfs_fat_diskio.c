@@ -74,7 +74,7 @@ DRESULT disk_write(
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-DRESULT disk_ioctl(
+STATIC DRESULT disk_ioctl_(
     bdev_t pdrv,      /* Physical drive nmuber (0..) */
     BYTE cmd,        /* Control code */
     void *buff        /* Buffer to send/receive control data */
@@ -100,6 +100,7 @@ DRESULT disk_ioctl(
     // Second part: convert the result for return
     switch (cmd) {
         case CTRL_SYNC:
+            printf("CTRL_SYNC -> RES_OK\n");
             return RES_OK;
 
         case GET_SECTOR_COUNT: {
@@ -135,12 +136,24 @@ DRESULT disk_ioctl(
                 stat = 0;
             }
             *((DSTATUS *)buff) = stat;
+            printf("init/status stat=%d\n", stat);
             return RES_OK;
         }
 
         default:
             return RES_PARERR;
     }
+}
+
+DRESULT disk_ioctl(
+    bdev_t pdrv,      /* Physical drive nmuber (0..) */
+    BYTE cmd,        /* Control code */
+    void *buff        /* Buffer to send/receive control data */
+    ) {
+    printf("disk_ioctl cmd=0x%0x\n", cmd);
+    DRESULT result = disk_ioctl_(pdrv, cmd, buff);
+    printf("-> %d\n", (int)result);
+    return result;
 }
 
 #endif // MICROPY_VFS && MICROPY_VFS_FAT

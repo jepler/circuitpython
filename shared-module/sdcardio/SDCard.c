@@ -34,13 +34,13 @@
 
 #include "py/mperrno.h"
 
-#if 0
+#if 1
 #define DEBUG_PRINT(...) ((void)mp_printf(&mp_plat_print,##__VA_ARGS__))
 #else
 #define DEBUG_PRINT(...) ((void)0)
 #endif
 
-#define CMD_TIMEOUT (200)
+#define CMD_TIMEOUT (400)
 
 #define R1_IDLE_STATE (1 << 0)
 #define R1_ILLEGAL_COMMAND (1 << 2)
@@ -104,19 +104,40 @@ STATIC void wait_for_ready(sdcardio_sdcard_obj_t *self) {
     }
 }
 
-STATIC bool cmd_nodata(sdcardio_sdcard_obj_t *self, int cmd, int response);
+STATIC int cmd_nodata(sdcardio_sdcard_obj_t *self, int cmd, int response) {
+    uint8_t cmdbuf[2] = {cmd, 0xff};
 
-STATIC void exit_cmd25(sdcardio_sdcard_obj_t *self) {
+    common_hal_busio_spi_write(self->bus, cmdbuf, sizeof(cmdbuf));
+
+    // Wait for the response (response[7] == response)
+    for (int i = 0; i < CMD_TIMEOUT; i++) {
+        common_hal_busio_spi_read(self->bus, cmdbuf, 1, 0xff);
+        if (cmdbuf[0] == response) {
+            DEBUG_PRINT("got response\n");
+            return 0;
+        }
+        DEBUG_PRINT("[%3d] got %d\n", i, cmdbuf[0]);
+    }
+    DEBUG_PRINT("timeout\n");
+    return -EIO;
+}
+
+
+STATIC int exit_cmd25(sdcardio_sdcard_obj_t *self) {
     if (self->in_cmd25) {
         DEBUG_PRINT("exit cmd25\n");
         self->in_cmd25 = false;
-        cmd_nodata(self, TOKEN_STOP_TRAN, 0);
+        return cmd_nodata(self, TOKEN_STOP_TRAN, 0);
     }
+    return 0;
 }
 
 // In Python API, defaults are response=None, data_block=True, wait=True
 STATIC int cmd(sdcardio_sdcard_obj_t *self, int cmd, int arg, void *response_buf, size_t response_len, bool data_block, bool wait) {
-    exit_cmd25(self);
+    int r = exit_cmd25(self);
+    if (r < 0) {
+        return r;
+    }
 
     DEBUG_PRINT("cmd % 3d [%02x] arg=% 11d [%08x] len=%d%s%s\n", cmd, cmd, arg, arg, response_len, data_block ? " data" : "", wait ? " wait" : "");
     uint8_t cmdbuf[6];
@@ -171,22 +192,6 @@ STATIC int cmd(sdcardio_sdcard_obj_t *self, int cmd, int arg, void *response_buf
 
 STATIC int block_cmd(sdcardio_sdcard_obj_t *self, int cmd_, int block, void *response_buf, size_t response_len, bool data_block, bool wait) {
     return cmd(self, cmd_, block * self->cdv, response_buf, response_len, true, true);
-}
-
-STATIC bool cmd_nodata(sdcardio_sdcard_obj_t *self, int cmd, int response) {
-    exit_cmd25(self);
-    uint8_t cmdbuf[2] = {cmd, 0xff};
-
-    common_hal_busio_spi_write(self->bus, cmdbuf, sizeof(cmdbuf));
-
-    // Wait for the response (response[7] == response)
-    for (int i = 0; i < CMD_TIMEOUT; i++) {
-        common_hal_busio_spi_read(self->bus, cmdbuf, 1, 0xff);
-        if (cmdbuf[0] == response) {
-            return 0;
-        }
-    }
-    return -EIO;
 }
 
 STATIC const compressed_string_t *init_card_v1(sdcardio_sdcard_obj_t *self) {
@@ -436,6 +441,7 @@ STATIC int _write(sdcardio_sdcard_obj_t *self, uint8_t token, void *buf, size_t 
 STATIC int writeblocks(sdcardio_sdcard_obj_t *self, uint32_t start_block, mp_buffer_info_t *buf) {
     common_hal_sdcardio_check_for_deinit(self);
     uint32_t nblocks = buf->len / 512;
+    DEBUG_PRINT("buflen=%d nblocks=%d\n", buf->len,nblocks);
 
     DEBUG_PRINT("cmd25? %d next_block %d start_block %d\n", self->in_cmd25, self->next_block, start_block);
 
@@ -474,4 +480,17 @@ int common_hal_sdcardio_sdcard_writeblocks(sdcardio_sdcard_obj_t *self, uint32_t
     int r = writeblocks(self, start_block, buf);
     extraclock_and_unlock_bus(self);
     return r;
+}
+
+int common_hal_sdcardio_sdcard_sync(sdcardio_sdcard_obj_t *self) {
+    common_hal_sdcardio_check_for_deinit(self);
+    DEBUG_PRINT("sync()\n");
+    int result = 0;
+    if (self->in_cmd25) {
+        lock_and_configure_bus(self);
+        result = exit_cmd25(self);
+        extraclock_and_unlock_bus(self);
+    }
+    DEBUG_PRINT("sync() -> %d\n", result);
+    return result;
 }
