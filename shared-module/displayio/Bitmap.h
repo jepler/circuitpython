@@ -51,5 +51,6 @@ void displayio_bitmap_finish_refresh(displayio_bitmap_t *self);
 displayio_area_t *displayio_bitmap_get_refresh_areas(displayio_bitmap_t *self, displayio_area_t *tail);
 void displayio_bitmap_set_dirty_area(displayio_bitmap_t *self, const displayio_area_t *area);
 void displayio_bitmap_write_pixel(displayio_bitmap_t *self, int16_t x, int16_t y, uint32_t value);
+void displayio_bitmap_write_pixels(displayio_bitmap_t *self, const uint32_t *pixels, int16_t x, int16_t y, size_t n);
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_BITMAP_H

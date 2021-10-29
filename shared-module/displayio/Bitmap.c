@@ -173,6 +173,71 @@ void common_hal_displayio_bitmap_get_pixels(displayio_bitmap_t *self, uint32_t *
 #undef BIG_PIXEL_LOOP
 }
 
+void displayio_bitmap_write_pixels(displayio_bitmap_t *self, const uint32_t *pixels, int16_t x, int16_t y, size_t n) {
+    // Writes the pixels directly to the bitmap
+    // Must update the dirty area separately
+    switch (self->bits_per_value) {
+
+#define SMALL_PIXEL_LOOP(sz) do { \
+        size_t *data = &self->data[y * self->stride + x / SIZE_BIT / sz]; \
+        /* First, put some initial pixels from an incompletely-used bytes */ \
+        while (x % SIZE_BIT / sz) { \
+            displayio_bitmap_write_pixel(self, x++, y, *pixels++); \
+            n--; \
+        } \
+        while (n > SIZE_BIT / sz) { \
+            size_t d = 0; \
+            for (size_t i = 0; i < SIZE_BIT; i++) { \
+                d <<= sz; \
+                d |= (*pixels++ & ((1 << sz) - 1)); \
+            } \
+            *data++ = d; \
+        } \
+        /* Put any straggling pixels */ \
+        while (n--) { \
+            displayio_bitmap_write_pixel(self, x++, y, *pixels++); \
+        } \
+} while (0)
+        case 1:
+            SMALL_PIXEL_LOOP(1);
+            break;
+
+        case 2:
+            SMALL_PIXEL_LOOP(2);
+            break;
+
+        case 4:
+            SMALL_PIXEL_LOOP(4);
+            break;
+
+#undef SMALL_PIXEL_LOOP
+
+#define BIG_PIXEL_LOOP(type) do { \
+        type *data = ((type *)&self->data[y * self->stride]) + x; \
+        while (n--) { \
+            *data++ = *pixels++; \
+        } \
+} while (0)
+
+        case 8:
+            BIG_PIXEL_LOOP(uint8_t);
+            break;
+
+        case 16:
+            BIG_PIXEL_LOOP(uint16_t);
+            break;
+
+        case 32:
+            BIG_PIXEL_LOOP(uint32_t);
+            break;
+
+        default:
+            abort();
+    }
+
+#undef BIG_PIXEL_LOOP
+}
+
 void displayio_bitmap_set_dirty_area(displayio_bitmap_t *self, const displayio_area_t *dirty_area) {
     if (self->read_only) {
         mp_raise_RuntimeError(translate("Read-only object"));

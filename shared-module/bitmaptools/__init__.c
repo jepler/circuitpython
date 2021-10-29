@@ -673,6 +673,7 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
     int32_t row2[width];
     int32_t row3[width];
     int32_t *rows[3] = {row1, row2, row3};
+    uint32_t out[width];
 
     fill_row(source_bitmap, pixel_shader, rows[0], 0);
     fill_row(source_bitmap, pixel_shader, rows[1], 1);
@@ -684,7 +685,8 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
         for (int x = 0; x < width; x++) {
             int32_t pixel_in = rows[0][x];
             bool pixel_out = pixel_in >= 128;
-            displayio_bitmap_write_pixel(dest_bitmap, x, y, pixel_out ? max_pixel : 0);
+            out[x] = pixel_out ? max_pixel : 0;
+
             int err = pixel_in - (pixel_out ? 255 : 0);
 
             for (int i = 0; i < info->count; i++) {
@@ -697,6 +699,7 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
                 rows[dy][x1] = ((info->terms[i].dl * err) >> 8) + rows[dy][x1];
             }
         }
+        displayio_bitmap_write_pixels(dest_bitmap, out, 0, y, width);
 
         int32_t *tmp = rows[0];
         rows[0] = rows[1];
@@ -713,7 +716,7 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
         for (int x = width; x--;) {
             int32_t pixel_in = rows[0][x];
             bool pixel_out = pixel_in >= 128;
-            displayio_bitmap_write_pixel(dest_bitmap, x, y, pixel_out ? max_pixel : 0);
+            out[x] = pixel_out ? max_pixel : 0;
             int err = pixel_in - (pixel_out ? 255 : 0);
 
             for (int i = 0; i < info->count; i++) {
@@ -726,6 +729,7 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
                 rows[dy][x1] = ((info->terms[i].dl * err) >> 8) + rows[dy][x1];
             }
         }
+        displayio_bitmap_write_pixels(dest_bitmap, out, 0, y, width);
 
         tmp = rows[0];
         rows[0] = rows[1];
