@@ -25,11 +25,14 @@
  */
 
 #include "shared-bindings/displayio/Bitmap.h"
+#include "shared-bindings/displayio/Palette.h"
+#include "shared-bindings/displayio/ColorConverter.h"
 #include "shared-bindings/bitmaptools/__init__.h"
 
 #include <stdint.h>
 
 #include "py/binary.h"
+#include "py/enum.h"
 #include "py/obj.h"
 #include "py/runtime.h"
 
@@ -565,8 +568,63 @@ STATIC mp_obj_t bitmaptools_readinto(size_t n_args, const mp_obj_t *pos_args, mp
 
     return mp_const_none;
 }
-
 MP_DEFINE_CONST_FUN_OBJ_KW(bitmaptools_readinto_obj, 0, bitmaptools_readinto);
+
+//| class DitherAlgorithm:
+//|     """Identifies the algorith for dither to use"""
+//|
+//|     Atkinson: object
+//|     """The classic Atkinson dither, often associated with the Hypercard esthetic"""
+//|
+//|     FloydStenberg: object
+//|     """The Floyd-Stenberg dither"""
+//|
+MAKE_ENUM_VALUE(bitmaptools_dither_algorithm_type, dither_algorithm, Atkinson, DITHER_ALGORITHM_ATKINSON);
+MAKE_ENUM_VALUE(bitmaptools_dither_algorithm_type, dither_algorithm, FloydStenberg, DITHER_ALGORITHM_ATKINSON);
+
+MAKE_ENUM_MAP(bitmaptools_dither_algorithm) {
+    MAKE_ENUM_MAP_ENTRY(dither_algorithm, Atkinson),
+    MAKE_ENUM_MAP_ENTRY(dither_algorithm, FloydStenberg),
+};
+STATIC MP_DEFINE_CONST_DICT(bitmaptools_dither_algorithm_locals_dict, bitmaptools_dither_algorithm_locals_table);
+
+MAKE_PRINTER(bitmaptools, bitmaptools_dither_algorithm);
+
+MAKE_ENUM_TYPE(bitmaptools, DitherAlgorithm, bitmaptools_dither_algorithm);
+
+//| def dither(input: displayio.Bitmap, output: displayio.Bitmap, input_colorspace: displayio.Colorspace, algorithm: DitherAlgorithm) -> None:
+//|     """Convert the input image into a 2-level output image using the given dither algorithm"""
+//|     ...
+//|
+STATIC mp_obj_t bitmaptools_dither(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_dest_bitmap, ARG_source_bitmap, ARG_source_shader, ARG_algorithm };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_dest_bitmap, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_source_bitmap, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_source_shader, MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_algorithm, MP_ARG_OBJ, { .u_obj = MP_ROM_PTR((void *)&dither_algorithm_Atkinson_obj) } },
+    };
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    displayio_bitmap_t *source_bitmap = mp_arg_validate_type(args[ARG_source_bitmap].u_obj, &displayio_bitmap_type, MP_QSTR_source_bitmap);
+    displayio_bitmap_t *dest_bitmap = mp_arg_validate_type(args[ARG_dest_bitmap].u_obj, &displayio_bitmap_type, MP_QSTR_dest_bitmap);
+    mp_obj_t pixel_shader = args[ARG_source_shader].u_obj;
+    if (!mp_obj_is_type(pixel_shader, &displayio_colorconverter_type) &&
+        !mp_obj_is_type(pixel_shader, &displayio_palette_type)) {
+        mp_raise_TypeError_varg(translate("unsupported %q type"), MP_QSTR_pixel_shader);
+    }
+    bitmaptools_dither_algorithm_t algorithm = cp_enum_value(&bitmaptools_dither_algorithm_type, args[ARG_algorithm].u_obj);
+
+    if (source_bitmap->width != dest_bitmap->width || source_bitmap->height != dest_bitmap->height) {
+        mp_raise_TypeError(translate("bitmap sizes must match"));
+    }
+
+    common_hal_bitmaptools_dither(dest_bitmap, source_bitmap, pixel_shader, algorithm);
+
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_KW(bitmaptools_dither_obj, 0, bitmaptools_dither);
+
 
 STATIC const mp_rom_map_elem_t bitmaptools_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_bitmaptools) },
@@ -576,6 +634,8 @@ STATIC const mp_rom_map_elem_t bitmaptools_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_fill_region), MP_ROM_PTR(&bitmaptools_fill_region_obj) },
     { MP_ROM_QSTR(MP_QSTR_boundary_fill), MP_ROM_PTR(&bitmaptools_boundary_fill_obj) },
     { MP_ROM_QSTR(MP_QSTR_draw_line), MP_ROM_PTR(&bitmaptools_draw_line_obj) },
+    { MP_ROM_QSTR(MP_QSTR_dither), MP_ROM_PTR(&bitmaptools_dither_obj) },
+    { MP_ROM_QSTR(MP_QSTR_DitherAlgorithm), MP_ROM_PTR(&bitmaptools_dither_algorithm_type) },
 };
 STATIC MP_DEFINE_CONST_DICT(bitmaptools_module_globals, bitmaptools_module_globals_table);
 

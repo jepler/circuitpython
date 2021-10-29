@@ -146,6 +146,111 @@ void common_hal_displayio_colorconverter_make_opaque(displayio_colorconverter_t 
 }
 
 
+// Convert a range of pixels to RGB888
+void displayio_colorconverter_convert_pixels(displayio_colorspace_t colorspace, uint32_t *pixel_out, uint32_t *pixel_in, size_t n) {
+    switch (colorspace) {
+        case DISPLAYIO_COLORSPACE_RGB565_SWAPPED:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                pixel = __builtin_bswap16(pixel);
+                uint32_t r8 = (pixel >> 11) << 3;
+                uint32_t g8 = ((pixel >> 5) << 2) & 0xff;
+                uint32_t b8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_RGB565:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                uint32_t r8 = (pixel >> 11) << 3;
+                uint32_t g8 = ((pixel >> 5) << 2) & 0xff;
+                uint32_t b8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_RGB555_SWAPPED:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                pixel = __builtin_bswap16(pixel);
+                uint32_t r8 = (pixel >> 10) << 3;
+                uint32_t g8 = ((pixel >> 5) << 3) & 0xff;
+                uint32_t b8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_RGB555:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                uint32_t r8 = (pixel >> 10) << 3;
+                uint32_t g8 = ((pixel >> 5) << 3) & 0xff;
+                uint32_t b8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_BGR565_SWAPPED:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                pixel = __builtin_bswap16(pixel);
+                uint32_t b8 = (pixel >> 11) << 3;
+                uint32_t g8 = ((pixel >> 5) << 2) & 0xff;
+                uint32_t r8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_BGR565:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                uint32_t b8 = (pixel >> 11) << 3;
+                uint32_t g8 = ((pixel >> 5) << 2) & 0xff;
+                uint32_t r8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_BGR555_SWAPPED:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                pixel = __builtin_bswap16(pixel);
+                uint32_t b8 = (pixel >> 10) << 3;
+                uint32_t g8 = ((pixel >> 5) << 3) & 0xff;
+                uint32_t r8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_BGR555:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                uint32_t b8 = (pixel >> 10) << 3;
+                uint32_t g8 = ((pixel >> 5) << 3) & 0xff;
+                uint32_t r8 = (pixel << 3) & 0xff;
+                *pixel_out++ = (r8 << 16) | (g8 << 8) | b8;
+            }
+            break;
+
+        default:
+        case DISPLAYIO_COLORSPACE_RGB888:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                *pixel_out++ = pixel;
+            }
+            break;
+
+        case DISPLAYIO_COLORSPACE_L8:
+            for (; n--;) {
+                uint32_t pixel = *pixel_in++;
+                uint32_t l8 = pixel & 0xff;
+                *pixel_out++ = l8 * 0x010101;
+            }
+            break;
+    }
+}
+
 // Convert a single input pixel to RGB888
 uint32_t displayio_colorconverter_convert_pixel(displayio_colorspace_t colorspace, uint32_t pixel) {
     switch (colorspace) {
@@ -215,7 +320,7 @@ void displayio_colorconverter_convert(displayio_colorconverter_t *self, const _d
         return;
     }
 
-    pixel = displayio_colorconverter_convert_pixel(self->input_colorspace, pixel);
+    displayio_colorconverter_convert_pixels(self->input_colorspace, &pixel, &pixel, 1);
 
 
     if (self->dither) {
@@ -280,4 +385,8 @@ bool displayio_colorconverter_needs_refresh(displayio_colorconverter_t *self) {
 }
 
 void displayio_colorconverter_finish_refresh(displayio_colorconverter_t *self) {
+}
+
+displayio_colorspace_t common_hal_displayio_colorconverter_get_colorspace(displayio_colorconverter_t *self) {
+    return self->input_colorspace;
 }

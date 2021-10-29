@@ -347,6 +347,7 @@ msgstr ""
 msgid "64 bit types"
 msgstr ""
 
+#: ports/atmel-samd/common-hal/alarm/pin/PinAlarm.c
 #: ports/atmel-samd/common-hal/countio/Counter.c
 #: ports/atmel-samd/common-hal/rotaryio/IncrementalEncoder.c
 msgid "A hardware interrupt channel is already in use"
@@ -1607,6 +1608,7 @@ msgstr ""
 msgid "No hardware support on clk pin"
 msgstr ""
 
+#: ports/atmel-samd/common-hal/alarm/pin/PinAlarm.c
 #: ports/atmel-samd/common-hal/frequencyio/FrequencyIn.c
 #: ports/atmel-samd/common-hal/pulseio/PulseIn.c
 msgid "No hardware support on pin"
@@ -1727,7 +1729,6 @@ msgstr ""
 msgid "Only connectable advertisements can be directed"
 msgstr ""
 
-#: ports/atmel-samd/common-hal/alarm/pin/PinAlarm.c
 #: ports/stm/common-hal/alarm/pin/PinAlarm.c
 msgid "Only edge detection is available on this hardware"
 msgstr ""
@@ -1822,6 +1823,7 @@ msgstr ""
 msgid "Permission denied"
 msgstr ""
 
+#: ports/atmel-samd/common-hal/alarm/pin/PinAlarm.c
 #: ports/stm/common-hal/alarm/pin/PinAlarm.c
 msgid "Pin cannot wake from Deep Sleep"
 msgstr ""
@@ -2595,6 +2597,10 @@ msgstr ""
 
 #: py/emitnative.c
 msgid "binary op %q not implemented"
+msgstr ""
+
+#: shared-bindings/bitmaptools/__init__.c
+msgid "bitmap sizes must match"
 msgstr ""
 
 #: extmod/modurandom.c
@@ -4316,8 +4322,9 @@ msgstr ""
 msgid "unreadable attribute"
 msgstr ""
 
-#: shared-bindings/displayio/TileGrid.c shared-bindings/vectorio/VectorShape.c
-#: shared-module/vectorio/Polygon.c shared-module/vectorio/VectorShape.c
+#: shared-bindings/bitmaptools/__init__.c shared-bindings/displayio/TileGrid.c
+#: shared-bindings/vectorio/VectorShape.c shared-module/vectorio/Polygon.c
+#: shared-module/vectorio/VectorShape.c
 msgid "unsupported %q type"
 msgstr ""
 

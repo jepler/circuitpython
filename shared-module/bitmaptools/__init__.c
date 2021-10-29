@@ -26,13 +26,17 @@
 
 #include "shared-bindings/bitmaptools/__init__.h"
 #include "shared-bindings/displayio/Bitmap.h"
+#include "shared-bindings/displayio/Palette.h"
+#include "shared-bindings/displayio/ColorConverter.h"
 #include "shared-module/displayio/Bitmap.h"
 
 #include "py/runtime.h"
 #include "py/mperrno.h"
 
-#include "math.h"
-#include "stdlib.h"
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 void common_hal_bitmaptools_rotozoom(displayio_bitmap_t *self, int16_t ox, int16_t oy,
     int16_t dest_clip0_x, int16_t dest_clip0_y,
@@ -601,4 +605,136 @@ void common_hal_bitmaptools_readinto(displayio_bitmap_t *self, pyb_file_obj_t *f
             displayio_bitmap_write_pixel(self, x, y_draw, value & mask);
         }
     }
+}
+
+typedef struct {
+    uint8_t count;
+    struct {
+        int8_t dx, dy, dl;
+    } terms[];
+} bitmaptools_dither_algorithm_info_t;
+
+static bitmaptools_dither_algorithm_info_t atkinson = {
+    6, {
+        {1, 0, 256 / 8},
+        {2, 0, 256 / 8},
+        {-1, 1, 256 / 8},
+        {0, 1, 256 / 8},
+        {0, 2, 256 / 8},
+    }
+};
+
+static bitmaptools_dither_algorithm_info_t floyd_stenberg = {
+    4,
+    {
+        {0, 1, 7 * 256 / 8},
+        {-1, 1, 3 * 256 / 8},
+        {0, 1, 5 * 256 / 8},
+        {1, 1, 1 * 256 / 8},
+    }
+};
+
+bitmaptools_dither_algorithm_info_t *algorithms[] = {
+    [DITHER_ALGORITHM_ATKINSON] = &atkinson,
+    [DITHER_ALGORITHM_FLOYD_STENBERG] = &floyd_stenberg,
+};
+
+
+STATIC void fill_row(displayio_bitmap_t *bitmap, mp_obj_t pixel_shader, int32_t *luminance_data, int y) {
+    if (y >= bitmap->height) {
+        return;
+    }
+
+    common_hal_displayio_bitmap_get_pixels(bitmap, (uint32_t *)luminance_data, 0, y, bitmap->width);
+    if (mp_obj_is_type(pixel_shader, &displayio_palette_type)) {
+        for (int x = 0; x < bitmap->width; x++) {
+            uint32_t pixel = luminance_data[x];
+            pixel = common_hal_displayio_palette_get_color(pixel_shader, pixel);
+            luminance_data[x] = displayio_colorconverter_compute_luma(pixel);
+        }
+    } else {
+        displayio_colorspace_t colorspace = common_hal_displayio_colorconverter_get_colorspace(MP_OBJ_TO_PTR(pixel_shader));
+        displayio_colorconverter_convert_pixels(colorspace, (uint32_t *)luminance_data, (uint32_t *)luminance_data, bitmap->width);
+        for (int x = 0; x < bitmap->width; x++) {
+            uint32_t pixel = luminance_data[x];
+            uint32_t r8 = (pixel >> 16);
+            uint32_t g8 = (pixel >> 8) & 0xff;
+            uint32_t b8 = pixel & 0xff;
+            luminance_data[x] = (r8 * 19 + g8 * 182 + b8 * 54) / 255;
+        }
+    }
+}
+
+void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bitmap_t *source_bitmap, mp_obj_t pixel_shader, bitmaptools_dither_algorithm_t algorithm) {
+    int height = dest_bitmap->height, width = dest_bitmap->width;
+
+    bitmaptools_dither_algorithm_info_t *info = algorithms[algorithm];
+    int32_t row1[width];
+    int32_t row2[width];
+    int32_t row3[width];
+    int32_t *rows[3] = {row1, row2, row3};
+
+    fill_row(source_bitmap, pixel_shader, rows[0], 0);
+    fill_row(source_bitmap, pixel_shader, rows[1], 1);
+    fill_row(source_bitmap, pixel_shader, rows[2], 2);
+
+    uint32_t max_pixel = dest_bitmap->bitmask;
+    for (int y = 0; y < height; y++) {
+
+        for (int x = 0; x < width; x++) {
+            int32_t pixel_in = rows[0][x];
+            bool pixel_out = pixel_in >= 128;
+            displayio_bitmap_write_pixel(dest_bitmap, x, y, pixel_out ? max_pixel : 0);
+            int err = pixel_in - (pixel_out ? 255 : 0);
+
+            for (int i = 0; i < info->count; i++) {
+                int x1 = x + info->terms[i].dx;
+                if (x1 < 0 || x1 >= width) {
+                    continue;
+                }
+                int dy = info->terms[i].dy;
+
+                rows[dy][x1] = ((info->terms[i].dl * err) >> 8) + rows[dy][x1];
+            }
+        }
+
+        int32_t *tmp = rows[0];
+        rows[0] = rows[1];
+        rows[1] = rows[2];
+        rows[2] = tmp;
+
+        fill_row(source_bitmap, pixel_shader, rows[2], y + 2);
+
+        y++;
+        if (y == height) {
+            break;
+        }
+
+        for (int x = width; x--;) {
+            int32_t pixel_in = rows[0][x];
+            bool pixel_out = pixel_in >= 128;
+            displayio_bitmap_write_pixel(dest_bitmap, x, y, pixel_out ? max_pixel : 0);
+            int err = pixel_in - (pixel_out ? 255 : 0);
+
+            for (int i = 0; i < info->count; i++) {
+                int x1 = x - info->terms[i].dx;
+                if (x1 < 0 || x1 >= width) {
+                    continue;
+                }
+                int dy = info->terms[i].dy;
+
+                rows[dy][x1] = ((info->terms[i].dl * err) >> 8) + rows[dy][x1];
+            }
+        }
+
+        tmp = rows[0];
+        rows[0] = rows[1];
+        rows[1] = rows[2];
+        rows[2] = tmp;
+
+        fill_row(source_bitmap, pixel_shader, rows[2], y + 2);
+    }
+
+    displayio_area_t a = { 0, 0, width, height };
+    displayio_bitmap_set_dirty_area(dest_bitmap, &a);
 }

@@ -105,6 +105,74 @@ uint32_t common_hal_displayio_bitmap_get_pixel(displayio_bitmap_t *self, int16_t
     return 0;
 }
 
+#define SIZE_BIT (sizeof(size_t) * CHAR_BIT)
+void common_hal_displayio_bitmap_get_pixels(displayio_bitmap_t *self, uint32_t *pixels, int16_t x, int16_t y, size_t n) {
+    switch (self->bits_per_value) {
+
+#define SMALL_PIXEL_LOOP(sz) do { \
+        size_t *data = &self->data[y * self->stride + x / SIZE_BIT / sz]; \
+        if (x % SIZE_BIT / sz) { \
+            /* First, get some initial pixels from an incompletely-used bytes */ \
+            size_t d = *data++; \
+            int m = MIN(n, x % (SIZE_BIT / sz)); \
+            d <<= (SIZE_BIT - sz * (1 + m)); \
+ \
+            for (; m; m--, n--) { \
+                *pixels++ = d >> (SIZE_BIT - sz); \
+                d <<= sz; \
+            }  \
+        } \
+ \
+        while (n) { \
+            size_t d = *data++; \
+            int m = MIN(n, SIZE_BIT / sz); \
+ \
+            for (; m; m--, n--) { \
+                *pixels++ = d >> (SIZE_BIT - sz); \
+                d <<= sz; \
+            }  \
+        } \
+} while (0)
+        case 1:
+            SMALL_PIXEL_LOOP(1);
+            break;
+
+        case 2:
+            SMALL_PIXEL_LOOP(2);
+            break;
+
+        case 4:
+            SMALL_PIXEL_LOOP(4);
+            break;
+
+#undef SMALL_PIXEL_LOOP
+
+#define BIG_PIXEL_LOOP(type) do { \
+        type *data = ((type *)&self->data[y * self->stride]) + x; \
+        while (n--) { \
+            *pixels++ = *data++; \
+        } \
+} while (0)
+
+        case 8:
+            BIG_PIXEL_LOOP(uint8_t);
+            break;
+
+        case 16:
+            BIG_PIXEL_LOOP(uint16_t);
+            break;
+
+        case 32:
+            BIG_PIXEL_LOOP(uint32_t);
+            break;
+
+        default:
+            abort();
+    }
+
+#undef BIG_PIXEL_LOOP
+}
+
 void displayio_bitmap_set_dirty_area(displayio_bitmap_t *self, const displayio_area_t *dirty_area) {
     if (self->read_only) {
         mp_raise_RuntimeError(translate("Read-only object"));
