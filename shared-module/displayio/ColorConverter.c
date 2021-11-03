@@ -34,7 +34,7 @@
 uint32_t displayio_colorconverter_dither_noise_1(uint32_t n) {
     n = (n >> 13) ^ n;
     int nn = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff;
-    return (uint32_t)(((float)nn / (1073741824.0f * 2)) * 255);
+    return nn >> 23;
 }
 
 uint32_t displayio_colorconverter_dither_noise_2(uint32_t x, uint32_t y) {
