@@ -37,11 +37,11 @@
 //| class MP3Decoder:
 //|     """Load a mp3 file for audio playback"""
 //|
-//|     def __init__(self, file: typing.BinaryIO, buffer: WriteableBuffer) -> None:
+//|     def __init__(self, file: Union[typing.BinaryIO, str], buffer: WriteableBuffer) -> None:
 //|
 //|         """Load a .mp3 file for playback with `audioio.AudioOut` or `audiobusio.I2SOut`.
 //|
-//|         :param typing.BinaryIO file: Already opened mp3 file
+//|         :param file: Either a file open in bytes mode, or the name of a file to open
 //|         :param ~_typing.WriteableBuffer buffer: Optional pre-allocated buffer, that will be split in half and used for double-buffering of the data. If not provided, two buffers are allocated internally.  The specific buffer size required depends on the mp3 file.
 //|
 //|
@@ -56,8 +56,7 @@
 //|           speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
 //|           speaker_enable.switch_to_output(value=True)
 //|
-//|           data = open("cplay-16bit-16khz-64kbps.mp3", "rb")
-//|           mp3 = audiomp3.MP3Decoder(data)
+//|           mp3 = audiomp3.MP3Decoder("cplay-16bit-16khz-64kbps.mp3")
 //|           a = audioio.AudioOut(board.A0)
 //|
 //|           print("playing")
@@ -72,9 +71,10 @@ STATIC mp_obj_t audiomp3_mp3file_make_new(const mp_obj_type_t *type, size_t n_ar
 
     audiomp3_mp3file_obj_t *self = m_new_obj(audiomp3_mp3file_obj_t);
     self->base.type = &audiomp3_mp3file_type;
-    if (!mp_obj_is_type(args[0], &mp_type_fileio)) {
-        mp_raise_TypeError(translate("file must be a file opened in byte mode"));
+    if (mp_obj_is_str(args[0])) {
+        args[0] = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), file, MP_OBJ_NEW_QSTR(MP_QSTR_rb));
     }
+    mp_arg_validate_type(args[0], &mp_type_fileio, MP_QSTR_file);
     uint8_t *buffer = NULL;
     size_t buffer_size = 0;
     if (n_args >= 2) {
