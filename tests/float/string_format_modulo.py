@@ -12,11 +12,9 @@ print("%u" % 1.0)
 # print("%X" % 18.0)
 
 print("%e" % 1.23456)
-print("%E" % 1.23456)
 print("%f" % 1.23456)
 print("%F" % 1.23456)
 print("%g" % 1.23456)
-print("%G" % 1.23456)
 
 print("%06e" % float("inf"))
 print("%06e" % float("-inf"))

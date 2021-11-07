@@ -142,16 +142,15 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
     int buf_remaining = buf_size - 1 - (s - buf);
 
     {
-        char uc = fmt & 0x20;
         if (fp_isinf(f)) {
-            *s++ = 'I' ^ uc;
-            *s++ = 'N' ^ uc;
-            *s++ = 'F' ^ uc;
+            *s++ = 'i';
+            *s++ = 'n';
+            *s++ = 'f';
             goto ret;
         } else if (fp_isnan(f)) {
-            *s++ = 'N' ^ uc;
-            *s++ = 'A' ^ uc;
-            *s++ = 'N' ^ uc;
+            *s++ = 'n';
+            *s++ = 'a';
+            *s++ = 'n';
         ret:
             *s = '\0';
             return s - buf;
@@ -161,7 +160,7 @@ int mp_format_float(FPTYPE f, char *buf, size_t buf_size, char fmt, int prec, ch
     if (prec < 0) {
         prec = 6;
     }
-    char e_char = 'E' | (fmt & 0x20);   // e_char will match case of fmt
+    char e_char = 'e';   // e_char will match case of fmt
     fmt |= 0x20; // Force fmt to be lowercase
     char org_fmt = fmt;
     if (fmt == 'g' && prec == 0) {
