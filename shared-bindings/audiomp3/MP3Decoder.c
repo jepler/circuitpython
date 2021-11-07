@@ -71,10 +71,11 @@ STATIC mp_obj_t audiomp3_mp3file_make_new(const mp_obj_type_t *type, size_t n_ar
 
     audiomp3_mp3file_obj_t *self = m_new_obj(audiomp3_mp3file_obj_t);
     self->base.type = &audiomp3_mp3file_type;
-    if (mp_obj_is_str(args[0])) {
-        args[0] = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), file, MP_OBJ_NEW_QSTR(MP_QSTR_rb));
+    mp_obj_t *file = args[0];
+    if (mp_obj_is_str(file)) {
+        file = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), file, MP_OBJ_NEW_QSTR(MP_QSTR_rb));
     }
-    mp_arg_validate_type(args[0], &mp_type_fileio, MP_QSTR_file);
+    mp_arg_validate_type(file, &mp_type_fileio, MP_QSTR_file);
     uint8_t *buffer = NULL;
     size_t buffer_size = 0;
     if (n_args >= 2) {
@@ -83,7 +84,7 @@ STATIC mp_obj_t audiomp3_mp3file_make_new(const mp_obj_type_t *type, size_t n_ar
         buffer = bufinfo.buf;
         buffer_size = bufinfo.len;
     }
-    common_hal_audiomp3_mp3file_construct(self, MP_OBJ_TO_PTR(args[0]),
+    common_hal_audiomp3_mp3file_construct(self, MP_OBJ_TO_PTR(file),
         buffer, buffer_size);
 
     return MP_OBJ_FROM_PTR(self);
@@ -127,14 +128,14 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audiomp3_mp3file___exit___obj, 4, 4, 
 //|     file: typing.BinaryIO
 //|     """File to play back."""
 //|
-STATIC mp_obj_t audiomp3_mp3file_obj_get_file(mp_obj_t self_in) {
+STATIC mp_obj_t audiomp3_mp3file_get_file(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
     return self->file;
 }
-MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_file_obj, audiomp3_mp3file_obj_get_file);
+MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_file_obj, audiomp3_mp3file_get_file);
 
-STATIC mp_obj_t audiomp3_mp3file_obj_set_file(mp_obj_t self_in, mp_obj_t file) {
+STATIC mp_obj_t audiomp3_mp3file_set_file(mp_obj_t self_in, mp_obj_t file) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
     if (!mp_obj_is_type(file, &mp_type_fileio)) {
@@ -143,7 +144,7 @@ STATIC mp_obj_t audiomp3_mp3file_obj_set_file(mp_obj_t self_in, mp_obj_t file) {
     common_hal_audiomp3_mp3file_set_file(self, file);
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(audiomp3_mp3file_set_file_obj, audiomp3_mp3file_obj_set_file);
+MP_DEFINE_CONST_FUN_OBJ_2(audiomp3_mp3file_set_file_obj, audiomp3_mp3file_set_file);
 
 const mp_obj_property_t audiomp3_mp3file_file_obj = {
     .base.type = &mp_type_property,
@@ -152,6 +153,18 @@ const mp_obj_property_t audiomp3_mp3file_file_obj = {
               MP_ROM_NONE},
 };
 
+
+//|     def open(filename: str) -> None:
+//|         """Open a new file in place of the current one
+//|
+//|         :param filename: The name of an mp3 file to open"""
+//|
+STATIC mp_obj_t audiomp3_mp3file_open(mp_obj_t self, mp_obj_t filename) {
+    mp_obj_t file = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), filename, MP_OBJ_NEW_QSTR(MP_QSTR_rb));
+    audiomp3_mp3file_set_file(self, file);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(audiomp3_mp3file_open_obj, audiomp3_mp3file_open);
 
 
 //|     sample_rate: int
@@ -241,6 +254,7 @@ STATIC const mp_rom_map_elem_t audiomp3_mp3file_locals_dict_table[] = {
 
     // Properties
     { MP_ROM_QSTR(MP_QSTR_file), MP_ROM_PTR(&audiomp3_mp3file_file_obj) },
+    { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&audiomp3_mp3file_open_obj) },
     { MP_ROM_QSTR(MP_QSTR_sample_rate), MP_ROM_PTR(&audiomp3_mp3file_sample_rate_obj) },
     { MP_ROM_QSTR(MP_QSTR_bits_per_sample), MP_ROM_PTR(&audiomp3_mp3file_bits_per_sample_obj) },
     { MP_ROM_QSTR(MP_QSTR_channel_count), MP_ROM_PTR(&audiomp3_mp3file_channel_count_obj) },
