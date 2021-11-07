@@ -552,22 +552,6 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
                 chrs += mp_print_int(print, va_arg(args, unsigned long int), 0, 16, 'a', flags, fill, width) + 2;
                 #endif
                 break;
-            #if MICROPY_PY_BUILTINS_FLOAT
-            case 'e':
-            case 'E':
-            case 'f':
-            case 'F':
-            case 'g':
-            case 'G': {
-                #if ((MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT) || (MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE))
-                mp_float_t f = (mp_float_t)va_arg(args, double);
-                chrs += mp_print_float(print, f, *fmt, flags, fill, width, prec);
-                #else
-                #error Unknown MICROPY FLOAT IMPL
-                #endif
-                break;
-            }
-            #endif
                 // Because 'l' is eaten above, another 'l' means %ll.  We need to support
                 // this length specifier for OBJ_REPR_D (64-bit NaN boxing).
                 // TODO Either enable this unconditionally, or provide a specific config var.
