@@ -1067,6 +1067,12 @@ typedef double mp_float_t;
 #define MICROPY_PY_REVERSE_SPECIAL_METHODS (0)
 #endif
 
+// Whether the the binary packing routines used by the "struct" module support
+// packing & unpacking double precision values
+#ifndef MICROPY_PY_BINARY_DOUBLE
+#define MICROPY_PY_BINARY_DOUBLE (1)
+#endif
+
 // Whether to support compile function
 #ifndef MICROPY_PY_BUILTINS_COMPILE
 #define MICROPY_PY_BUILTINS_COMPILE (0)

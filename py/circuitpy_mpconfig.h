@@ -83,6 +83,7 @@
 
 #define MICROPY_PY_ARRAY                 (1)
 #define MICROPY_PY_ARRAY_SLICE_ASSIGN    (1)
+#define MICROPY_PY_BINARY_DOUBLE         (CIRCUITPY_BINARY_DOUBLE)
 #define MICROPY_PY_ATTRTUPLE             (1)
 
 #define MICROPY_PY_BUILTINS_BYTEARRAY    (1)
