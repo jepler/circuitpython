@@ -26,7 +26,7 @@
 
 #include "supervisor/shared/board.h"
 
-#if CIRCUITPY_DIGITALIO && CIRCUITPY_NEOPIXEL_WRITE
+#if CIRCUITPY_BOARD && CIRCUITPY_DIGITALIO && CIRCUITPY_NEOPIXEL_WRITE
 
 #include <string.h>
 

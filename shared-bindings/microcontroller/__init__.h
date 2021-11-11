@@ -45,7 +45,8 @@ extern void common_hal_mcu_reset(void);
 
 extern const mp_obj_dict_t mcu_pin_globals;
 
-#if CIRCUITPY_PROCESSOR_COUNT == 1
+#if CIRCUITPY_PROCESSOR_COUNT == 0
+#elif CIRCUITPY_PROCESSOR_COUNT == 1
 extern const mcu_processor_obj_t common_hal_mcu_processor_obj;
 #elif CIRCUITPY_PROCESSOR_COUNT > 1
 extern const mcu_processor_obj_t common_hal_mcu_processor_obj;
