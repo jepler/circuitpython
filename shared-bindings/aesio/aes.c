@@ -9,6 +9,10 @@
 
 // Defined at the end of this file
 
+//| MODE_ECB: int
+//| MODE_CBC: int
+//| MODE_CTR: int
+//|
 //| class AES:
 //|     """Encrypt and decrypt AES streams"""
 //|
