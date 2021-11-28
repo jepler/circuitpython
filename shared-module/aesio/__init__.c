@@ -6,18 +6,17 @@
 #include "shared-module/aesio/__init__.h"
 
 void common_hal_aesio_aes_construct(aesio_aes_obj_t *self, const uint8_t *key,
-    uint32_t key_length, const uint8_t *iv,
-    int mode, int counter) {
+    uint32_t key_length, const uint8_t *iv_counter,
+    int mode) {
     self->mode = mode;
-    self->counter = counter;
-    common_hal_aesio_aes_rekey(self, key, key_length, iv);
+    common_hal_aesio_aes_rekey(self, key, key_length, iv_counter);
 }
 
 void common_hal_aesio_aes_rekey(aesio_aes_obj_t *self, const uint8_t *key,
-    uint32_t key_length, const uint8_t *iv) {
+    uint32_t key_length, const uint8_t *iv_counter) {
     memset(&self->ctx, 0, sizeof(self->ctx));
-    if (iv != NULL) {
-        AES_init_ctx_iv(&self->ctx, key, key_length, iv);
+    if (iv_counter != NULL) {
+        AES_init_ctx_iv(&self->ctx, key, key_length, iv_counter);
     } else {
         AES_init_ctx(&self->ctx, key, key_length);
     }

@@ -34,9 +34,9 @@ extern const mp_obj_type_t aesio_aes_type;
 void common_hal_aesio_aes_construct(aesio_aes_obj_t *self,
     const uint8_t *key,
     uint32_t key_length,
-    const uint8_t *iv,
-    int mode,
-    int counter);
+    const uint8_t *iv_counter,
+    int mode
+    );
 void common_hal_aesio_aes_rekey(aesio_aes_obj_t *self,
     const uint8_t *key,
     uint32_t key_length,

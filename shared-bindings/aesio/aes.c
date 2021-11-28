@@ -16,13 +16,14 @@
 //|         """Create a new AES state with the given key.
 //|
 //|            :param ~_typing.ReadableBuffer key: A 16-, 24-, or 32-byte key
-//|            :param int mode: AES mode to use.  One of: AES.MODE_ECB, AES.MODE_CBC, or
-//|                             AES.MODE_CTR
-//|            :param ~_typing.ReadableBuffer iv: Initialization vector to use for CBC or CTR mode
+//|            :param int mode: AES mode to use.  One of: `MODE_ECB`, `MODE_CBC`, or
+//|                             `MODE_CTR`
+//|            :param ~_typing.ReadableBuffer IV: Initialization vector to use for CTR mode
+//|            :param ~_typing.ReadableBuffer counter: Counter to use for CTR mode
 //|
 //|            Additional arguments are supported for legacy reasons.
 //|
-//|            Encrypting a string::
+//|            Encrypting and decrypting a string::
 //|
 //|              import aesio
 //|              from binascii import hexlify
@@ -30,9 +31,14 @@
 //|              key = b'Sixteen byte key'
 //|              inp = b'CircuitPython!!!' # Note: 16-bytes long
 //|              outp = bytearray(len(inp))
-//|              cipher = aesio.AES(key, aesio.mode.MODE_ECB)
+//|              cipher = aesio.AES(key, aesio.MODE_ECB)
 //|              cipher.encrypt_into(inp, outp)
-//|              hexlify(outp)"""
+//|              print(str(hexlify(outp), ''))
+//|
+//|              cipher = aesio.AES(key, aesio.MODE_ECB)
+//|              cipher.decrypt_into(outp, outp)
+//|              print(str(outp, ''))
+//|              print()"""
 //|         ...
 //|
 
@@ -41,10 +47,10 @@ STATIC mp_obj_t aesio_aes_make_new(const mp_obj_type_t *type, size_t n_args,
     (void)type;
     enum { ARG_key, ARG_mode, ARG_IV, ARG_counter, ARG_segment_size };
     static const mp_arg_t allowed_args[] = {
-        {MP_QSTR_key, MP_ARG_OBJ | MP_ARG_REQUIRED},
+        {MP_QSTR_key, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_mode, MP_ARG_INT, {.u_int = AES_MODE_ECB}},
-        {MP_QSTR_IV, MP_ARG_OBJ},
-        {MP_QSTR_counter, MP_ARG_OBJ},
+        {MP_QSTR_IV, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_counter, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
         {MP_QSTR_segment_size, MP_ARG_INT, {.u_int = 8}},
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
@@ -55,7 +61,7 @@ STATIC mp_obj_t aesio_aes_make_new(const mp_obj_type_t *type, size_t n_args,
     aesio_aes_obj_t *self = m_new_obj(aesio_aes_obj_t);
     self->base.type = &aesio_aes_type;
 
-    mp_buffer_info_t bufinfo;
+    mp_buffer_info_t bufinfo = {};
 
     const uint8_t *key = NULL;
     uint32_t key_length = 0;
@@ -70,28 +76,44 @@ STATIC mp_obj_t aesio_aes_make_new(const mp_obj_type_t *type, size_t n_args,
     }
 
     int mode = args[ARG_mode].u_int;
+    int buffer_arg_name = 0;
+
     switch (args[ARG_mode].u_int) {
-        case AES_MODE_CBC:
         case AES_MODE_ECB:
+            if (args[ARG_IV].u_obj != MP_OBJ_NULL) {
+                mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_IV);
+            }
+            if (args[ARG_counter].u_obj != MP_OBJ_NULL) {
+                mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_counter);
+            }
+            break;
+
+        case AES_MODE_CBC:
+            if (args[ARG_counter].u_obj != MP_OBJ_NULL) {
+                mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_counter);
+            }
+            mp_get_buffer_raise(args[ARG_IV].u_obj, &bufinfo, MP_BUFFER_READ);
+            buffer_arg_name = MP_QSTR_IV;
+            break;
         case AES_MODE_CTR:
+            if (args[ARG_IV].u_obj != MP_OBJ_NULL) {
+                mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_IV);
+            }
+            mp_get_buffer_raise(args[ARG_counter].u_obj, &bufinfo, MP_BUFFER_READ);
+            buffer_arg_name = MP_QSTR_counter;
+            break;
             break;
         default:
             mp_raise_TypeError(translate("Requested AES mode is unsupported"));
     }
 
-    // IV is required for CBC mode and is ignored for other modes.
-    const uint8_t *iv = NULL;
-    if (args[ARG_IV].u_obj != NULL &&
-        mp_get_buffer(args[ARG_IV].u_obj, &bufinfo, MP_BUFFER_READ)) {
-        if (bufinfo.len != AES_BLOCKLEN) {
-            mp_raise_TypeError_varg(translate("IV must be %d bytes long"),
-                AES_BLOCKLEN);
-        }
-        iv = bufinfo.buf;
+    // IV is required for CBC mode.  counter is required for CTRL mode.  Neither is used in ECB mode.
+    const uint8_t *iv_counter = bufinfo.buf;
+    if (iv_counter && bufinfo.len != AES_BLOCKLEN) {
+        mp_raise_TypeError_varg(translate("%q must be %d bytes long"), buffer_arg_name, AES_BLOCKLEN);
     }
 
-    common_hal_aesio_aes_construct(self, key, key_length, iv, mode,
-        args[ARG_counter].u_int);
+    common_hal_aesio_aes_construct(self, key, key_length, iv_counter, mode);
     return MP_OBJ_FROM_PTR(self);
 }
 

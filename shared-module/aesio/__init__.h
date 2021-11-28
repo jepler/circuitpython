@@ -51,9 +51,6 @@ typedef struct {
 
     // Which AES mode this instance of the object is configured to use
     enum AES_MODE mode;
-
-    // Counter for running in CTR mode
-    uint32_t counter;
 } aesio_aes_obj_t;
 
 #endif // MICROPY_INCLUDED_SHARED_MODULE_AESIO__INIT__H
