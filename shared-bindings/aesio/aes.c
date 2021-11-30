@@ -82,17 +82,33 @@ STATIC mp_obj_t aesio_aes_make_new(const mp_obj_type_t *type, size_t n_args,
     int mode = args[ARG_mode].u_int;
     int buffer_arg_name = 0;
 
+// Enable this (or just clean up the ifdef mess) after 7.x is branched off from 8.0.
+
+#define INCOMPATIBLE_CHANGE_8_0 (0)
+
+    #if !INCOMPATIBLE_CHANGE_8_0
+    // For compatibility, accept but ignore an int in ARG_counter
+    if (mp_obj_is_int(args[ARG_counter].u_obj)) {
+        args[ARG_counter].u_obj = MP_OBJ_NULL;
+    }
+    #endif
+
     switch (args[ARG_mode].u_int) {
         case AES_MODE_ECB:
+            #if INCOMPATIBLE_CHANGE_8_0
+            // 8.0 will reject specifying IV for ECB mode
             if (args[ARG_IV].u_obj != MP_OBJ_NULL) {
                 mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_IV);
             }
+            #endif
+            // The compatibility case of counter=int is handled above. If anything except an int is passed, error.
             if (args[ARG_counter].u_obj != MP_OBJ_NULL) {
                 mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_counter);
             }
             break;
 
         case AES_MODE_CBC:
+            // The compatibility case of counter=int is handled above. If anything except an int is passed, error.
             if (args[ARG_counter].u_obj != MP_OBJ_NULL) {
                 mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_counter);
             }
@@ -100,18 +116,28 @@ STATIC mp_obj_t aesio_aes_make_new(const mp_obj_type_t *type, size_t n_args,
             buffer_arg_name = MP_QSTR_IV;
             break;
         case AES_MODE_CTR:
+            buffer_arg_name = MP_QSTR_counter;
+
+            #if INCOMPATIBLE_CHANGE_8_0
+            if (!args[ARG_counter].u_obj) {
+                // For compatibility, accept the counter argument in IV=, only if counter= is not specified
+                // the compatibility case counter=int, IV=buffer is handled above.
+                mp_get_buffer_raise(args[ARG_IV].u_obj, &bufinfo, MP_BUFFER_READ);
+                break;
+            }
+            #endif
+            // This case occurs if counter=buffer and IV=buffer are both specified, so it is not a backwards incompatibility.
             if (args[ARG_IV].u_obj != MP_OBJ_NULL) {
                 mp_raise_ValueError_varg(translate("%q mode does not accept %q"), MP_QSTR_ECB, MP_QSTR_IV);
             }
+
             mp_get_buffer_raise(args[ARG_counter].u_obj, &bufinfo, MP_BUFFER_READ);
-            buffer_arg_name = MP_QSTR_counter;
             break;
-            break;
+
         default:
             mp_raise_TypeError(translate("Requested AES mode is unsupported"));
     }
 
-    // IV is required for CBC mode.  counter is required for CTRL mode.  Neither is used in ECB mode.
     const uint8_t *iv_counter = bufinfo.buf;
     if (iv_counter && bufinfo.len != AES_BLOCKLEN) {
         mp_raise_TypeError_varg(translate("%q must be %d bytes long"), buffer_arg_name, AES_BLOCKLEN);
