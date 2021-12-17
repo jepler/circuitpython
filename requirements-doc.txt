@@ -1,5 +1,5 @@
 # For docs
-mypy
+mypy==0.910
 black
 isort
 twine
