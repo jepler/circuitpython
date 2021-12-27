@@ -219,16 +219,13 @@ STATIC mp_obj_t bitbangio_spi_write(size_t n_args, const mp_obj_t *pos_args, mp_
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_READ);
-    int32_t start = args[ARG_start].u_int;
-    size_t length = bufinfo.len;
-    normalize_buffer_bounds(&start, args[ARG_end].u_int, &length);
+    get_normalized_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_READ, args[ARG_start].u_int, args[ARG_end].u_int);
 
-    if (length == 0) {
+    if (bufinfo.len == 0) {
         return mp_const_none;
     }
 
-    bool ok = shared_module_bitbangio_spi_write(self, ((uint8_t *)bufinfo.buf) + start, length);
+    bool ok = shared_module_bitbangio_spi_write(self, bufinfo.buf, bufinfo.len);
     if (!ok) {
         mp_raise_OSError(MP_EIO);
     }
@@ -269,16 +266,13 @@ STATIC mp_obj_t bitbangio_spi_readinto(size_t n_args, const mp_obj_t *pos_args, 
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_WRITE);
-    int32_t start = args[ARG_start].u_int;
-    size_t length = bufinfo.len;
-    normalize_buffer_bounds(&start, args[ARG_end].u_int, &length);
+    get_normalized_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_WRITE, args[ARG_start].u_int, args[ARG_end].u_int);
 
-    if (length == 0) {
+    if (bufinfo.len == 0) {
         return mp_const_none;
     }
 
-    bool ok = shared_module_bitbangio_spi_read(self, ((uint8_t *)bufinfo.buf) + start, length, args[ARG_write_value].u_int);
+    bool ok = shared_module_bitbangio_spi_read(self, bufinfo.buf, bufinfo.len, args[ARG_write_value].u_int);
     if (!ok) {
         mp_raise_OSError(MP_EIO);
     }
@@ -330,29 +324,23 @@ STATIC mp_obj_t bitbangio_spi_write_readinto(size_t n_args, const mp_obj_t *pos_
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_buffer_info_t buf_out_info;
-    mp_get_buffer_raise(args[ARG_out_buffer].u_obj, &buf_out_info, MP_BUFFER_READ);
-    int32_t out_start = args[ARG_out_start].u_int;
-    size_t out_length = buf_out_info.len;
-    normalize_buffer_bounds(&out_start, args[ARG_out_end].u_int, &out_length);
+    get_normalized_buffer_raise(args[ARG_out_buffer].u_obj, &buf_out_info, MP_BUFFER_READ, args[ARG_out_start].u_int, args[ARG_out_end].u_int);
 
     mp_buffer_info_t buf_in_info;
-    mp_get_buffer_raise(args[ARG_in_buffer].u_obj, &buf_in_info, MP_BUFFER_WRITE);
-    int32_t in_start = args[ARG_in_start].u_int;
-    size_t in_length = buf_in_info.len;
-    normalize_buffer_bounds(&in_start, args[ARG_in_end].u_int, &in_length);
+    get_normalized_buffer_raise(args[ARG_in_buffer].u_obj, &buf_in_info, MP_BUFFER_WRITE, args[ARG_in_start].u_int, args[ARG_in_end].u_int);
 
-    if (out_length != in_length) {
+    if (buf_out_info.len != buf_in_info.len) {
         mp_raise_ValueError(translate("buffer slices must be of equal length"));
     }
 
-    if (out_length == 0) {
+    if (buf_out_info.len == 0) {
         return mp_const_none;
     }
 
     bool ok = shared_module_bitbangio_spi_transfer(self,
-        ((uint8_t *)buf_out_info.buf) + out_start,
-        ((uint8_t *)buf_in_info.buf) + in_start,
-        out_length);
+        buf_out_info.buf,
+        buf_in_info.buf,
+        buf_out_info.len);
     if (!ok) {
         mp_raise_OSError(MP_EIO);
     }

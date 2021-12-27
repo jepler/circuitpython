@@ -25,19 +25,32 @@
  */
 
 #include "shared/runtime/buffer_helper.h"
+#include "py/binary.h"
 
-void normalize_buffer_bounds(int32_t *start, int32_t end, size_t *length) {
+static void normalize_buffer_bounds(mp_buffer_info_t *bufinfo, int32_t start, int32_t end) {
+    #if defined(CIRCUITPY_BOUNDS_ARE_ELEMENTS) // incompatible change to potentially be made in CP8
+    int stride_in_bytes = mp_binary_get_size('@', bufinfo->typecode, NULL);
+
+    start *= stride_in_bytes;
+    end *= stride_in_bytes;
+    #endif
+
     if (end < 0) {
-        end += *length;
-    } else if (((size_t)end) > *length) {
-        end = *length;
+        end += bufinfo->len;
+    } else if (((size_t)end) > bufinfo->len) {
+        end = bufinfo->len;
     }
-    if (*start < 0) {
-        *start += *length;
+    if (start < 0) {
+        start += bufinfo->len;
     }
-    if (end < *start) {
-        *length = 0;
+    if (end < start) {
+        bufinfo->len = 0;
     } else {
-        *length = end - *start;
+        bufinfo->len = end - start;
     }
+}
+
+void get_normalized_buffer_raise(mp_obj_t obj, mp_buffer_info_t *bufinfo, mp_uint_t flags, int32_t start, int32_t end) {
+    mp_get_buffer_raise(obj, bufinfo, flags);
+    normalize_buffer_bounds(bufinfo, start, end);
 }

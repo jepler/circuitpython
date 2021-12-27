@@ -194,15 +194,12 @@ MP_DEFINE_CONST_FUN_OBJ_1(busio_i2c_unlock_obj, busio_i2c_obj_unlock);
 // Shared arg parsing for readfrom_into and writeto_then_readfrom.
 STATIC void readfrom(busio_i2c_obj_t *self, mp_int_t address, mp_obj_t buffer, int32_t start, mp_int_t end) {
     mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(buffer, &bufinfo, MP_BUFFER_WRITE);
-
-    size_t length = bufinfo.len;
-    normalize_buffer_bounds(&start, end, &length);
-    if (length == 0) {
+    get_normalized_buffer_raise(buffer, &bufinfo, MP_BUFFER_WRITE, start, end);
+    if (bufinfo.len == 0) {
         mp_raise_ValueError(translate("Buffer must be at least length 1"));
     }
 
-    uint8_t status = common_hal_busio_i2c_read(self, address, ((uint8_t *)bufinfo.buf) + start, length);
+    uint8_t status = common_hal_busio_i2c_read(self, address, bufinfo.buf, bufinfo.len);
     if (status != 0) {
         mp_raise_OSError(status);
     }
@@ -251,14 +248,10 @@ MP_DEFINE_CONST_FUN_OBJ_KW(busio_i2c_readfrom_into_obj, 1, busio_i2c_readfrom_in
 STATIC void writeto(busio_i2c_obj_t *self, mp_int_t address, mp_obj_t buffer, int32_t start, mp_int_t end, bool stop) {
     // get the buffer to write the data from
     mp_buffer_info_t bufinfo;
-    mp_get_buffer_raise(buffer, &bufinfo, MP_BUFFER_READ);
-
-    size_t length = bufinfo.len;
-    normalize_buffer_bounds(&start, end, &length);
+    get_normalized_buffer_raise(buffer, &bufinfo, MP_BUFFER_READ, start, end);
 
     // do the transfer
-    uint8_t status = common_hal_busio_i2c_write(self, address, ((uint8_t *)bufinfo.buf) + start,
-        length, stop);
+    uint8_t status = common_hal_busio_i2c_write(self, address, bufinfo.buf, bufinfo.len, stop);
     if (status != 0) {
         mp_raise_OSError(status);
     }

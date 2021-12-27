@@ -29,7 +29,8 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "py/obj.h"
 
-void normalize_buffer_bounds(int32_t *start, int32_t end, size_t *length);
+void get_normalized_buffer_raise(mp_obj_t obj, mp_buffer_info_t *bufinfo, mp_uint_t flags, int32_t start, int32_t end);
 
 #endif  // MICROPY_INCLUDED_LIB_UTILS_BUFFER_HELPER_H
