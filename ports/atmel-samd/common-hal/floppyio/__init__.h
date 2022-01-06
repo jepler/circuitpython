@@ -27,4 +27,4 @@
 #pragma once
 
 // empirical-ish from Arduino @ 120MHz
-#define FLOPPYIO_SAMPLERATE (14666667)
+#define FLOPPYIO_SAMPLERATE (12000000)

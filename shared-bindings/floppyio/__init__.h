@@ -28,4 +28,5 @@
 
 #include "common-hal/digitalio/DigitalInOut.h"
 
-int common_hal_floppyio_track_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index);
+int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index);
+int common_hal_floppyio_rawbit_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index);
