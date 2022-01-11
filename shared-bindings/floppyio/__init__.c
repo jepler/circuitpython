@@ -66,19 +66,19 @@ STATIC mp_obj_t floppyio_flux_readinto(size_t n_args, const mp_obj_t *pos_args, 
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(floppyio_flux_readinto_obj, 0, floppyio_flux_readinto);
 
-//| def rawbit_readinto(buffer: WriteableBuffer, data: DigitalInOut, index: DigitalInOut) -> int:
-//|     """Read rawbit transiotn information into the buffer.
+//| def mfm_readinto(buffer: WriteableBuffer, data: DigitalInOut, index: DigitalInOut) -> int:
+//|     """Read mfm blocks into the buffer.
 //|
-//|     The returned data starts at an index pulse and continues utnil the next index pulse, or until the output buffer is full.
+//|     The track is assumed to consist of 512-byte sectors.
 //|
-//|     :param buffer: Read data into this buffer.  Each element represents the time between successive zero-to-one transitions.
-//|     :param data: Pin on which the rawbit data appears
+//|     :param buffer: Read data into this buffer.  Must be a multiple of 512.
+//|     :param data: Pin on which the mfm data appears
 //|     :param index: Pin on which the index pulse appears
-//|     :return: The actual number of bytes of read
+//|     :return: The actual number of sectors read
 //|     """
 //|     ...
 //|
-STATIC mp_obj_t floppyio_rawbit_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t floppyio_mfm_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_buffer, ARG_data, ARG_index };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer, MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -93,15 +93,19 @@ STATIC mp_obj_t floppyio_rawbit_readinto(size_t n_args, const mp_obj_t *pos_args
     digitalio_digitalinout_obj_t *data = assert_digitalinout(args[ARG_data].u_obj);
     digitalio_digitalinout_obj_t *index = assert_digitalinout(args[ARG_index].u_obj);
 
-    return MP_OBJ_NEW_SMALL_INT(common_hal_floppyio_rawbit_readinto(bufinfo.buf, bufinfo.len, data, index));
+    if (bufinfo.len % 512 != 0) {
+        mp_raise_ValueError(translate("Buffer must be a multiple of 512 bytes"));
+    }
+    size_t n_sectors = bufinfo.len / 512;
+    return MP_OBJ_NEW_SMALL_INT(common_hal_floppyio_mfm_readinto(bufinfo.buf, n_sectors, data, index));
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(floppyio_rawbit_readinto_obj, 0, floppyio_rawbit_readinto);
+MP_DEFINE_CONST_FUN_OBJ_KW(floppyio_mfm_readinto_obj, 0, floppyio_mfm_readinto);
 
 
 STATIC const mp_rom_map_elem_t floppyio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_floppyio) },
     { MP_ROM_QSTR(MP_QSTR_flux_readinto), MP_ROM_PTR(&floppyio_flux_readinto_obj) },
-    { MP_ROM_QSTR(MP_QSTR_rawbit_readinto), MP_ROM_PTR(&floppyio_rawbit_readinto_obj) },
+    { MP_ROM_QSTR(MP_QSTR_mfm_readinto), MP_ROM_PTR(&floppyio_mfm_readinto_obj) },
     { MP_ROM_QSTR(MP_QSTR_samplerate), MP_ROM_INT(FLOPPYIO_SAMPLERATE) },
 };
 STATIC MP_DEFINE_CONST_DICT(floppyio_module_globals, floppyio_module_globals_table);

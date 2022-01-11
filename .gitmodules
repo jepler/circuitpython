@@ -199,3 +199,6 @@
 	url = https://github.com/raspberrypi/rpi-firmware.git
 	branch = master
 	shallow = true
+[submodule "lib/libmfm"]
+	path = lib/libmfm
+	url = https://github.com/jepler/libmfm.git
