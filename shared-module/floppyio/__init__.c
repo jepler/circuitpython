@@ -108,17 +108,6 @@ inline static int mfm_io_get_sync_count(mfm_io_t *io) {
 
 __attribute__((optimize("O3")))
 int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index) {
-#define NOTE(x) mp_printf(&mp_plat_print, "Note: " #x "=%d\n", (unsigned)x);
-    NOTE(FLOPPYIO_SAMPLERATE)
-    NOTE(T0_5)
-    NOTE(T1)
-    NOTE(T1_5)
-    NOTE(T2)
-    NOTE(T2_5)
-    NOTE(T3)
-    NOTE(T3_5)
-// mp_printf(&mp_plat_print, "Note: FLOPPYIO_SAMPLERATE=%d T1=%d T2_5=%d T3_5=%d\n", FLOPPYIO_SAMPLERATE, T1, T2_5, T3_5);
-
     uint32_t index_mask;
     volatile uint32_t *index_port = common_hal_digitalio_digitalinout_get_reg(index, DIGITALINOUT_REG_READ, &index_mask);
 
@@ -179,12 +168,6 @@ int common_hal_floppyio_mfm_readinto(void *buf, size_t n_sectors, digitalio_digi
     mfm_io_t io;
     io.index_port = common_hal_digitalio_digitalinout_get_reg(index, DIGITALINOUT_REG_READ, &io.index_mask);
     io.data_port = common_hal_digitalio_digitalinout_get_reg(data, DIGITALINOUT_REG_READ, &io.data_mask);
-
-#define NOTEF(fmt, x) mp_printf(&mp_plat_print, "Note: " #x "=" fmt "\n", (unsigned)x);
-    NOTEF("0x%08x", io.index_port);
-    NOTEF("0x%08x", io.index_mask);
-    NOTEF("0x%08x", io.data_port);
-    NOTEF("0x%08x", io.data_mask);
 
     common_hal_time_delay_ms(100);
 
