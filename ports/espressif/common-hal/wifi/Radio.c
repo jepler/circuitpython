@@ -39,6 +39,7 @@
 #include "shared-module/ipaddress/__init__.h"
 
 #include "components/esp_wifi/include/esp_wifi.h"
+#include "components/mdns/include/mdns.h"
 #include "components/lwip/include/apps/ping/ping_sock.h"
 
 #define MAC_ADDRESS_LENGTH 6
@@ -416,4 +417,24 @@ mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address,
 void common_hal_wifi_radio_gc_collect(wifi_radio_obj_t *self) {
     // Only bother to scan the actual object references.
     gc_collect_ptr(self->current_scan);
+}
+
+mp_obj_t common_hal_wifi_radio_get_mdns_instance_name(wifi_radio_obj_t *self) {
+    return self->mdns_instance_name;
+}
+
+mp_obj_t common_hal_wifi_radio_get_mdns_hostname(wifi_radio_obj_t *self) {
+    return self->mdns_hostname;
+}
+
+void common_hal_wifi_radio_set_mdns_instance_name(wifi_radio_obj_t *self, mp_obj_t name) {
+    mdns_init();
+    mdns_instance_name_set(mp_obj_str_get_str(name));
+    self->mdns_instance_name = name;
+}
+
+void common_hal_wifi_radio_set_mdns_hostname(wifi_radio_obj_t *self, mp_obj_t name) {
+    mdns_init();
+    mdns_hostname_set(mp_obj_str_get_str(name));
+    self->mdns_hostname = name;
 }

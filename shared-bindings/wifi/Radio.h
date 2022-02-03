@@ -104,4 +104,9 @@ extern mp_obj_t common_hal_wifi_radio_get_ipv4_address_ap(wifi_radio_obj_t *self
 
 extern mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address, mp_float_t timeout);
 
+extern mp_obj_t common_hal_wifi_radio_get_mdns_instance_name(wifi_radio_obj_t *self);
+extern mp_obj_t common_hal_wifi_radio_get_mdns_hostname(wifi_radio_obj_t *self);
+extern void common_hal_wifi_radio_set_mdns_instance_name(wifi_radio_obj_t *self, mp_obj_t name);
+extern void common_hal_wifi_radio_set_mdns_hostname(wifi_radio_obj_t *self, mp_obj_t name);
+
 #endif // MICROPY_INCLUDED_SHARED_BINDINGS_WIFI_RADIO_H

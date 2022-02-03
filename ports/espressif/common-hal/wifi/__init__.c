@@ -35,6 +35,7 @@
 #include "py/runtime.h"
 
 #include "components/esp_wifi/include/esp_wifi.h"
+#include "components/mdns/include/mdns.h"
 
 #include "components/heap/include/esp_heap_caps.h"
 
@@ -155,6 +156,10 @@ void common_hal_wifi_init(void) {
     common_hal_wifi_radio_start_station(self);
     // start wifi
     common_hal_wifi_radio_set_enabled(self, true);
+
+    wifi_radio_obj_t *radio = &common_hal_wifi_radio_obj;
+    radio->mdns_instance_name = mp_const_none;
+    radio->mdns_hostname = mp_const_none;
 }
 
 void wifi_reset(void) {
@@ -176,6 +181,9 @@ void wifi_reset(void) {
     esp_netif_destroy(radio->ap_netif);
     radio->ap_netif = NULL;
     wifi_inited = false;
+    radio->mdns_instance_name = mp_const_none;
+    radio->mdns_hostname = mp_const_none;
+    mdns_free();
 }
 
 void ipaddress_ipaddress_to_esp_idf(mp_obj_t ip_address, ip_addr_t *esp_ip_address) {

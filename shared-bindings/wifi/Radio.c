@@ -507,6 +507,48 @@ const mp_obj_property_t wifi_radio_ap_info_obj = {
                MP_ROM_NONE },
 };
 
+//|     mdns_hostname: Optional[str]
+//|     """Hostname for mdns queries, or None if not available."""
+//|
+STATIC mp_obj_t wifi_radio_get_mdns_hostname(mp_obj_t self) {
+    return common_hal_wifi_radio_get_mdns_hostname(self);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(wifi_radio_get_mdns_hostname_obj, wifi_radio_get_mdns_hostname);
+
+STATIC mp_obj_t wifi_radio_set_mdns_hostname(mp_obj_t self, mp_obj_t arg) {
+    common_hal_wifi_radio_set_mdns_hostname(self, arg);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(wifi_radio_set_mdns_hostname_obj, wifi_radio_set_mdns_hostname);
+
+const mp_obj_property_t wifi_radio_mdns_hostname_obj = {
+    .base.type = &mp_type_property,
+    .proxy = { (mp_obj_t)&wifi_radio_get_mdns_hostname_obj,
+               (mp_obj_t)&wifi_radio_set_mdns_hostname_obj,
+               MP_ROM_NONE },
+};
+
+//|     mdns_instance_name: Optional[str]
+//|     """Hostname for mdns queries, or None if not available."""
+//|
+STATIC mp_obj_t wifi_radio_get_mdns_instance_name(mp_obj_t self) {
+    return common_hal_wifi_radio_get_mdns_instance_name(self);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(wifi_radio_get_mdns_instance_name_obj, wifi_radio_get_mdns_instance_name);
+
+STATIC mp_obj_t wifi_radio_set_mdns_instance_name(mp_obj_t self, mp_obj_t arg) {
+    common_hal_wifi_radio_set_mdns_instance_name(self, arg);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(wifi_radio_set_mdns_instance_name_obj, wifi_radio_set_mdns_instance_name);
+
+const mp_obj_property_t wifi_radio_mdns_instance_name_obj = {
+    .base.type = &mp_type_property,
+    .proxy = { (mp_obj_t)&wifi_radio_get_mdns_instance_name_obj,
+               (mp_obj_t)&wifi_radio_set_mdns_instance_name_obj,
+               MP_ROM_NONE },
+};
+
 //|     def ping(self, ip: ipaddress.IPv4Address, *, timeout: Optional[float] = 0.5) -> Optional[float]:
 //|         """Ping an IP to test connectivity. Returns echo time in seconds.
 //|            Returns None when it times out."""
@@ -565,6 +607,9 @@ STATIC const mp_rom_map_elem_t wifi_radio_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_ipv4_subnet_ap),    MP_ROM_PTR(&wifi_radio_ipv4_subnet_ap_obj) },
     { MP_ROM_QSTR(MP_QSTR_ipv4_address),    MP_ROM_PTR(&wifi_radio_ipv4_address_obj) },
     { MP_ROM_QSTR(MP_QSTR_ipv4_address_ap),    MP_ROM_PTR(&wifi_radio_ipv4_address_ap_obj) },
+
+    { MP_ROM_QSTR(MP_QSTR_mdns_hostname),    MP_ROM_PTR(&wifi_radio_mdns_hostname_obj) },
+    { MP_ROM_QSTR(MP_QSTR_mdns_instance_name),    MP_ROM_PTR(&wifi_radio_mdns_instance_name_obj) },
 
     // { MP_ROM_QSTR(MP_QSTR_access_point_active),   MP_ROM_PTR(&wifi_radio_access_point_active_obj) },
     // { MP_ROM_QSTR(MP_QSTR_start_access_point), MP_ROM_PTR(&wifi_radio_start_access_point_obj) },
