@@ -508,13 +508,13 @@ const mp_obj_property_t wifi_radio_ap_info_obj = {
 };
 
 //|     mdns_hostname: Optional[str]
-//|     """Hostname for mdns queries, or None if unset or unset.
+//|     """Hostname for mdns queries, or None if not available or unset.
 //|
 //|     On host computers that support mdns, setting the mdns hostname to
 //|     ``example`` allows the name ``example.local`` to be used in
 //|     applications.
 //|
-//|     If the networking stack does not support mdns, then e value of this
+//|     If the networking stack does not support mdns, then the value of this
 //|     property is always None and setting it to any other value raises
 //|     a ValueError."""
 //|
@@ -542,7 +542,7 @@ const mp_obj_property_t wifi_radio_mdns_hostname_obj = {
 //|     Some software running on host computers, such as service browsers, may
 //|     be able to show the mdns instance name of a device.
 //|
-//|     If the networking stack does not support mdns, then e value of this
+//|     If the networking stack does not support mdns, then the value of this
 //|     property is always None and setting it to any other value raises
 //|     a ValueError."""
 //|
