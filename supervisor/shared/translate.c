@@ -52,7 +52,7 @@ typedef struct {
     uint8_t data[];
 } compressed_message_data;
 
-extern compressed_message_data compressed_messages;
+extern const compressed_message_data compressed_messages;
 
 uint16_t decompress_length(const compressed_string_t *compressed) {
     size_t id = (size_t)compressed;
@@ -128,7 +128,7 @@ const compressed_string_t *translate(const char *original) {
 
 #ifndef NO_QSTR
 __attribute__((section("translationdata")))
-compressed_message_data compressed_messages = {
+const compressed_message_data compressed_messages = {
 #define QDEF(id, hash, len, str)
 #define TRANSLATION(id, idx)
 #define TRANSLATION_DATA(...) __VA_ARGS__
