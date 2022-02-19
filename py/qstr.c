@@ -84,7 +84,9 @@ const qstr_attr_t mp_qstr_const_attr[MP_QSTRnumber_of] = {
     #ifndef NO_QSTR
 #define QDEF(id, hash, len, str) { hash, len },
 #define TRANSLATION(id, length, compressed ...)
+#define TRANSLATION_DATA(...)
     #include "genhdr/qstrdefs.generated.h"
+#undef TRANSLATION_DATA
 #undef TRANSLATION
 #undef QDEF
     #endif
@@ -103,7 +105,9 @@ const qstr_pool_t mp_qstr_const_pool = {
         #ifndef NO_QSTR
 #define QDEF(id, hash, len, str) str,
 #define TRANSLATION(id, length, compressed ...)
+#define TRANSLATION_DATA(...)
         #include "genhdr/qstrdefs.generated.h"
+#undef TRANSLATION_DATA
 #undef TRANSLATION
 #undef QDEF
         #endif

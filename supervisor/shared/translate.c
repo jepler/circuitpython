@@ -26,6 +26,7 @@
 
 #include "supervisor/shared/translate.h"
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -38,100 +39,67 @@
 #include "py/mpprint.h"
 #include "supervisor/serial.h"
 
+#include "lib/uzlib/tinf.h"
+
 void serial_write_compressed(const compressed_string_t *compressed) {
     mp_printf(MP_PYTHON_PRINTER, "%S", compressed);
 }
 
-STATIC void get_word(int n, const mchar_t **pos, const mchar_t **end) {
-    int len = minlen;
-    int i = 0;
-    *pos = words;
-    while (wlencount[i] <= n) {
-        n -= wlencount[i];
-        *pos += len * wlencount[i];
-        i++;
-        len++;
-    }
-    *pos += len * n;
-    *end = *pos + len;
-}
+#define MAX_COMPRESSED (512)
 
-STATIC int put_utf8(char *buf, int u) {
-    if (u <= 0x7f) {
-        *buf = u;
-        return 1;
-    } else if (word_start <= u && u <= word_end) {
-        uint n = (u - word_start);
-        const mchar_t *pos, *end;
-        get_word(n, &pos, &end);
-        int ret = 0;
-        // note that at present, entries in the words table are
-        // guaranteed not to represent words themselves, so this adds
-        // at most 1 level of recursive call
-        for (; pos < end; pos++) {
-            int len = put_utf8(buf, *pos);
-            buf += len;
-            ret += len;
-        }
-        return ret;
-    } else if (u <= 0x07ff) {
-        *buf++ = 0b11000000 | (u >> 6);
-        *buf = 0b10000000 | (u & 0b00111111);
-        return 2;
-    } else { // u <= 0xffff
-        *buf++ = 0b11100000 | (u >> 12);
-        *buf++ = 0b10000000 | ((u >> 6) & 0b00111111);
-        *buf = 0b10000000 | (u & 0b00111111);
-        return 3;
-    }
-}
+typedef struct {
+    uint16_t sizes[NUM_MESSAGES];
+    uint8_t data[];
+} compressed_message_data;
+
+extern compressed_message_data compressed_messages;
 
 uint16_t decompress_length(const compressed_string_t *compressed) {
-    #ifndef NO_QSTR
-    #if (compress_max_length_bits <= 8)
-    return 1 + (compressed->data >> (8 - compress_max_length_bits));
-    #else
-    return 1 + ((compressed->data * 256 + compressed->tail[0]) >> (16 - compress_max_length_bits));
-    #endif
-    #endif
+    size_t id = (size_t)compressed;
+    return compressed_messages.sizes[id];
+}
+
+typedef struct {
+    TINF_DATA decomp;
+    uint8_t *ptr;
+} message_reader;
+
+STATIC int read_src_messages(TINF_DATA *data) {
+    message_reader *reader = (message_reader *)data;
+    return *reader->ptr++;
 }
 
 char *decompress(const compressed_string_t *compressed, char *decompressed) {
-    uint8_t this_byte = compress_max_length_bits / 8;
-    uint8_t this_bit = 7 - compress_max_length_bits % 8;
-    uint8_t b = (&compressed->data)[this_byte] << (compress_max_length_bits % 8);
-    uint16_t length = decompress_length(compressed);
+    size_t id = (size_t)compressed;
+    uint8_t buf[MAX_COMPRESSED];
+    message_reader o;
+    memset(&o, 0, sizeof(o));
+    o.decomp.readSource = read_src_messages;
+    o.ptr = (uint8_t *)compressed_messages.data;
+    enum { dict_sz = 1 << 10 };
+    char dict[dict_sz];
+    uzlib_uncompress_init(&o.decomp, dict, dict_sz);
 
-    // Stop one early because the last byte is always NULL.
-    for (uint16_t i = 0; i < length - 1;) {
-        uint32_t bits = 0;
-        uint8_t bit_length = 0;
-        uint32_t max_code = lengths[0];
-        uint32_t searched_length = lengths[0];
-        while (true) {
-            bits <<= 1;
-            if ((0x80 & b) != 0) {
-                bits |= 1;
-            }
-            b <<= 1;
-            bit_length += 1;
-            if (this_bit == 0) {
-                this_bit = 7;
-                this_byte += 1;
-                b = (&compressed->data)[this_byte]; // This may read past the end but its never used.
-            } else {
-                this_bit -= 1;
-            }
-            if (max_code > 0 && bits < max_code) {
-                break;
-            }
-            max_code = (max_code << 1) + lengths[bit_length];
-            searched_length += lengths[bit_length];
-        }
-        i += put_utf8(decompressed + i, values[searched_length + bits - max_code]);
+    o.decomp.dest = (uint8_t *)buf;
+    for (size_t i = 0; i < id; i++) {
+        o.decomp.dest = (uint8_t *)buf;
+        o.decomp.dest_limit = (uint8_t *)buf + compressed_messages.sizes[i];
+        int st = uzlib_uncompress(&o.decomp);
+        (void)st;
+        size_t n = o.decomp.dest - (uint8_t *)buf;
+        (void)n;
+        assert(st == 0);
+        assert(n == compressed_messages.sizes[i]);
     }
-
-    decompressed[length - 1] = '\0';
+    o.decomp.dest = (uint8_t *)decompressed;
+    o.decomp.dest_limit = (uint8_t *)decompressed + compressed_messages.sizes[id];
+    int st = uzlib_uncompress(&o.decomp);
+    (void)st;
+    size_t n = o.decomp.dest - (uint8_t *)decompressed;
+    (void)n;
+    assert(st == 0);
+    assert(n == compressed_messages.sizes[id]);
+    decompressed[n] = 0;
     return decompressed;
 }
 
@@ -143,10 +111,30 @@ __attribute__((always_inline))
 const compressed_string_t *translate(const char *original) {
     #ifndef NO_QSTR
     #define QDEF(id, hash, len, str)
-    #define TRANSLATION(id, firstbyte, ...) if (strcmp(original, id) == 0) { static const compressed_string_t v = { .data = firstbyte, .tail = { __VA_ARGS__ } }; return &v; } else
+    #define TRANSLATION_DATA(...)
+    #define TRANSLATION(id, idx) if (strcmp(original, id) == 0) { return (compressed_string_t *)idx; } else
     #include "genhdr/qstrdefs.generated.h"
 #undef TRANSLATION
+#undef TRANSLATION_DATA
 #undef QDEF
     #endif
     return NULL;
 }
+
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#if !MICROPY_PY_UZLIB
+#include "lib/uzlib/tinflate.c"
+#endif
+
+#ifndef NO_QSTR
+__attribute__((section("translationdata")))
+compressed_message_data compressed_messages = {
+#define QDEF(id, hash, len, str)
+#define TRANSLATION(id, idx)
+#define TRANSLATION_DATA(...) __VA_ARGS__
+    #include "genhdr/qstrdefs.generated.h"
+#undef TRANSLATION_DATA
+#undef TRANSLATION
+#undef QDEF
+};
+#endif
