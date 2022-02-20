@@ -418,14 +418,13 @@ def print_qstr_data(qcfgs, qstrs, i18ns):
     print()
 
     all_translated = [translation.encode("utf-8") for original, translation in i18ns]
-    all_translated_joined = b"".join(all_translated)
+    all_translated_joined = b"\0".join(all_translated)
     compressor = zlib.compressobj(9, wbits=-10)
     compressor.compress(all_translated_joined)
     all_translated_compressed = compressor.flush()
 
-    lengths = ", ".join(str(len(s)) for s in all_translated)
     data = ", ".join(str(c) for c in all_translated_compressed)
-    print("TRANSLATION_DATA({{\n\t{} }},\n\t{{ {} }}\n)".format(lengths, data))
+    print("TRANSLATION_DATA({}, {{ {} }}\n)".format(max(len(m) for m in all_translated), data))
 
 
 def print_qstr_enums(qstrs):

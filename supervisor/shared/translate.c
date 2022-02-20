@@ -45,19 +45,13 @@ void serial_write_compressed(const compressed_string_t *compressed) {
     mp_printf(MP_PYTHON_PRINTER, "%S", compressed);
 }
 
-#define MAX_COMPRESSED (512)
-
 typedef struct {
-    uint16_t sizes[NUM_MESSAGES];
+    uint16_t max_length;
     uint8_t data[];
 } compressed_message_data;
 
 extern const compressed_message_data compressed_messages;
-
-uint16_t decompress_length(const compressed_string_t *compressed) {
-    size_t id = (size_t)compressed;
-    return compressed_messages.sizes[id];
-}
+enum { dict_sz = 1 << 10 };
 
 typedef struct {
     TINF_DATA decomp;
@@ -69,38 +63,67 @@ STATIC int read_src_messages(TINF_DATA *data) {
     return *reader->ptr++;
 }
 
-char *decompress(const compressed_string_t *compressed, char *decompressed) {
-    size_t id = (size_t)compressed;
-    uint8_t buf[MAX_COMPRESSED];
-    message_reader o;
-    memset(&o, 0, sizeof(o));
-    o.decomp.readSource = read_src_messages;
-    o.ptr = (uint8_t *)compressed_messages.data;
-    enum { dict_sz = 1 << 10 };
-    char dict[dict_sz];
-    uzlib_uncompress_init(&o.decomp, dict, dict_sz);
+static void decompress_common(message_reader *o, char *dict, size_t id) {
+    memset(o, 0, sizeof(*o));
+    o->decomp.readSource = read_src_messages;
+    o->ptr = (uint8_t *)compressed_messages.data;
+    uzlib_uncompress_init(&o->decomp, dict, dict_sz);
 
-    o.decomp.dest = (uint8_t *)buf;
-    for (size_t i = 0; i < id; i++) {
-        o.decomp.dest = (uint8_t *)buf;
-        o.decomp.dest_limit = (uint8_t *)buf + compressed_messages.sizes[i];
-        int st = uzlib_uncompress(&o.decomp);
+    // count NULs until reaching our message..
+    for (size_t i = 0; i < id;) {
+        uint8_t b;
+        o->decomp.dest = &b;
+        o->decomp.dest_limit = o->decomp.dest + 1;
+        int st = uzlib_uncompress(&o->decomp);
         (void)st;
-        size_t n = o.decomp.dest - (uint8_t *)buf;
+        size_t n = o->decomp.dest - &b;
         (void)n;
         assert(st == 0);
-        assert(n == compressed_messages.sizes[i]);
+        assert(n == 1);
+        if (!b) {
+            i++;
+        }
     }
+}
+
+uint16_t decompress_max_length(void) {
+    return compressed_messages.max_length;
+}
+
+uint16_t decompress_length(const compressed_string_t *compressed) {
+    size_t id = (size_t)compressed;
+    message_reader o;
+    char dict[dict_sz];
+    decompress_common(&o, dict, id);
+
+    uint8_t b;
+    uint16_t result = 0;
+    do {
+        o.decomp.dest = &b;
+        o.decomp.dest_limit = o.decomp.dest + 1;
+        int st = uzlib_uncompress(&o.decomp);
+        (void)st;
+        size_t n = o.decomp.dest - &b;
+        (void)n;
+        assert(st == 0);
+        assert(n == 1);
+        result++;
+    } while (b);
+
+    return compressed_messages.max_length;
+}
+
+void decompress(const compressed_string_t *compressed, char *decompressed, size_t decompress_len) {
+    size_t id = (size_t)compressed;
+    message_reader o;
+    char dict[dict_sz];
+    decompress_common(&o, dict, id);
+
     o.decomp.dest = (uint8_t *)decompressed;
-    o.decomp.dest_limit = (uint8_t *)decompressed + compressed_messages.sizes[id];
+    o.decomp.dest_limit = (uint8_t *)decompressed + decompress_len;
     int st = uzlib_uncompress(&o.decomp);
     (void)st;
-    size_t n = o.decomp.dest - (uint8_t *)decompressed;
-    (void)n;
     assert(st == 0);
-    assert(n == compressed_messages.sizes[id]);
-    decompressed[n] = 0;
-    return decompressed;
 }
 
 inline

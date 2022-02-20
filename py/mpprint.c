@@ -496,11 +496,10 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
             }
             case 'S': {
                 compressed_string_t *arg = va_arg(args, compressed_string_t *);
-                size_t len_with_nul = decompress_length(arg);
-                size_t len = len_with_nul - 1;
+                size_t len_with_nul = decompress_max_length();
                 char str[len_with_nul];
-                decompress(arg, str);
-                chrs += print_str_common(print, str, prec, len, flags, fill, width);
+                decompress(arg, str, len_with_nul);
+                chrs += print_str_common(print, str, prec, strlen(str), flags, fill, width);
                 break;
             }
             case 's': {
@@ -601,9 +600,9 @@ int mp_cprintf(const mp_print_t *print, const compressed_string_t *compressed_fm
 }
 
 int mp_vcprintf(const mp_print_t *print, const compressed_string_t *compressed_fmt, va_list args) {
-    char fmt[decompress_length(compressed_fmt)];
+    char fmt[decompress_max_length()];
     // TODO: Optimise this to format-while-decompressing (and not require the temp stack space).
-    decompress(compressed_fmt, fmt);
+    decompress(compressed_fmt, fmt, sizeof(fmt));
 
     return mp_vprintf(print, fmt, args);
 }

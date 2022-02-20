@@ -168,7 +168,7 @@ const char *mp_common_errno_to_str(mp_obj_t errno_val, char *buf, size_t len) {
             break;
     }
     if (desc != NULL && decompress_length(desc) <= len) {
-        decompress(desc, buf);
+        decompress(desc, buf, len);
         return buf;
     }
 
