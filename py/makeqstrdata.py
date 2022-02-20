@@ -412,19 +412,61 @@ def print_qstr_data(qcfgs, qstrs, i18ns):
 
         total_qstr_size += len(qstr)
 
-    for i, (original, translation) in enumerate(i18ns):
+    best = sys.maxsize
+    best_data = None
+    best_sort = None
+
+    # Group messages together according to whether they're translated, and then in lexical order
+    def alpha(arg):
+        original, translation = arg
+        return (
+            original == translation,
+            translation,
+        )
+
+    for reverse in (False, True):
+        i18ns.sort(key=alpha, reverse=reverse)
+        for cutoff in range(3, 8):
+            qstr_by_length = sorted(
+                (
+                    (i + 1, qstr)
+                    for i, (order, ident, qstr) in enumerate(qstrs.values())
+                    if len(qstr) > cutoff
+                ),
+                key=lambda x: -len(x[1]),
+            )
+
+            def qstrify(s):
+                s0 = s
+                for num, qstr in qstr_by_length:
+                    s = s.replace(qstr, chr(0xE000 + num))
+                return s
+
+            all_translated = [translation.encode("utf-8") for original, translation in i18ns]
+            all_translated_qstrd = [
+                qstrify(translation).encode("utf-8") for original, translation in i18ns
+            ]
+            all_translated_joined = b"\0".join(all_translated_qstrd)
+            compressor = zlib.compressobj(9, wbits=-10)
+            compressor.compress(all_translated_joined)
+            all_translated_compressed = compressor.flush()
+
+            data = ", ".join(str(c) for c in all_translated_compressed)
+            if len(all_translated_compressed) < best:
+                best_desc = f"// Compressed to {len(all_translated_compressed)} bytes using cutoff {cutoff} {'reversed ' if reverse else ''}"
+                best = len(all_translated_compressed)
+                best_data = data
+                best_sort = i18ns[:]
+
+    print(best_desc)
+    for i, (original, translation) in enumerate(best_sort):
         print('TRANSLATION("{}", {})'.format(original, i))
 
     print()
 
-    all_translated = [translation.encode("utf-8") for original, translation in i18ns]
-    all_translated_joined = b"\0".join(all_translated)
-    compressor = zlib.compressobj(9, wbits=-10)
-    compressor.compress(all_translated_joined)
-    all_translated_compressed = compressor.flush()
-
-    data = ", ".join(str(c) for c in all_translated_compressed)
-    print("TRANSLATION_DATA({}, {{ {} }}\n)".format(max(len(m) for m in all_translated), data))
+    print(
+        "TRANSLATION_DATA({}, {{ {} }}\n)".format(max(len(m) for m in all_translated), best_data)
+    )
 
 
 def print_qstr_enums(qstrs):
@@ -460,7 +502,6 @@ if __name__ == "__main__":
 
     qcfgs, qstrs, i18ns = parse_input_headers(args.infiles)
     if args.translation:
-        i18ns = sorted(i18ns)
         translations = translate(args.translation, i18ns)
         print_qstr_data(qcfgs, qstrs, translations)
         with open(args.compression_filename, "w") as f:
