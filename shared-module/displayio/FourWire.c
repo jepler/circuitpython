@@ -54,14 +54,14 @@ void common_hal_displayio_fourwire_construct(displayio_fourwire_obj_t *self,
     common_hal_digitalio_digitalinout_construct(&self->chip_select, chip_select);
     common_hal_digitalio_digitalinout_switch_to_output(&self->chip_select, true, DRIVE_MODE_PUSH_PULL);
 
-    self->command.base.type = &mp_type_NoneType;
+    self->command.base.type = &mp_type_DeinitializedType;
     if (command != NULL) {
         self->command.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->command, command);
         common_hal_digitalio_digitalinout_switch_to_output(&self->command, true, DRIVE_MODE_PUSH_PULL);
         common_hal_never_reset_pin(command);
     }
-    self->reset.base.type = &mp_type_NoneType;
+    self->reset.base.type = &mp_type_DeinitializedType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->reset, reset);
@@ -85,7 +85,7 @@ void common_hal_displayio_fourwire_deinit(displayio_fourwire_obj_t *self) {
 
 bool common_hal_displayio_fourwire_reset(mp_obj_t obj) {
     displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(obj);
-    if (self->reset.base.type == &mp_type_NoneType) {
+    if (PTR_IS_DEINITIALIZED(&self->reset)) {
         return false;
     }
     common_hal_digitalio_digitalinout_set_value(&self->reset, false);
@@ -118,7 +118,7 @@ bool common_hal_displayio_fourwire_begin_transaction(mp_obj_t obj) {
 void common_hal_displayio_fourwire_send(mp_obj_t obj, display_byte_type_t data_type,
     display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
     displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(obj);
-    if (self->command.base.type == &mp_type_NoneType) {
+    if (PTR_IS_DEINITIALIZED(&self->command)) {
         // When the data/command pin is not specified, we simulate a 9-bit SPI mode, by
         // adding a data/command bit to every byte, and then splitting the resulting data back
         // into 8-bit chunks for transmission. If the length of the data being transmitted

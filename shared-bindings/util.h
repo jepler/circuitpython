@@ -27,7 +27,11 @@
 #ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H
 #define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H
 
-void raise_deinited_error(void);
+NORETURN void raise_deinited_error(void);
+void deinit_object(mp_obj_base_t *ptr);
 
+extern const mp_obj_type_t mp_type_DeinitedType;
+
+#define PTR_IS_DEINITIALIZED(ptr) ((ptr)->base.type == &mp_type_DeinitedType)
 
 #endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_UTIL_H

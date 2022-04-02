@@ -89,7 +89,7 @@ void displayio_background(void) {
 
 
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
-        if (displays[i].display.base.type == NULL || displays[i].display.base.type == &mp_type_NoneType) {
+        if (displays[i].display.base.type == NULL || OBJ_IS_DEINITIALIZED(&displays[i].display)) {
             // Skip null display.
             continue;
         }
@@ -111,7 +111,7 @@ void common_hal_displayio_release_displays(void) {
     // off properly.
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t display_type = displays[i].display.base.type;
-        if (display_type == NULL || display_type == &mp_type_NoneType) {
+        if (display_type == NULL || display_type == &mp_type_DeinitedType) {
             continue;
         } else if (display_type == &displayio_display_type) {
             release_display(&displays[i].display);
@@ -122,11 +122,11 @@ void common_hal_displayio_release_displays(void) {
             release_framebufferdisplay(&displays[i].framebuffer_display);
         #endif
         }
-        displays[i].display.base.type = &mp_type_NoneType;
+        displays[i].display.base.type = &mp_type_DeinitedType;
     }
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t bus_type = displays[i].fourwire_bus.base.type;
-        if (bus_type == NULL || bus_type == &mp_type_NoneType) {
+        if (bus_type == NULL || bus_type == &mp_type_DeinitedType) {
             continue;
         } else if (bus_type == &displayio_fourwire_type) {
             common_hal_displayio_fourwire_deinit(&displays[i].fourwire_bus);
@@ -153,7 +153,7 @@ void common_hal_displayio_release_displays(void) {
             common_hal_videocore_framebuffer_deinit(&displays[i].videocore);
         #endif
         }
-        displays[i].fourwire_bus.base.type = &mp_type_NoneType;
+        displays[i].fourwire_bus.base.type = &mp_type_DeinitedType;
     }
 
     supervisor_stop_terminal();
@@ -327,7 +327,7 @@ void displayio_gc_collect(void) {
 primary_display_t *allocate_display(void) {
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t display_type = displays[i].display.base.type;
-        if (display_type == NULL || display_type == &mp_type_NoneType) {
+        if (display_type == NULL || display_type == &mp_type_DeinitedType) {
             return &displays[i];
         }
     }
@@ -344,7 +344,7 @@ primary_display_t *allocate_display_or_raise(void) {
 primary_display_t *allocate_display_bus(void) {
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t display_bus_type = displays[i].bus_base.type;
-        if (display_bus_type == NULL || display_bus_type == &mp_type_NoneType) {
+        if (display_bus_type == NULL || display_bus_type == &mp_type_DeinitializedType) {
             return &displays[i];
         }
     }

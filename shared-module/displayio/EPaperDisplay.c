@@ -84,7 +84,7 @@ void common_hal_displayio_epaperdisplay_construct(displayio_epaperdisplay_obj_t 
     self->stop_sequence = stop_sequence;
     self->stop_sequence_len = stop_sequence_len;
 
-    self->busy.base.type = &mp_type_NoneType;
+    self->busy.base.type = &mp_type_DeinitedType;
     self->two_byte_sequence_length = two_byte_sequence_length;
     if (busy_pin != NULL) {
         self->busy.base.type = &digitalio_digitalinout_type;
@@ -131,7 +131,7 @@ uint16_t common_hal_displayio_epaperdisplay_get_height(displayio_epaperdisplay_o
 }
 
 STATIC void wait_for_busy(displayio_epaperdisplay_obj_t *self) {
-    if (self->busy.base.type == &mp_type_NoneType) {
+    if (PTR_IS_DEINITIALIZED(&self->busy)) {
         return;
     }
     while (common_hal_digitalio_digitalinout_get_value(&self->busy) == self->busy_state) {

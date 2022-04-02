@@ -39,7 +39,7 @@
 void common_hal_is31fl3741_IS31FL3741_construct(is31fl3741_IS31FL3741_obj_t *self, busio_i2c_obj_t *i2c, uint8_t addr) {
     // Probe the bus to see if a device acknowledges the given address.
     if (!common_hal_busio_i2c_probe(i2c, addr)) {
-        self->base.type = &mp_type_NoneType;
+        self->base.type = &mp_type_DeinitializedType;
         mp_raise_ValueError_varg(translate("Unable to find I2C Display at %x"), addr);
     }
 

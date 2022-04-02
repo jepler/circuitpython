@@ -112,7 +112,7 @@ void common_hal_displayio_display_construct(displayio_display_obj_t *self,
     }
 
     // Always set the backlight type in case we're reusing memory.
-    self->backlight_inout.base.type = &mp_type_NoneType;
+    deinit_static_object(&self->backlight_inout);
     if (backlight_pin != NULL && common_hal_mcu_pin_is_free(backlight_pin)) {
         // Avoid PWM types and functions when the module isn't enabled
         #if (CIRCUITPY_PWMIO)
@@ -132,8 +132,8 @@ void common_hal_displayio_display_construct(displayio_display_obj_t *self,
         common_hal_never_reset_pin(backlight_pin);
         #endif
     }
-    if (!self->auto_brightness && (self->backlight_inout.base.type != &mp_type_NoneType ||
-                                   brightness_command != NO_BRIGHTNESS_COMMAND)) {
+    if (!self->auto_brightness && !(PTR_IS_DEINITIALIZED(&self->backlight_inout) ||
+                                    brightness_command != NO_BRIGHTNESS_COMMAND)) {
         common_hal_displayio_display_set_brightness(self, brightness);
     } else {
         self->current_brightness = -1.0;

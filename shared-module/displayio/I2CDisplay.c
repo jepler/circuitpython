@@ -42,7 +42,7 @@ void common_hal_displayio_i2cdisplay_construct(displayio_i2cdisplay_obj_t *self,
     busio_i2c_obj_t *i2c, uint16_t device_address, const mcu_pin_obj_t *reset) {
 
     // Reset the display before probing
-    self->reset.base.type = &mp_type_NoneType;
+    self->reset.base.type = &mp_type_DeinitializedType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->reset, reset);
@@ -53,7 +53,7 @@ void common_hal_displayio_i2cdisplay_construct(displayio_i2cdisplay_obj_t *self,
 
     // Probe the bus to see if a device acknowledges the given address.
     if (!common_hal_busio_i2c_probe(i2c, device_address)) {
-        self->base.type = &mp_type_NoneType;
+        self->base.type = &mp_type_DeinitializedType;
         mp_raise_ValueError_varg(translate("Unable to find I2C Display at %x"), device_address);
     }
 
@@ -79,7 +79,7 @@ void common_hal_displayio_i2cdisplay_deinit(displayio_i2cdisplay_obj_t *self) {
 
 bool common_hal_displayio_i2cdisplay_reset(mp_obj_t obj) {
     displayio_i2cdisplay_obj_t *self = MP_OBJ_TO_PTR(obj);
-    if (self->reset.base.type == &mp_type_NoneType) {
+    if (PTR_IS_DEINITIALIZED(&self->reset)) {
         return false;
     }
 
