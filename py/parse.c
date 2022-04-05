@@ -910,6 +910,11 @@ mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
 
     #if MICROPY_COMP_CONST
     mp_map_init(&parser.consts, 0);
+    {
+        mp_map_elem_t *elem = mp_map_lookup(&parser.consts, MP_OBJ_NEW_QSTR(MP_QSTR_TYPE_CHECKING), MP_MAP_LOOKUP_ADD_IF_NOT_FOUND);
+        assert(elem->value == MP_OBJ_NULL);
+        elem->value = mp_obj_new_int(0);
+    }
     #endif
 
     // work out the top-level rule to use, and push it on the stack
