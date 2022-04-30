@@ -77,6 +77,7 @@ void shared_modules_random_seed(mp_uint_t seed) {
     yasmarang_n = 69;
     yasmarang_d = 233;
     yasmarang_dat = 0;
+    (void)yasmarang();
 }
 
 mp_uint_t shared_modules_random_getrandbits(uint8_t n) {
