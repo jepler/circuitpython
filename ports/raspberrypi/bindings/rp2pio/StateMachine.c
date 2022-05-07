@@ -42,6 +42,15 @@
 #include "py/runtime.h"
 #include "supervisor/shared/translate.h"
 
+static void update_typecode_maybe(mp_buffer_info_t *bufinfo, mp_obj_t typecode_maybe) {
+    if (typecode_maybe != MP_ROM_NONE) {
+        // no explicit error handling is OK here as:
+        // * a non-string throws in mp_obj_str_get_str
+        // * An empty string is nul-terminated, which will lead to 'bad typecode' later in mp_binary_get_size
+        bufinfo->typecode = mp_obj_str_get_str(typecode_maybe)[0];
+    }
+}
+
 
 //| class StateMachine:
 //|     """A single PIO StateMachine
@@ -378,7 +387,7 @@ STATIC mp_obj_t rp2pio_statemachine_stop(mp_obj_t self_obj) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(rp2pio_statemachine_stop_obj, rp2pio_statemachine_stop);
 
-//|     def write(self, buffer: ReadableBuffer, *, start: int = 0, end: Optional[int] = None, swap: bool = False) -> None:
+//|     def write(self, buffer: ReadableBuffer, *, start: int = 0, end: Optional[int] = None, swap: bool = False, typecode: Optional[str] = None) -> None:
 //|         """Write the data contained in ``buffer`` to the state machine. If the buffer is empty, nothing happens.
 //|
 //|         Writes to the FIFO will match the input buffer's element size. For example, bytearray elements
@@ -391,16 +400,18 @@ MP_DEFINE_CONST_FUN_OBJ_1(rp2pio_statemachine_stop_obj, rp2pio_statemachine_stop
 //|         :param ~circuitpython_typing.ReadableBuffer buffer: Write out the data in this buffer
 //|         :param int start: Start of the slice of ``buffer`` to write out: ``buffer[start:end]``
 //|         :param int end: End of the slice; this index is not included. Defaults to ``len(buffer)``
-//|         :param bool swap: For 2- and 4-byte elements, swap (reverse) the byte order"""
+//|         :param bool swap: For 2- and 4-byte elements, swap (reverse) the byte order
+//|         :param bool typecode: Use this typecode to set the element size. Unlike using `memoryview.cast`, this requires no allocations."""
 //|         ...
 //|
 STATIC mp_obj_t rp2pio_statemachine_write(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_buffer, ARG_start, ARG_end, ARG_swap };
+    enum { ARG_buffer, ARG_start, ARG_end, ARG_swap, ARG_typecode };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_start,      MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_end,        MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = INT_MAX} },
         { MP_QSTR_swap,       MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_typecode,   MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_ROM_NONE} },
     };
     rp2pio_statemachine_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
@@ -409,6 +420,7 @@ STATIC mp_obj_t rp2pio_statemachine_write(size_t n_args, const mp_obj_t *pos_arg
 
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_READ);
+    update_typecode_maybe(&bufinfo, args[ARG_typecode].u_obj);
     int32_t start = args[ARG_start].u_int;
     size_t length = bufinfo.len;
     normalize_buffer_bounds(&start, args[ARG_end].u_int, &length);
@@ -433,7 +445,7 @@ STATIC mp_obj_t rp2pio_statemachine_write(size_t n_args, const mp_obj_t *pos_arg
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(rp2pio_statemachine_write_obj, 2, rp2pio_statemachine_write);
 
-//|     def background_write(self, once: Optional[ReadableBuffer]=None, *, loop: Optional[ReadableBuffer]=None, swap: bool=False) -> None:
+//|     def background_write(self, once: Optional[ReadableBuffer]=None, *, loop: Optional[ReadableBuffer]=None, swap: bool=False, typecode: Optional[str] = None) -> None:
 //|         """Write data to the TX fifo in the background, with optional looping.
 //|
 //|         First, if any previous ``once`` or ``loop`` buffer has not been started, this function blocks until they have.
@@ -446,10 +458,7 @@ MP_DEFINE_CONST_FUN_OBJ_KW(rp2pio_statemachine_write_obj, 2, rp2pio_statemachine
 //|         will perform 8 bit writes to the PIO FIFO. The RP2040's memory bus will duplicate the value into
 //|         the other byte positions. So, pulling more data in the PIO assembly will read the duplicated values.
 //|
-//|         To perform 16 or 32 bits writes into the FIFO use an `array.array` with a type code of the desired
-//|         size, or use `memoryview.cast` to change the interpretation of an
-//|         existing buffer.  To send just part of a larger buffer, slice a `memoryview`
-//|         of it.
+//|         To send just part of a larger buffer, slice a `memoryview` of it.
 //|
 //|         If a buffer is modified while it is being written out, the updated
 //|         values will be used. However, because of interactions between CPU
@@ -468,14 +477,16 @@ MP_DEFINE_CONST_FUN_OBJ_KW(rp2pio_statemachine_write_obj, 2, rp2pio_statemachine
 //|         :param ~Optional[circuitpython_typing.ReadableBuffer] once: Data to be written once
 //|         :param ~Optional[circuitpython_typing.ReadableBuffer] loop: Data to be written repeatedly
 //|         :param bool swap: For 2- and 4-byte elements, swap (reverse) the byte order
+//|         :param bool typecode: Use this typecode to set the element size. Unlike using `memoryview.cast`, this requires no allocations.
 //|         """
 //|         ...
 //|
 
-STATIC void fill_buf_info(sm_buf_info *info, mp_obj_t obj, size_t *stride_in_bytes) {
+STATIC void fill_buf_info(sm_buf_info *info, mp_obj_t obj, size_t *stride_in_bytes, mp_obj_t typecode_maybe) {
     if (obj != mp_const_none) {
         info->obj = obj;
         mp_get_buffer_raise(obj, &info->info, MP_BUFFER_READ);
+        update_typecode_maybe(&info->info, typecode_maybe);
         size_t stride = mp_binary_get_size('@', info->info.typecode, NULL);
         if (stride > 4) {
             mp_raise_ValueError(translate("Buffer elements must be 4 bytes long or less"));
@@ -490,11 +501,12 @@ STATIC void fill_buf_info(sm_buf_info *info, mp_obj_t obj, size_t *stride_in_byt
 }
 
 STATIC mp_obj_t rp2pio_statemachine_background_write(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_once, ARG_loop, ARG_swap };
+    enum { ARG_once, ARG_loop, ARG_swap, ARG_typecode };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_once,     MP_ARG_OBJ, {.u_obj = mp_const_none} },
-        { MP_QSTR_loop,     MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = mp_const_none} },
-        { MP_QSTR_swap,   MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_loop,     MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_ROM_NONE} },
+        { MP_QSTR_swap,     MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_typecode, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_ROM_NONE} },
     };
     rp2pio_statemachine_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
@@ -504,8 +516,8 @@ STATIC mp_obj_t rp2pio_statemachine_background_write(size_t n_args, const mp_obj
     sm_buf_info once_info;
     sm_buf_info loop_info;
     size_t stride_in_bytes = 0;
-    fill_buf_info(&once_info, args[ARG_once].u_obj, &stride_in_bytes);
-    fill_buf_info(&loop_info, args[ARG_loop].u_obj, &stride_in_bytes);
+    fill_buf_info(&once_info, args[ARG_once].u_obj, &stride_in_bytes, args[ARG_typecode].u_obj);
+    fill_buf_info(&loop_info, args[ARG_loop].u_obj, &stride_in_bytes, args[ARG_typecode].u_obj);
     if (!stride_in_bytes) {
         return mp_const_none;
     }
@@ -577,7 +589,7 @@ const mp_obj_property_t rp2pio_statemachine_pending_obj = {
               MP_ROM_NONE},
 };
 
-//|     def readinto(self, buffer: WriteableBuffer, *, start: int = 0, end: Optional[int] = None, swap: bool=False) -> None:
+//|     def readinto(self, buffer: WriteableBuffer, *, start: int = 0, end: Optional[int] = None, swap: bool=False, typecode: Optional[str] = None ) -> None:
 //|         """Read into ``buffer``. If the number of bytes to read is 0, nothing happens. The buffer
 //|         includes any data added to the fifo even if it was added before this was called.
 //|
@@ -592,17 +604,19 @@ const mp_obj_property_t rp2pio_statemachine_pending_obj = {
 //|         :param ~circuitpython_typing.WriteableBuffer buffer: Read data into this buffer
 //|         :param int start: Start of the slice of ``buffer`` to read into: ``buffer[start:end]``
 //|         :param int end: End of the slice; this index is not included. Defaults to ``len(buffer)``
-//|         :param bool swap: For 2- and 4-byte elements, swap (reverse) the byte order"""
+//|         :param bool swap: For 2- and 4-byte elements, swap (reverse) the byte order
+//|         :param bool typecode: Use this typecode to set the element size. Unlike using `memoryview.cast`, this requires no allocations."""
 //|         ...
 //|
 
 STATIC mp_obj_t rp2pio_statemachine_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_buffer, ARG_start, ARG_end, ARG_swap };
+    enum { ARG_buffer, ARG_start, ARG_end, ARG_swap, ARG_typecode };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_start,      MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 0} },
         { MP_QSTR_end,        MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = INT_MAX} },
         { MP_QSTR_swap,       MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_typecode,   MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_ROM_NONE} },
     };
     rp2pio_statemachine_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
@@ -611,6 +625,7 @@ STATIC mp_obj_t rp2pio_statemachine_readinto(size_t n_args, const mp_obj_t *pos_
 
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_WRITE);
+    update_typecode_maybe(&bufinfo, args[ARG_typecode].u_obj);
     int32_t start = args[ARG_start].u_int;
     size_t length = bufinfo.len;
     normalize_buffer_bounds(&start, args[ARG_end].u_int, &length);
@@ -633,7 +648,20 @@ STATIC mp_obj_t rp2pio_statemachine_readinto(size_t n_args, const mp_obj_t *pos_
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(rp2pio_statemachine_readinto_obj, 2, rp2pio_statemachine_readinto);
 
-//|     def write_readinto(self, buffer_out: ReadableBuffer, buffer_in: WriteableBuffer, *, out_start: int = 0, out_end: Optional[int] = None, in_start: int = 0, in_end: Optional[int] = None) -> None:
+//|     def write_readinto(
+//|         self,
+//|         buffer_out: ReadableBuffer,
+//|         buffer_in: WriteableBuffer,
+//|         *,
+//|         out_start: int = 0,
+//|         out_end: Optional[int] = None,
+//|         in_start: int = 0,
+//|         in_end: Optional[int] = None,
+//|         swap_in: bool = False,
+//|         swap_out: bool = False,
+//|         typecode_in: Optional[str] = None,
+//|         typecode_out: Optional[str] = None,
+//|     ) -> None:
 //|         """Write out the data in ``buffer_out`` while simultaneously reading data into ``buffer_in``.
 //|         The lengths of the slices defined by ``buffer_out[out_start:out_end]`` and ``buffer_in[in_start:in_end]``
 //|         may be different. The function will return once both are filled.
@@ -652,12 +680,14 @@ MP_DEFINE_CONST_FUN_OBJ_KW(rp2pio_statemachine_readinto_obj, 2, rp2pio_statemach
 //|         :param int in_start: Start of the slice of ``buffer_in`` to read into: ``buffer_in[in_start:in_end]``
 //|         :param int in_end: End of the slice; this index is not included. Defaults to ``len(buffer_in)``
 //|         :param bool swap_out: For 2- and 4-byte elements, swap (reverse) the byte order for the buffer being transmitted (written)
-//|         :param bool swap_in: For 2- and 4-rx elements, swap (reverse) the byte order for the buffer being received (read)"""
+//|         :param bool swap_in: For 2- and 4-rx elements, swap (reverse) the byte order for the buffer being received (read)
+//|         :param bool typecode_out: Use this typecode to set the element size. Unlike using `memoryview.cast`, this requires no allocations.
+//|         :param bool typecode_in: Use this typecode to set the element size. Unlike using `memoryview.cast`, this requires no allocations."""
 //|         ...
 //|
 
 STATIC mp_obj_t rp2pio_statemachine_write_readinto(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_buffer_out, ARG_buffer_in, ARG_out_start, ARG_out_end, ARG_in_start, ARG_in_end, ARG_swap_out, ARG_swap_in };
+    enum { ARG_buffer_out, ARG_buffer_in, ARG_out_start, ARG_out_end, ARG_in_start, ARG_in_end, ARG_swap_out, ARG_swap_in, ARG_typecode_out, ARG_typecode_in };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer_out,    MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_buffer_in,     MP_ARG_REQUIRED | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
@@ -667,6 +697,8 @@ STATIC mp_obj_t rp2pio_statemachine_write_readinto(size_t n_args, const mp_obj_t
         { MP_QSTR_in_end,        MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = INT_MAX} },
         { MP_QSTR_swap_out,      MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
         { MP_QSTR_swap_in,       MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
+        { MP_QSTR_typecode_out,  MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_ROM_NONE} },
+        { MP_QSTR_typecode_in,   MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_ROM_NONE} },
     };
     rp2pio_statemachine_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
@@ -675,12 +707,14 @@ STATIC mp_obj_t rp2pio_statemachine_write_readinto(size_t n_args, const mp_obj_t
 
     mp_buffer_info_t buf_out_info;
     mp_get_buffer_raise(args[ARG_buffer_out].u_obj, &buf_out_info, MP_BUFFER_READ);
+    update_typecode_maybe(&buf_out_info, args[ARG_typecode_out].u_obj);
     int32_t out_start = args[ARG_out_start].u_int;
     size_t out_length = buf_out_info.len;
     normalize_buffer_bounds(&out_start, args[ARG_out_end].u_int, &out_length);
 
     mp_buffer_info_t buf_in_info;
     mp_get_buffer_raise(args[ARG_buffer_in].u_obj, &buf_in_info, MP_BUFFER_WRITE);
+    update_typecode_maybe(&buf_in_info, args[ARG_typecode_in].u_obj);
     int32_t in_start = args[ARG_in_start].u_int;
     size_t in_length = buf_in_info.len;
     normalize_buffer_bounds(&in_start, args[ARG_in_end].u_int, &in_length);
