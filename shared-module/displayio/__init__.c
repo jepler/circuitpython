@@ -30,6 +30,7 @@
 
 #include "shared/runtime/interrupt_char.h"
 #include "py/runtime.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/board/__init__.h"
 #include "shared-bindings/displayio/Bitmap.h"
 #include "shared-bindings/displayio/Display.h"
@@ -89,7 +90,7 @@ void displayio_background(void) {
 
 
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
-        if (displays[i].display.base.type == NULL || OBJ_IS_DEINITIALIZED(&displays[i].display)) {
+        if (displays[i].display.base.type == NULL || PTR_IS_DEINITIALIZED(&displays[i].display)) {
             // Skip null display.
             continue;
         }
@@ -344,7 +345,7 @@ primary_display_t *allocate_display_or_raise(void) {
 primary_display_t *allocate_display_bus(void) {
     for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
         mp_const_obj_t display_bus_type = displays[i].bus_base.type;
-        if (display_bus_type == NULL || display_bus_type == &mp_type_DeinitializedType) {
+        if (display_bus_type == NULL || display_bus_type == &mp_type_DeinitedType) {
             return &displays[i];
         }
     }

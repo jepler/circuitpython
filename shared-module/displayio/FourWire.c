@@ -29,6 +29,7 @@
 #include <stdint.h>
 
 #include "py/gc.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/microcontroller/Pin.h"
@@ -54,14 +55,14 @@ void common_hal_displayio_fourwire_construct(displayio_fourwire_obj_t *self,
     common_hal_digitalio_digitalinout_construct(&self->chip_select, chip_select);
     common_hal_digitalio_digitalinout_switch_to_output(&self->chip_select, true, DRIVE_MODE_PUSH_PULL);
 
-    self->command.base.type = &mp_type_DeinitializedType;
+    self->command.base.type = &mp_type_DeinitedType;
     if (command != NULL) {
         self->command.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->command, command);
         common_hal_digitalio_digitalinout_switch_to_output(&self->command, true, DRIVE_MODE_PUSH_PULL);
         common_hal_never_reset_pin(command);
     }
-    self->reset.base.type = &mp_type_DeinitializedType;
+    self->reset.base.type = &mp_type_DeinitedType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->reset, reset);

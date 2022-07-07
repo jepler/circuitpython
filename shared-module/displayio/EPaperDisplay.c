@@ -28,6 +28,7 @@
 
 #include "py/gc.h"
 #include "py/runtime.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/displayio/ColorConverter.h"
 #include "shared-bindings/displayio/FourWire.h"
 #include "shared-bindings/displayio/I2CDisplay.h"

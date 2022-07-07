@@ -31,6 +31,7 @@
 
 #include "py/gc.h"
 #include "py/runtime.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/busio/I2C.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/microcontroller/Pin.h"
@@ -42,7 +43,7 @@ void common_hal_displayio_i2cdisplay_construct(displayio_i2cdisplay_obj_t *self,
     busio_i2c_obj_t *i2c, uint16_t device_address, const mcu_pin_obj_t *reset) {
 
     // Reset the display before probing
-    self->reset.base.type = &mp_type_DeinitializedType;
+    self->reset.base.type = &mp_type_DeinitedType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
         common_hal_digitalio_digitalinout_construct(&self->reset, reset);
@@ -53,7 +54,7 @@ void common_hal_displayio_i2cdisplay_construct(displayio_i2cdisplay_obj_t *self,
 
     // Probe the bus to see if a device acknowledges the given address.
     if (!common_hal_busio_i2c_probe(i2c, device_address)) {
-        self->base.type = &mp_type_DeinitializedType;
+        self->base.type = &mp_type_DeinitedType;
         mp_raise_ValueError_varg(translate("Unable to find I2C Display at %x"), device_address);
     }
 

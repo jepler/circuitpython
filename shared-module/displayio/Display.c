@@ -27,6 +27,7 @@
 #include "shared-bindings/displayio/Display.h"
 
 #include "py/runtime.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/displayio/FourWire.h"
 #include "shared-bindings/displayio/I2CDisplay.h"
 #if CIRCUITPY_PARALLELDISPLAY
@@ -112,7 +113,7 @@ void common_hal_displayio_display_construct(displayio_display_obj_t *self,
     }
 
     // Always set the backlight type in case we're reusing memory.
-    deinit_static_object(&self->backlight_inout);
+    deinit_object(&self->backlight_inout.base);
     if (backlight_pin != NULL && common_hal_mcu_pin_is_free(backlight_pin)) {
         // Avoid PWM types and functions when the module isn't enabled
         #if (CIRCUITPY_PWMIO)

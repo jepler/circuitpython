@@ -43,6 +43,9 @@ static void deinited_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
 }
 
 static mp_obj_t deinited_unary_op(mp_unary_op_t op, mp_obj_t unused) {
+    if (op == MP_UNARY_OP_BOOL) {
+        return mp_const_false;
+    }
     raise_deinited_error();
 }
 

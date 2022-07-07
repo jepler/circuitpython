@@ -29,6 +29,7 @@
 
 #include "py/gc.h"
 #include "py/runtime.h"
+#include "shared-bindings/util.h"
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/time/__init__.h"
 #include "shared-module/displayio/__init__.h"
@@ -355,7 +356,7 @@ void release_framebufferdisplay(framebufferio_framebufferdisplay_obj_t *self) {
     common_hal_framebufferio_framebufferdisplay_set_auto_refresh(self, false);
     release_display_core(&self->core);
     self->framebuffer_protocol->deinit(self->framebuffer);
-    self->base.type = &mp_type_DeinitializedType;
+    self->base.type = &mp_type_DeinitedType;
 }
 
 void framebufferio_framebufferdisplay_collect_ptrs(framebufferio_framebufferdisplay_obj_t *self) {
@@ -365,7 +366,7 @@ void framebufferio_framebufferdisplay_collect_ptrs(framebufferio_framebufferdisp
 
 void framebufferio_framebufferdisplay_reset(framebufferio_framebufferdisplay_obj_t *self) {
     const mp_obj_type_t *fb_type = mp_obj_get_type(self->framebuffer);
-    if (fb_type != NULL && fb_type != &mp_type_DeinitializedType) {
+    if (fb_type != NULL && fb_type != &mp_type_DeinitedType) {
         common_hal_framebufferio_framebufferdisplay_set_auto_refresh(self, true);
         common_hal_framebufferio_framebufferdisplay_show(self, NULL);
         self->core.full_refresh = true;
