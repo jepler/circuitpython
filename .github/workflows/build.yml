@@ -289,7 +289,7 @@ jobs:
       run: python tools/ci_fetch_deps.py ${{ matrix.board }} ${{ github.sha }}
     - uses: carlosperate/arm-none-eabi-gcc-action@v1
       with:
-        release: '10-2020-q4'
+        release: '11.2-2022.02'
     - name: Install dependencies
       run: |
         sudo apt-get install -y gettext
@@ -490,7 +490,7 @@ jobs:
         sudo tar -C /usr --strip-components=1 -xaf gcc-arm-10.3-2021.07-x86_64-aarch64-none-elf.tar.xz
     - uses: carlosperate/arm-none-eabi-gcc-action@v1
       with:
-        release: '10-2020-q4'
+        release: '11.2-2022.02'
     - name: Install mkfs.fat
       run: |
         wget https://github.com/dosfstools/dosfstools/releases/download/v4.2/dosfstools-4.2.tar.gz
