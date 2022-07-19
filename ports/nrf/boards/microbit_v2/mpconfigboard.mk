@@ -7,3 +7,5 @@ INTERNAL_FLASH_FILESYSTEM = 1
 
 # USB pins aren't used.
 CIRCUITPY_USB = 0
+
+EXTENSIONS = combined.hex

@@ -6,6 +6,8 @@
 
 import json
 import os
+import pathlib
+import re
 import subprocess
 import sys
 import sh
@@ -66,26 +68,37 @@ extension_by_board = {
     "pca10056": BIN_UF2,
     "pca10059": BIN_UF2,
     "electronut_labs_blip": HEX,
-    "microbit_v2": COMBINED_HEX,
     # stm32
     "meowbit_v121": UF2,
     "sparkfun_stm32_thing_plus": BIN_UF2,
     "swan_r5": BIN_UF2,
-    # esp32
-    "adafruit_feather_esp32_v2": BIN,
-    # esp32c3
-    "adafruit_qtpy_esp32c3": BIN,
-    "ai_thinker_esp32-c3s": BIN,
-    "ai_thinker_esp32-c3s-2m": BIN,
-    "espressif_esp32c3_devkitm_1_n4": BIN,
-    "lilygo_ttgo_t-01c3": BIN,
-    "lolin_c3_mini": BIN,
-    "microdev_micro_c3": BIN,
-    "lilygo_ttgo_t-oi-plus": BIN,
     # broadcom
     "raspberrypi_zero": KERNEL_IMG,
     "raspberrypi_zero_w": KERNEL_IMG,
 }
+
+# Per board overrides
+extension_by_idftarget = {
+    "esp32": BIN,
+    "esp32c3": BIN,
+}
+
+
+def extension_by_mpconfigboard(board_path, default):
+
+    with open(board_path / "mpconfigboard.mk") as mpconfig:
+        for line in mpconfig:
+            # Handle both = and := definitions.
+            if not (m := re.match(r"^([A-Z][A-Z0-9_]*)\s*:?=\s*(.*)$", line)):
+                continue
+            key = m.group(1)
+            value = m.group(2)
+            if key == "IDF_TARGET" and value in extension_by_idftarget:
+                return extension_by_idftarget[value]
+            if key == "EXTENSIONS":
+                return tuple(value.split())
+    return default
+
 
 language_allow_list = set(
     [
@@ -120,6 +133,14 @@ def get_languages(list_all=False):
     return sorted(list(languages), key=str.casefold)
 
 
+def get_board_extension(port, board):
+    board_path = pathlib.Path(os.path.join("../ports", port, "boards", board))
+    extensions = extension_by_port[port]
+    extensions = extension_by_mpconfigboard(board_path, extensions)
+    extensions = extension_by_board.get(board_path.name, extensions)
+    return extensions
+
+
 def get_board_mapping():
     boards = {}
     for port in SUPPORTED_PORTS:
@@ -128,8 +149,7 @@ def get_board_mapping():
             if board_path.is_dir():
                 board_files = os.listdir(board_path.path)
                 board_id = board_path.name
-                extensions = extension_by_port[port]
-                extensions = extension_by_board.get(board_path.name, extensions)
+                extensions = get_board_extension(port, board_id)
                 aliases = aliases_by_board.get(board_path.name, [])
                 boards[board_id] = {
                     "port": port,
@@ -341,4 +361,10 @@ if __name__ == "__main__":
     if "RELEASE_TAG" in os.environ and os.environ["RELEASE_TAG"]:
         generate_download_info()
     else:
-        print("skipping website update because this isn't a tag")
+        if len(sys.argv) == 1:
+            print("skipping website update because this isn't a tag")
+        else:
+            for arg in sys.argv[1:]:
+                port, board = arg.split(":", 1)
+                extensions = get_board_extension(port, board)
+                print(f"{port:<12} {board:30} {' '.join(extensions)}")
