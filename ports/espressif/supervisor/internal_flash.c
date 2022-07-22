@@ -41,6 +41,7 @@
 
 #include "supervisor/flash.h"
 #include "supervisor/usb.h"
+#include "supervisor/serial.h"
 
 STATIC const esp_partition_t *_partition;
 
@@ -50,9 +51,11 @@ STATIC uint8_t _cache[SECTOR_SIZE];
 STATIC uint32_t _cache_lba = 0xffffffff;
 
 void supervisor_flash_init(void) {
+    console_uart_printf("supervisor_flash_init start\n");
     _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
         ESP_PARTITION_SUBTYPE_DATA_FAT,
         NULL);
+    console_uart_printf("supervisor_flash_init finished partition=%p\n", _partition);
 }
 
 uint32_t supervisor_flash_get_block_size(void) {

@@ -169,14 +169,27 @@ void common_hal_reset_pin(const mcu_pin_obj_t *pin) {
     reset_pin_number(pin->number);
 }
 
+#include "esp_log.h"
+
 void reset_all_pins(void) {
     for (uint8_t i = 0; i < GPIO_PIN_COUNT; i++) {
+        ESP_LOGE("reset all pins", "about to reset %d -- never reset ? %d", i, !!(never_reset_pins & PIN_BIT(i)));
+        ets_delay_us(1000 * 100);
+
         uint32_t iomux_address = GPIO_PIN_MUX_REG[i];
         if (iomux_address == 0 ||
             (never_reset_pins & PIN_BIT(i))) {
+            ESP_LOGE("reset all pins", "thought better of it");
             continue;
         }
+        if (i == 5 || i == 7 || i == 8) {
+            ESP_LOGE("reset all pins", "thought better of it because magic");
+            continue;
+        }
+        ESP_LOGE("reset all pins", "actuall about to reset");
+        ets_delay_us(1000 * 100);
         _reset_pin(i);
+        ESP_LOGE("reset all pins", "reset done");
     }
     in_use = never_reset_pins;
 }
