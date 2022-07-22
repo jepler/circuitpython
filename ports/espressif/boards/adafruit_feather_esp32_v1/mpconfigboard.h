@@ -41,12 +41,6 @@
 #define CIRCUITPY_BOARD_UART        (1)
 #define CIRCUITPY_BOARD_UART_PIN    {{.tx = &pin_GPIO8, .rx = &pin_GPIO7}}
 
-// For entering safe mode, use SW38 button
-#define CIRCUITPY_BOOT_BUTTON       (&pin_GPIO38)
-
-// Explanation of how a user got into safe mode
-#define BOARD_USER_SAFE_MODE_ACTION translate("pressing SW38 button at start up.\n")
-
 // UART pins attached to the USB-serial converter chip
 #define CIRCUITPY_CONSOLE_UART_TX (&pin_GPIO1)
 #define CIRCUITPY_CONSOLE_UART_RX (&pin_GPIO3)
