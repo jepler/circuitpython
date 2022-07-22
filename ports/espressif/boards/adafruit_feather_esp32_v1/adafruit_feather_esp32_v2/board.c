@@ -32,6 +32,8 @@
 #include "common-hal/microcontroller/Pin.h"
 
 void board_init(void) {
+    common_hal_never_reset_pin(&pin_GPIO16);
+    common_hal_never_reset_pin(&pin_GPIO17);
     reset_board();
 }
 

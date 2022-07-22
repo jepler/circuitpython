@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2022 Dan Halbert for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,26 +24,29 @@
  * THE SOFTWARE.
  */
 
-#include "supervisor/board.h"
-#include "mpconfigboard.h"
-#include "shared-bindings/microcontroller/Pin.h"
-#include "components/driver/include/driver/gpio.h"
-#include "components/hal/include/hal/gpio_hal.h"
-#include "common-hal/microcontroller/Pin.h"
+// Micropython setup
 
-void board_init(void) {
-    reset_board();
-}
+#define MICROPY_HW_BOARD_NAME       "Adafruit Feather ESP32 V2"
+#define MICROPY_HW_MCU_NAME         "ESP32"
 
-bool board_requests_safe_mode(void) {
-    return false;
-}
+#define MICROPY_HW_NEOPIXEL (&pin_GPIO0)
+#define CIRCUITPY_STATUS_LED_POWER (&pin_GPIO2)
 
-void reset_board(void) {
-    // Turn on NeoPixel and I2C power by default.
-    gpio_set_direction(2, GPIO_MODE_DEF_OUTPUT);
-    gpio_set_level(2, true);
-}
+#define CIRCUITPY_BOARD_I2C         (1)
+#define CIRCUITPY_BOARD_I2C_PIN     {{.scl = &pin_GPIO20, .sda = &pin_GPIO22}}
 
-void board_deinit(void) {
-}
+#define CIRCUITPY_BOARD_SPI         (1)
+#define CIRCUITPY_BOARD_SPI_PIN     {{.clock = &pin_GPIO5, .mosi = &pin_GPIO19, .miso = &pin_GPIO21}}
+
+#define CIRCUITPY_BOARD_UART        (1)
+#define CIRCUITPY_BOARD_UART_PIN    {{.tx = &pin_GPIO8, .rx = &pin_GPIO7}}
+
+// For entering safe mode, use SW38 button
+#define CIRCUITPY_BOOT_BUTTON       (&pin_GPIO38)
+
+// Explanation of how a user got into safe mode
+#define BOARD_USER_SAFE_MODE_ACTION translate("pressing SW38 button at start up.\n")
+
+// UART pins attached to the USB-serial converter chip
+#define CIRCUITPY_CONSOLE_UART_TX (&pin_GPIO1)
+#define CIRCUITPY_CONSOLE_UART_RX (&pin_GPIO3)
