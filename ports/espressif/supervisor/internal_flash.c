@@ -45,17 +45,29 @@
 
 STATIC const esp_partition_t *_partition;
 
+#include "esp_log.h"
+#define TAG "internal-flash"
+
 // TODO: Split the caching out of supervisor/shared/external_flash so we can use it.
 #define SECTOR_SIZE 4096
 STATIC uint8_t _cache[SECTOR_SIZE];
 STATIC uint32_t _cache_lba = 0xffffffff;
 
 void supervisor_flash_init(void) {
-    console_uart_printf("supervisor_flash_init start\n");
+    ESP_LOGE(TAG, "supervisor_flash_init start");
     _partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
         ESP_PARTITION_SUBTYPE_DATA_FAT,
         NULL);
-    console_uart_printf("supervisor_flash_init finished partition=%p\n", _partition);
+    ESP_LOGE(TAG, "supervisor_flash_init finished partition=%p", _partition);
+    if (_partition) {
+        ESP_LOGE(TAG," flash_chip @ %p", _partition->flash_chip);
+        ESP_LOGE(TAG," type = %d", _partition->type);
+        ESP_LOGE(TAG," subtype = %d", _partition->subtype);
+        ESP_LOGE(TAG," address = %d", _partition->address);
+        ESP_LOGE(TAG," size = %d", _partition->size);
+        ESP_LOGE(TAG," label = %s", _partition->label);
+        ESP_LOGE(TAG," encrypted = %s", _partition->encrypted ? "YES" : "no");
+    }
 }
 
 uint32_t supervisor_flash_get_block_size(void) {
@@ -71,14 +83,21 @@ void port_internal_flash_flush(void) {
 }
 
 mp_uint_t supervisor_flash_read_blocks(uint8_t *dest, uint32_t block, uint32_t num_blocks) {
-    esp_partition_read(_partition,
+    ESP_LOGE(TAG, "read_blocks lba=%d num_blocks=%d", block, num_blocks);
+    esp_err_t err = esp_partition_read(_partition,
         block * FILESYSTEM_BLOCK_SIZE,
         dest,
         num_blocks * FILESYSTEM_BLOCK_SIZE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_partition read failed, Err=0x%8x", err);
+        return -1;
+    }
+    ESP_LOGE(TAG, "read_blocks returns 0");
     return 0;
 }
 
 mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t lba, uint32_t num_blocks) {
+    ESP_LOGE(TAG, "write_blocks lba=%d num_blocks=%d", lba, num_blocks);
     uint32_t blocks_per_sector = SECTOR_SIZE / FILESYSTEM_BLOCK_SIZE;
     uint32_t block = 0;
     while (block < num_blocks) {
@@ -103,11 +122,20 @@ mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t lba, uint32
                 FILESYSTEM_BLOCK_SIZE);
             block++;
         }
-        esp_partition_erase_range(_partition, sector_offset, SECTOR_SIZE);
-        esp_partition_write(_partition,
+        int err;
+        err = esp_partition_erase_range(_partition, sector_offset, SECTOR_SIZE);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_partition_erase_range failed, Err=0x%8x", err);
+            return -1;
+        }
+        err = esp_partition_write(_partition,
             sector_offset,
             _cache,
             SECTOR_SIZE);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_partition_write failed, Err=0x%8x", err);
+            return -1;
+        }
     }
 
     return 0; // success
