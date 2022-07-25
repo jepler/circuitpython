@@ -48,6 +48,9 @@ static background_callback_t workflow_background_cb;
 
 #if CIRCUITPY_STATUS_BAR
 static void supervisor_workflow_update_status_bar(void) {
+    if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
+        return;
+    }
     // Neighboring "" "" are concatenated by the compiler. Without this separation, the hex code
     // doesn't get terminated after two following characters and the value is invalid.
     // This is the OSC command to set the title and the icon text. It can be up to 255 characters
