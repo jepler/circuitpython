@@ -34,8 +34,6 @@ float atan2f(float y, float x)
 		return x+y;
 	GET_FLOAT_WORD(ix, x);
 	GET_FLOAT_WORD(iy, y);
-	if (ix == 0x3f800000)  /* x=1.0 */
-		return atanf(y);
 	m = ((iy>>31)&1) | ((ix>>30)&2);  /* 2*sign(x)+sign(y) */
 	ix &= 0x7fffffff;
 	iy &= 0x7fffffff;
