@@ -21,20 +21,12 @@
 
 #define FLT_EVAL_METHOD 0
 
+// Upstream, this contains code that attempts to prevent the compiler
+// from optimizing out the expression 'x' just for the side effect of
+// the expression when it comes to 'subnormal' numbers. CircuitPython
+// does not use or rely on this behavior, and removing the expressions
+// entirely saves flash space, so the body of FORCE_EVAL is made empty.
 #define FORCE_EVAL(x) do {                        \
-	if (sizeof(x) == sizeof(float)) {         \
-		volatile float __x;               \
-		__x = (x);                        \
-                (void)__x;                        \
-	} else if (sizeof(x) == sizeof(double)) { \
-		volatile double __x;              \
-		__x = (x);                        \
-                (void)__x;                        \
-	} else {                                  \
-		volatile long double __x;         \
-		__x = (x);                        \
-                (void)__x;                        \
-	}                                         \
 } while(0)
 
 /* Get a 32 bit int from a float.  */
