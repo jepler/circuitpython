@@ -34,8 +34,6 @@ float atan2f(float y, float x)
 		return x+y;
 	GET_FLOAT_WORD(ix, x);
 	GET_FLOAT_WORD(iy, y);
-	if (ix == 0x3f800000)  /* x=1.0 */
-		return atanf(y);
 	m = ((iy>>31)&1) | ((ix>>30)&2);  /* 2*sign(x)+sign(y) */
 	ix &= 0x7fffffff;
 	iy &= 0x7fffffff;
@@ -49,29 +47,13 @@ float atan2f(float y, float x)
 		case 3: return -pi; /* atan(-0,-anything) =-pi */
 		}
 	}
-	/* when x = 0 */
-	if (ix == 0)
-		return m&1 ? -pi/2 : pi/2;
 	/* when x is INF */
 	if (ix == 0x7f800000) {
-		if (iy == 0x7f800000) {
-			switch (m) {
-			case 0: return  pi/4; /* atan(+INF,+INF) */
-			case 1: return -pi/4; /* atan(-INF,+INF) */
-			case 2: return 3*pi/4;  /*atan(+INF,-INF)*/
-			case 3: return -3*pi/4; /*atan(-INF,-INF)*/
-			}
-		} else {
-			switch (m) {
-			case 0: return  0.0f;    /* atan(+...,+INF) */
-			case 1: return -0.0f;    /* atan(-...,+INF) */
-			case 2: return  pi; /* atan(+...,-INF) */
-			case 3: return -pi; /* atan(-...,-INF) */
-			}
-		}
+                static float table[] = {0.0f, -0.0f, pi, -pi, pi/4, -pi/4, 3*pi/4, -3*pi/4};
+                return table[m + 4 * (iy == 0x7f800000)];
 	}
-	/* |y/x| > 0x1p26 */
-	if (ix+(26<<23) < iy || iy == 0x7f800000)
+	/* when x = 0 or |y/x| > 0x1p26 */
+	if (ix == 0 || ix+(26<<23) < iy || iy == 0x7f800000)
 		return m&1 ? -pi/2 : pi/2;
 
 	/* z = atan(|y/x|) with correct underflow */
