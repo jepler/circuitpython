@@ -132,11 +132,28 @@ MP_DEFINE_CONST_FUN_OBJ_1(keypad_eventqueue_get_overflowed_obj, keypad_eventqueu
 MP_PROPERTY_GETTER(keypad_eventqueue_overflowed_obj,
     (mp_obj_t)&keypad_eventqueue_get_overflowed_obj);
 
+#if KEYPAD_HAS_WAIT
+//|     async def wait() -> Awaitable[None]:
+//|         """Wait for an event.  Retrieve the event with `get` or `get_into`.
+//|
+//|         This function is only avaialable on boards that support asyncio, and it requries
+//|         that the `asyncio` module actually be available to import."""
+//|
+STATIC mp_obj_t keypad_eventqueue_wait(mp_obj_t self_in) {
+    keypad_eventqueue_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_keypad_eventqueue_wait(self);
+}
+MP_DEFINE_CONST_FUN_OBJ_1(keypad_eventqueue_wait_obj, keypad_eventqueue_wait);
+#endif
+
 STATIC const mp_rom_map_elem_t keypad_eventqueue_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_clear),      MP_ROM_PTR(&keypad_eventqueue_clear_obj) },
     { MP_ROM_QSTR(MP_QSTR_get),        MP_ROM_PTR(&keypad_eventqueue_get_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_into),   MP_ROM_PTR(&keypad_eventqueue_get_into_obj) },
     { MP_ROM_QSTR(MP_QSTR_overflowed), MP_ROM_PTR(&keypad_eventqueue_overflowed_obj) },
+    #if KEYPAD_HAS_WAIT
+    { MP_ROM_QSTR(MP_QSTR_wait), MP_ROM_PTR(&keypad_eventqueue_wait_obj) },
+    #endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(keypad_eventqueue_locals_dict, keypad_eventqueue_locals_dict_table);

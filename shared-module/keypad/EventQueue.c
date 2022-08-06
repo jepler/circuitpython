@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+#include "py/runtime.h"
+
 #include "shared-bindings/keypad/Event.h"
 #include "shared-bindings/keypad/EventQueue.h"
 #include "shared-bindings/supervisor/__init__.h"
@@ -80,6 +82,17 @@ size_t common_hal_keypad_eventqueue_get_length(keypad_eventqueue_obj_t *self) {
     return ringbuf_num_filled(&self->encoded_events);
 }
 
+static void notify(keypad_eventqueue_obj_t *self) {
+    #if KEYPAD_HAS_WAIT
+    if (!self->queue) {
+        return;
+    }
+    mp_obj_t dest[2];
+    mp_load_method(self->queue, MP_QSTR_set, dest);
+    mp_call_method_n_kw(0, 0, dest);
+    #endif
+}
+
 bool keypad_eventqueue_record(keypad_eventqueue_obj_t *self, mp_uint_t key_number, bool pressed, mp_obj_t timestamp) {
     if (ringbuf_num_empty(&self->encoded_events) == 0) {
         // Queue is full. Set the overflow flag. The caller will decide what else to do.
@@ -93,6 +106,29 @@ bool keypad_eventqueue_record(keypad_eventqueue_obj_t *self, mp_uint_t key_numbe
     }
     ringbuf_put16(&self->encoded_events, encoded_event);
     ringbuf_put_n(&self->encoded_events, (uint8_t *)&timestamp, sizeof(mp_obj_t));
+    notify(self);
 
     return true;
 }
+
+#if KEYPAD_HAS_WAIT
+mp_obj_t common_hal_keypad_eventqueue_wait(keypad_eventqueue_obj_t *self) {
+    if (!self->queue) {
+        mp_obj_t asyncio = mp_import_name(MP_QSTR_asyncio_dot_event, mp_const_none, MP_OBJ_NEW_SMALL_INT(0));
+        mp_printf(&mp_plat_print, "asyncio @ %p\n", MP_OBJ_TO_PTR(asyncio));
+        mp_obj_t asyncio_event = mp_import_from(asyncio, MP_QSTR_event);
+        mp_printf(&mp_plat_print, "asyncio_event @ %p\n", MP_OBJ_TO_PTR(asyncio_event));
+        mp_obj_t thread_safe_flag = mp_import_from(asyncio_event, MP_QSTR_ThreadSafeFlag);
+        mp_printf(&mp_plat_print, "thread_safe_flag @ %p\n", MP_OBJ_TO_PTR(thread_safe_flag));
+        self->queue = mp_call_function_0(thread_safe_flag);
+        mp_printf(&mp_plat_print, "self->queue @ %p\n", MP_OBJ_TO_PTR(self->queue));
+    }
+    int encoded_event = ringbuf_peek16(&self->encoded_events);
+    if (encoded_event != -1) {
+        notify(self);
+    }
+    mp_obj_t dest[2];
+    mp_load_method(self->queue, MP_QSTR_wait, dest);
+    return mp_call_method_n_kw(0, 0, dest);
+}
+#endif
