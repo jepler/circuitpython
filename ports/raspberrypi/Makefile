@@ -57,6 +57,23 @@ CROSS_COMPILE = arm-none-eabi-
 
 HAL_DIR=hal/$(MCU_SERIES)
 
+ifeq ($(CIRCUITPY_CYW43),1)
+INC_CYW43 := \
+	-isystem sdk/src/rp2_common/pico_cyw43_arch/include/ \
+	-isystem sdk/lib/cyw43-driver/src \
+
+CFLAGS_CYW43 := -DCYW43_LWIP=0 -DPICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1
+SRC_SDK_CYW43 := \
+	src/rp2_common/pico_cyw43_arch/cyw43_arch.c \
+	src/rp2_common/pico_cyw43_arch/cyw43_arch_threadsafe_background.c \
+
+else
+INC_CYW43 :=
+CFLAGS_CYW43 :=
+SRC_SDK_CYW43 :=
+$(error you no wifi why)
+endif
+
 INC += \
 	-I. \
         -I../.. \
@@ -102,6 +119,7 @@ INC += \
         -isystem sdk/src/rp2_common/pico_runtime/printf/include/ \
         -isystem sdk/src/rp2_common/pico_bootrom/include/ \
         -isystem sdk/src/rp2_common/pico_unique_id/include/ \
+	$(INC_CYW43) \
         -Isdk_config \
         -I../../lib/tinyusb/src \
         -I../../supervisor/shared/usb \
@@ -116,6 +134,9 @@ CFLAGS += -DTUD_OPT_RP2040_USB_DEVICE_ENUMERATION_FIX=1 -DCFG_TUSB_MCU=OPT_MCU_R
 # option to override default optimization level, set in boards/$(BOARD)/mpconfigboard.mk
 CFLAGS += $(OPTIMIZATION_FLAGS)
 
+# flags specific to wifi / cyw43
+
+CFLAGS += $(CFLAGS_CYW43)
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
   CFLAGS += -ggdb3 -O3
@@ -186,6 +207,7 @@ SRC_SDK := \
 	src/rp2_common/pico_runtime/runtime.c \
 	src/rp2_common/pico_stdio/stdio.c \
 	src/rp2_common/pico_unique_id/unique_id.c \
+	$(SRC_SDK_CYW43) \
 
 SRC_SDK := $(addprefix sdk/, $(SRC_SDK))
 $(patsubst %.c,$(BUILD)/%.o,$(SRC_SDK)): CFLAGS += -Wno-missing-prototypes -Wno-undef
