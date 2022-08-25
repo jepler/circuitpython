@@ -61,17 +61,62 @@ ifeq ($(CIRCUITPY_CYW43),1)
 INC_CYW43 := \
 	-isystem sdk/src/rp2_common/pico_cyw43_arch/include/ \
 	-isystem sdk/lib/cyw43-driver/src \
+	-isystem sdk/lib/cyw43-driver/firmware \
 
-CFLAGS_CYW43 := -DCYW43_LWIP=0 -DPICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1
+CFLAGS_CYW43 := -DCYW43_LWIP=0 -DPICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1 -DCYW43_USE_SPI
 SRC_SDK_CYW43 := \
+	lib/cyw43-driver/src/cyw43_ctrl.c \
+	lib/cyw43-driver/src/cyw43_ll.c \
+	lib/cyw43-driver/src/cyw43_lwip.c \
+	lib/cyw43-driver/src/cyw43_stats.c \
+	src/common/pico_sync/sem.c \
 	src/rp2_common/pico_cyw43_arch/cyw43_arch.c \
 	src/rp2_common/pico_cyw43_arch/cyw43_arch_threadsafe_background.c \
+	src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.c \
 
+PIOASM = $(BUILD)/sdk/pioasm/pioasm
+.PHONY: PioasmBuild
+PioasmBuild: $(PIOASM)
+$(PIOASM):
+	cmake -S sdk -B $(BUILD)/sdk
+	make -C $(BUILD)/sdk PioasmBuild
+
+$(BUILD)/cyw43_bus_pio_spi.pio.h: sdk/src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.pio $(PIOASM)
+	$(PIOASM) -o c-sdk $< $@
+$(BUILD)/sdk/src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.o: $(BUILD)/cyw43_bus_pio_spi.pio.h
+
+CYW43_FIRMWARE_BIN = 43439A0-7.95.49.00.combined
+
+$(BUILD)/cyw43_resource.o: sdk/lib/cyw43-driver/firmware/$(CYW43_FIRMWARE_BIN)
+	$(OBJCOPY) -I binary -O elf32-littlearm -B arm \
+		--readonly-text \
+		--rename-section .data=.big_const,contents,alloc,load,readonly,data \
+		--redefine-sym _binary_sdk_lib_cyw43_driver_firmware_43439A0_7_95_49_00_combined_start=fw_43439A0_7_95_49_00_start \
+		--redefine-sym _binary_sdk_lib_cyw43_driver_firmware_43439A0_7_95_49_00_combined_size=fw_43439A0_7_95_49_00_size \
+		--redefine-sym _binary_sdk_lib_cyw43_driver_firmware_43439A0_7_95_49_00_combined_end=fw_43439A0_7_95_49_00_end \
+		$< $@
+OBJ_CYW43 := $(BUILD)/cyw43_resource.o
+# need to do the equivalent of this in cmake
+###     # cyw43_resource.o contains the WiFi and BT firmware as a binary blob
+###     add_custom_command(
+###             OUTPUT ${CYW43_FIRMWARE_OBJ}
+###             DEPENDS ${PICO_CYW43_DRIVER_PATH}/firmware/${CYW43_FIRMWARE_BIN}
+###             WORKING_DIRECTORY ${PICO_CYW43_DRIVER_PATH}/firmware
+###             COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-littlearm -B arm
+###             --readonly-text
+###             --rename-section .data=${RESOURCE_SECNAME},${RESOURCE_SECFLAGS}
+###             --redefine-sym _binary_${CYW43_FIRMWARE_BIN_}_start=${CYW43_FIRMWARE_PRETTY}_start
+###             --redefine-sym _binary_${CYW43_FIRMWARE_BIN_}_end=${CYW43_FIRMWARE_PRETTY}_end
+###             --redefine-sym _binary_${CYW43_FIRMWARE_BIN_}_size=${CYW43_FIRMWARE_PRETTY}_size
+###             ${CYW43_FIRMWARE_BIN} ${CYW43_FIRMWARE_OBJ}
+###     )
+###
 else
+$(error y u no y fi)
 INC_CYW43 :=
 CFLAGS_CYW43 :=
 SRC_SDK_CYW43 :=
-$(error you no wifi why)
+OBJ_CYW43 :=
 endif
 
 INC += \
@@ -266,6 +311,7 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S_UPPER:.S=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 OBJ += $(BUILD)/boot2_padded_checksummed.o
+OBJ += $(OBJ_CYW43)
 
 $(BUILD)/boot2_padded_checksummed.o: $(BUILD)/boot2_padded_checksummed.S
 	$(STEPECHO) "CC $<"

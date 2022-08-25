@@ -53,11 +53,14 @@
 #include "src/rp2_common/hardware_uart/include/hardware/uart.h"
 #include "src/rp2_common/hardware_sync/include/hardware/sync.h"
 #include "src/rp2_common/hardware_timer/include/hardware/timer.h"
+#include "pico/cyw43_arch.h"
 #include "src/common/pico_time/include/pico/time.h"
 #include "src/common/pico_binary_info/include/pico/binary_info.h"
 
 #include "pico/bootrom.h"
 #include "hardware/watchdog.h"
+
+#include "supervisor/serial.h"
 
 extern volatile bool mp_msc_enabled;
 
@@ -121,6 +124,18 @@ safe_mode_t port_init(void) {
     hardware_alarm_set_callback(0, _tick_callback);
 
     // Check brownout.
+
+    if (cyw43_arch_init()) {
+        serial_write("WiFi init failed\n");
+        return -1;
+    } else {
+        for (int i = 3; i--;) {
+            cyw43_arch_gpio_put(0, 1);
+            sleep_ms(100);
+            cyw43_arch_gpio_put(0, 0);
+            sleep_ms(100);
+        }
+    }
 
     if (board_requests_safe_mode()) {
         return USER_SAFE_MODE;
