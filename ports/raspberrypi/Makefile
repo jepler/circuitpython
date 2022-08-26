@@ -63,7 +63,7 @@ INC_CYW43 := \
 	-isystem sdk/lib/cyw43-driver/src \
 	-isystem sdk/lib/cyw43-driver/firmware \
 
-CFLAGS_CYW43 := -DCYW43_LWIP=0 -DPICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1 -DCYW43_USE_SPI
+CFLAGS_CYW43 := -DCYW43_LWIP=0 -DPICO_CYW43_ARCH_THREADSAFE_BACKGROUND=1 -DCYW43_USE_SPI -DIGNORE_GPIO25
 SRC_SDK_CYW43 := \
 	lib/cyw43-driver/src/cyw43_ctrl.c \
 	lib/cyw43-driver/src/cyw43_ll.c \
@@ -74,21 +74,23 @@ SRC_SDK_CYW43 := \
 	src/rp2_common/pico_cyw43_arch/cyw43_arch_threadsafe_background.c \
 	src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.c \
 
+SRC_CYW43 := $(wildcard bindings/cyw43/*.c)
+
 PIOASM = $(BUILD)/sdk/pioasm/pioasm
 .PHONY: PioasmBuild
 PioasmBuild: $(PIOASM)
 $(PIOASM):
-	cmake -S sdk -B $(BUILD)/sdk
-	make -C $(BUILD)/sdk PioasmBuild
+	$(Q)cmake -S sdk -B $(BUILD)/sdk
+	$(Q)make -C $(BUILD)/sdk PioasmBuild
 
 $(BUILD)/cyw43_bus_pio_spi.pio.h: sdk/src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.pio $(PIOASM)
-	$(PIOASM) -o c-sdk $< $@
+	$(Q)$(PIOASM) -o c-sdk $< $@
 $(BUILD)/sdk/src/rp2_common/cyw43_driver/cyw43_bus_pio_spi.o: $(BUILD)/cyw43_bus_pio_spi.pio.h
 
 CYW43_FIRMWARE_BIN = 43439A0-7.95.49.00.combined
 
 $(BUILD)/cyw43_resource.o: sdk/lib/cyw43-driver/firmware/$(CYW43_FIRMWARE_BIN)
-	$(OBJCOPY) -I binary -O elf32-littlearm -B arm \
+	$(Q)$(OBJCOPY) -I binary -O elf32-littlearm -B arm \
 		--readonly-text \
 		--rename-section .data=.big_const,contents,alloc,load,readonly,data \
 		--redefine-sym _binary_sdk_lib_cyw43_driver_firmware_43439A0_7_95_49_00_combined_start=fw_43439A0_7_95_49_00_start \
@@ -116,6 +118,7 @@ $(error y u no y fi)
 INC_CYW43 :=
 CFLAGS_CYW43 :=
 SRC_SDK_CYW43 :=
+SRC_CYW43 :=
 OBJ_CYW43 :=
 endif
 
@@ -199,7 +202,7 @@ endif
 # Remove -Wno-stringop-overflow after we can test with CI's GCC 10. Mac's looks weird.
 DISABLE_WARNINGS = -Wno-stringop-overflow -Wno-unused-function -Wno-unused-variable -Wno-strict-overflow -Wno-cast-align -Wno-strict-prototypes -Wno-nested-externs -Wno-double-promotion -Wno-sign-compare
 
-CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT) $(DISABLE_WARNINGS) -Werror=missing-prototypes
+CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT) $(DISABLE_WARNINGS) -Werror=missing-prototypes -Wno-error=unused-result
 
 CFLAGS += \
   -march=armv6-m \
@@ -272,6 +275,7 @@ SRC_C += \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c \
 	mphalport.c \
+	$(SRC_CYW43) \
 
 SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
                           $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \

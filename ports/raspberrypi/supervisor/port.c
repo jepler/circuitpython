@@ -53,7 +53,9 @@
 #include "src/rp2_common/hardware_uart/include/hardware/uart.h"
 #include "src/rp2_common/hardware_sync/include/hardware/sync.h"
 #include "src/rp2_common/hardware_timer/include/hardware/timer.h"
+#if CIRCUITPY_CYW43
 #include "pico/cyw43_arch.h"
+#endif
 #include "src/common/pico_time/include/pico/time.h"
 #include "src/common/pico_binary_info/include/pico/binary_info.h"
 
@@ -125,6 +127,11 @@ safe_mode_t port_init(void) {
 
     // Check brownout.
 
+    #if CIRCUITPY_CYW43
+    never_reset_pin_number(23);
+    never_reset_pin_number(24);
+    never_reset_pin_number(25);
+    never_reset_pin_number(29);
     if (cyw43_arch_init()) {
         serial_write("WiFi init failed\n");
         return -1;
@@ -136,7 +143,7 @@ safe_mode_t port_init(void) {
             sleep_ms(100);
         }
     }
-
+    #endif
     if (board_requests_safe_mode()) {
         return USER_SAFE_MODE;
     }
