@@ -122,7 +122,7 @@ bool pin_number_is_free(uint8_t pin_number) {
 bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t *pin) {
     #if CIRCUITPY_CYW43
     if (pin->base.type == &cyw43_pin_type) {
-        return cyw_pin_claimed & (1 << pin->number);
+        return !(cyw_pin_claimed & (1 << pin->number));
     }
     #endif
     return pin_number_is_free(pin->number);
