@@ -284,3 +284,19 @@ __attribute__((used)) void HardFault_Handler(void) {
         asm ("nop;");
     }
 }
+
+void port_yield() {
+    #if CIRCUITPY_CYW43
+    cyw43_arch_poll();
+    #endif
+}
+
+void port_boot_info(void) {
+    #if CIRCUITPY_CYW43
+    mp_printf(&mp_plat_print, "MAC");
+    for (int i = 0; i < 6; i++) {
+        mp_printf(&mp_plat_print, ":%02X", cyw43_state.mac[i]);
+    }
+    mp_printf(&mp_plat_print, "\n");
+    #endif
+}
