@@ -134,6 +134,8 @@ safe_mode_t port_init(void) {
     never_reset_pin_number(29);
     if (cyw43_arch_init()) {
         serial_write("WiFi init failed\n");
+    } else {
+        cyw_ever_init = true;
     }
     #endif
     if (board_requests_safe_mode()) {
