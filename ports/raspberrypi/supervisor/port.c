@@ -136,6 +136,7 @@ safe_mode_t port_init(void) {
         serial_write("WiFi init failed\n");
         return -1;
     } else {
+        cyw_ever_init = true;
         for (int i = 3; i--;) {
             cyw43_arch_gpio_put(0, 1);
             sleep_ms(100);

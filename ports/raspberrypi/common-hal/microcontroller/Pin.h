@@ -34,6 +34,8 @@
 
 #include "peripherals/pins.h"
 
+extern bool cyw_ever_init;
+
 void reset_all_pins(void);
 // reset_pin_number takes the pin number instead of the pointer so that objects don't
 // need to store a full pointer.

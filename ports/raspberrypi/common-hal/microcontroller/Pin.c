@@ -38,7 +38,8 @@
 
 STATIC uint32_t never_reset_pins;
 
-uint32_t cyw_pin_claimed;
+bool cyw_ever_init;
+static uint32_t cyw_pin_claimed;
 
 void reset_all_pins(void) {
     for (size_t i = 0; i < TOTAL_GPIO_COUNT; i++) {
@@ -48,8 +49,10 @@ void reset_all_pins(void) {
         reset_pin_number(i);
     }
     #if CIRCUITPY_CYW43
-    for (size_t i = 0; i < 1; i++) {
-        cyw43_arch_gpio_put(i, 0);
+    if (cyw_ever_init) {
+        for (size_t i = 0; i < 1; i++) {
+            cyw43_arch_gpio_put(i, 0);
+        }
     }
     cyw_pin_claimed = 0;
     #endif
