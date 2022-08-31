@@ -117,6 +117,12 @@ digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(
 void common_hal_digitalio_digitalinout_set_value(
     digitalio_digitalinout_obj_t *self, bool value) {
     const uint8_t pin = self->pin->number;
+    #if CIRCUITPY_CYW43
+    if (IS_CYW(self)) {
+        cyw43_arch_gpio_put(pin, value);
+        return;
+    }
+    #endif
     if (self->open_drain && value) {
         // If true and open-drain, set the direction -before- setting
         // the pin value, to to avoid a high glitch on the pin before
