@@ -33,6 +33,7 @@
 
 typedef struct {
     mp_obj_base_t base;
+    wifi_scannednetworks_obj_t *current_scan;
 } wifi_radio_obj_t;
 
 extern void common_hal_wifi_radio_gc_collect(wifi_radio_obj_t *self);

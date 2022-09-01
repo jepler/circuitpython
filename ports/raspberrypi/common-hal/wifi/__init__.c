@@ -31,6 +31,7 @@
 #include "shared-bindings/wifi/Monitor.h"
 #include "shared-bindings/wifi/Radio.h"
 
+#include "py/mperrno.h"
 #include "py/mpstate.h"
 #include "py/runtime.h"
 
@@ -56,6 +57,7 @@ void common_hal_wifi_init(bool user_initiated) {
     wifi_inited = true;
     wifi_user_initiated = user_initiated;
     common_hal_wifi_radio_obj.base.type = &wifi_radio_type;
+    common_hal_wifi_radio_obj.current_scan = NULL;
 
     if (!wifi_ever_inited) {
     }
@@ -80,10 +82,32 @@ void wifi_reset(void) {
     }
     common_hal_wifi_monitor_deinit(MP_STATE_VM(wifi_monitor_singleton));
     wifi_radio_obj_t *radio = &common_hal_wifi_radio_obj;
-    common_hal_wifi_radio_set_enabled(radio, false);
+    common_hal_wifi_radio_obj.current_scan = NULL;
+    // common_hal_wifi_radio_set_enabled(radio, false);
     supervisor_workflow_request_background();
 }
 
 void common_hal_wifi_gc_collect(void) {
     common_hal_wifi_radio_gc_collect(&common_hal_wifi_radio_obj);
+}
+
+void raise_cyw_error(int err) {
+    int mp_errno;
+    switch (err) {
+        case -CYW43_EIO:
+            mp_errno = MP_EIO;
+            break;
+        case -CYW43_EPERM:
+            mp_errno = MP_EPERM;
+            break;
+        case -CYW43_EINVAL:
+            mp_errno = MP_EINVAL;
+            break;
+        case -CYW43_ETIMEDOUT:
+            mp_errno = MP_ETIMEDOUT;
+            break;
+        default:
+            mp_raise_OSError_msg_varg(translate("Unkown error code %d"), err);
+    }
+    mp_raise_OSError(mp_errno);
 }

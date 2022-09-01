@@ -26,4 +26,8 @@
 
 #pragma once
 
+#include "py/mpconfig.h"
+
 void wifi_reset(void);
+NORETURN void raise_cyw_error(int err);
+#define CHECK_CYW_RESULT(x) do { int res = (x); if (res != 0) raise_cyw_error(res); } while (0)

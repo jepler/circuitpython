@@ -45,11 +45,18 @@
 
 #define MAC_ADDRESS_LENGTH 6
 
+NORETURN static void ro_attribute(int attr) {
+    mp_raise_msg_varg(&mp_type_AttributeError, MP_ERROR_TEXT("type object '%q' has no attribute '%q'"), MP_QSTR_Radio, attr);
+}
+
 bool common_hal_wifi_radio_get_enabled(wifi_radio_obj_t *self) {
-    return false;
+    return true;
 }
 
 void common_hal_wifi_radio_set_enabled(wifi_radio_obj_t *self, bool enabled) {
+    if (!enabled) {
+        ro_attribute(MP_QSTR_enabled);
+    }
 }
 
 mp_obj_t common_hal_wifi_radio_get_hostname(wifi_radio_obj_t *self) {
@@ -72,6 +79,8 @@ mp_float_t common_hal_wifi_radio_get_tx_power(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_set_tx_power(wifi_radio_obj_t *self, const mp_float_t tx_power) {
+    ro_attribute(MP_QSTR_tx_power);
+
 }
 
 mp_obj_t common_hal_wifi_radio_get_mac_address_ap(wifi_radio_obj_t *self) {
@@ -82,13 +91,27 @@ void common_hal_wifi_radio_set_mac_address_ap(wifi_radio_obj_t *self, const uint
 }
 
 mp_obj_t common_hal_wifi_radio_start_scanning_networks(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (self->current_scan) {
+        mp_raise_RuntimeError(translate("Already scanning for wifi networks"));
+    }
+    if (!common_hal_wifi_radio_get_enabled(self)) {
+        mp_raise_RuntimeError(translate("wifi is not enabled"));
+    }
+    wifi_scannednetworks_obj_t *scan = m_new_obj(wifi_scannednetworks_obj_t);
+    scan->base.type = &wifi_scannednetworks_type;
+    mp_obj_t args[] = { mp_const_empty_tuple, MP_OBJ_NEW_SMALL_INT(16) };
+    scan->results = mp_type_deque.make_new(&mp_type_deque, 2, 0, args);
+    self->current_scan = scan;
+    wifi_scannednetworks_start_scan(scan);
+    return scan;
 }
 
 void common_hal_wifi_radio_stop_scanning_networks(wifi_radio_obj_t *self) {
+    self->current_scan = NULL;
 }
 
 void common_hal_wifi_radio_start_station(wifi_radio_obj_t *self) {
+    cyw43_arch_enable_sta_mode();
 }
 
 void common_hal_wifi_radio_stop_station(wifi_radio_obj_t *self) {

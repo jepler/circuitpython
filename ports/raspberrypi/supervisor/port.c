@@ -41,6 +41,10 @@
 #include "shared-bindings/rtc/__init__.h"
 #include "shared-bindings/pwmio/PWMOut.h"
 
+#if CIRCUITPY_WIFI
+#include "common-hal/wifi/__init__.h"
+#endif
+
 #include "common-hal/rtc/RTC.h"
 #include "common-hal/busio/UART.h"
 
@@ -173,6 +177,10 @@ void reset_port(void) {
     #endif
     #if CIRCUITPY_AUDIOCORE
     audio_dma_reset();
+    #endif
+
+    #if CIRCUITPY_WIFI
+    wifi_reset();
     #endif
 
     reset_all_pins();

@@ -25,8 +25,7 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_ESPRESSIF_COMMON_HAL_WIFI_SCANNEDNETWORKS_H
-#define MICROPY_INCLUDED_ESPRESSIF_COMMON_HAL_WIFI_SCANNEDNETWORKS_H
+#pragma once
 
 #include <stdint.h>
 
@@ -35,19 +34,9 @@
 
 typedef struct {
     mp_obj_base_t base;
-    uint8_t current_channel_index;
-
-    // Results from the last channel scan
-    cyw43_ev_scan_result_t *results;
-    uint16_t current_result;
-    uint16_t total_results;
-    uint16_t max_results;
-
+    mp_obj_t results;
     bool done;
-    bool scanning;
 } wifi_scannednetworks_obj_t;
 
-void wifi_scannednetworks_scan_next_channel(wifi_scannednetworks_obj_t *self);
 void wifi_scannednetworks_deinit(wifi_scannednetworks_obj_t *self);
-
-#endif // MICROPY_INCLUDED_ESPRESSIF_COMMON_HAL_WIFI_SCANNEDNETWORKS_H
+void wifi_scannednetworks_start_scan(wifi_scannednetworks_obj_t *self);
