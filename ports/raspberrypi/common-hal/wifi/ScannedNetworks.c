@@ -38,6 +38,42 @@
 #include "shared-bindings/wifi/Radio.h"
 #include "shared-bindings/wifi/ScannedNetworks.h"
 
+#define NUM_SCAN (16)
+static cyw43_ev_scan_result_t scan_results[NUM_SCAN];
+static uint8_t scan_put, scan_get;
+static bool scan_full;
+
+
+static void scan_result_clear() {
+    scan_put = scan_get = 0;
+    scan_full = false;
+}
+
+static void scan_result_put(const cyw43_ev_scan_result_t *result) {
+    if (!scan_full) {
+        scan_results[scan_put] = *result;
+        scan_put = (scan_put + 1) % NUM_SCAN;
+        scan_full = (scan_put == scan_get);
+    }
+}
+
+static bool scan_result_available() {
+    return scan_full || (scan_get != scan_put);
+}
+
+static cyw43_ev_scan_result_t *scan_result_get(cyw43_ev_scan_result_t *result) {
+    if (!scan_result_available()) {
+        return NULL;
+    }
+
+    *result = scan_results[scan_get];
+    scan_get = (scan_get + 1) % NUM_SCAN;
+    scan_full = false;
+    return result;
+}
+
+// Note: It's not OK to allocate memory in here, we can be called at a bad time
+// which messes up the gc allocator
 static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
     wifi_scannednetworks_obj_t *self = common_hal_wifi_radio_obj.current_scan;
     // scan ended or something
@@ -45,21 +81,14 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *result) {
         return 0;
     }
 
-    wifi_network_obj_t *entry = m_new_obj(wifi_network_obj_t);
-    entry->base.type = &wifi_network_type;
-    entry->record = *result;
-
-    mp_obj_t dest[3];
-    mp_load_method(self->results, MP_QSTR_append, dest);
-    dest[2] = entry;
-    mp_call_method_n_kw(1, 0, dest);
+    scan_result_put(result);
 
     return 0;
 }
 
 mp_obj_t common_hal_wifi_scannednetworks_next(wifi_scannednetworks_obj_t *self) {
     // no results available, wait for some
-    while (!mp_obj_is_true(self->results) && cyw43_wifi_scan_active(&cyw43_state)) {
+    while (!scan_result_available(self) && cyw43_wifi_scan_active(&cyw43_state)) {
         RUN_BACKGROUND_TASKS;
         if (mp_hal_is_interrupted()) {
             return mp_const_none;
@@ -67,15 +96,17 @@ mp_obj_t common_hal_wifi_scannednetworks_next(wifi_scannednetworks_obj_t *self) 
         cyw43_arch_poll();
     }
 
-    if (!mp_obj_is_true(self->results)) {
+    if (!scan_result_available(self)) {
         common_hal_wifi_radio_obj.current_scan = NULL;
         return mp_const_none;
     }
 
-    // return an available result
-    mp_obj_t dest[2];
-    mp_load_method(self->results, MP_QSTR_popleft, dest);
-    return mp_call_method_n_kw(0, 0, dest);
+
+    wifi_network_obj_t *entry = m_new_obj(wifi_network_obj_t);
+    entry->base.type = &wifi_network_type;
+    scan_result_get(&entry->record);
+
+    return MP_OBJ_FROM_PTR(entry);
 }
 
 void wifi_scannednetworks_deinit(wifi_scannednetworks_obj_t *self) {

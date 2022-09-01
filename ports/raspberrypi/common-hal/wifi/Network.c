@@ -31,7 +31,7 @@
 
 mp_obj_t common_hal_wifi_network_get_ssid(wifi_network_obj_t *self) {
     const char *cstr = (const char *)self->record.ssid;
-    return mp_obj_new_str(cstr, strlen(cstr));
+    return mp_obj_new_str(cstr, self->record.ssid_len);
 }
 
 #define MAC_ADDRESS_LENGTH 6
