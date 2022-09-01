@@ -1,11 +1,13 @@
 # test concurrent mutating access to a shared dict object
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 import _thread
 
 # the shared dict
-di = {'a':'A', 'b':'B', 'c':'C', 'd':'D'}
+di = {"a": "A", "b": "B", "c": "C", "d": "D"}
 
 # main thread function
 def th(n, lo, hi):
@@ -25,6 +27,7 @@ def th(n, lo, hi):
     with lock:
         global n_finished
         n_finished += 1
+
 
 lock = _thread.allocate_lock()
 n_thread = 4

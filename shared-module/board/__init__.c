@@ -24,8 +24,10 @@
  * THE SOFTWARE.
  */
 
+#include "shared-bindings/board/__init__.h"
 #include "shared-bindings/microcontroller/Pin.h"
-#include "supervisor/shared/translate.h"
+#include "shared-module/board/__init__.h"
+#include "supervisor/shared/translate/translate.h"
 #include "mpconfigboard.h"
 #include "py/runtime.h"
 
@@ -39,85 +41,205 @@
 #include "shared-module/displayio/__init__.h"
 #endif
 
-#if BOARD_I2C
-mp_obj_t common_hal_board_get_i2c(void) {
-    return MP_STATE_VM(shared_i2c_bus);
+#if CIRCUITPY_SHARPDISPLAY
+#include "shared-bindings/sharpdisplay/SharpMemoryFramebuffer.h"
+#include "shared-module/sharpdisplay/SharpMemoryFramebuffer.h"
+#endif
+
+#if CIRCUITPY_BOARD_I2C
+// Statically allocate the I2C object so it can live past the end of the heap and into the next VM.
+// That way it can be used by built-in I2CDisplay displays and be accessible through board.I2C().
+
+typedef struct {
+    const mcu_pin_obj_t *scl;
+    const mcu_pin_obj_t *sda;
+} board_i2c_pin_t;
+
+static const board_i2c_pin_t i2c_pin[CIRCUITPY_BOARD_I2C] = CIRCUITPY_BOARD_I2C_PIN;
+static busio_i2c_obj_t i2c_obj[CIRCUITPY_BOARD_I2C];
+static bool i2c_obj_created[CIRCUITPY_BOARD_I2C];
+
+bool common_hal_board_is_i2c(mp_obj_t obj) {
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_I2C; instance++) {
+        if (obj == &i2c_obj[instance]) {
+            return true;
+        }
+    }
+    return false;
 }
 
-mp_obj_t common_hal_board_create_i2c(void) {
-    busio_i2c_obj_t *self = m_new_ll_obj(busio_i2c_obj_t);
+mp_obj_t common_hal_board_get_i2c(const mp_int_t instance) {
+    return i2c_obj_created[instance] ? &i2c_obj[instance] : NULL;
+}
+
+mp_obj_t common_hal_board_create_i2c(const mp_int_t instance) {
+    const mp_obj_t singleton = common_hal_board_get_i2c(instance);
+    if (singleton != NULL && !common_hal_busio_i2c_deinited(singleton)) {
+        return singleton;
+    }
+
+    busio_i2c_obj_t *self = &i2c_obj[instance];
     self->base.type = &busio_i2c_type;
 
-    common_hal_busio_i2c_construct(self, DEFAULT_I2C_BUS_SCL, DEFAULT_I2C_BUS_SDA, 400000, 0);
-    MP_STATE_VM(shared_i2c_bus) = MP_OBJ_FROM_PTR(self);
-    return MP_STATE_VM(shared_i2c_bus);
+    assert_pin_free(i2c_pin[instance].scl);
+    assert_pin_free(i2c_pin[instance].sda);
+
+    common_hal_busio_i2c_construct(self, i2c_pin[instance].scl, i2c_pin[instance].sda, 100000, 255);
+
+    i2c_obj_created[instance] = true;
+    return &i2c_obj[instance];
 }
 #endif
 
-
-#if BOARD_SPI
+#if CIRCUITPY_BOARD_SPI
 // Statically allocate the SPI object so it can live past the end of the heap and into the next VM.
 // That way it can be used by built-in FourWire displays and be accessible through board.SPI().
-STATIC busio_spi_obj_t spi_obj;
-STATIC mp_obj_t spi_singleton = NULL;
 
-mp_obj_t common_hal_board_get_spi(void) {
-    return spi_singleton;
+typedef struct {
+    const mcu_pin_obj_t *clock;
+    const mcu_pin_obj_t *mosi;
+    const mcu_pin_obj_t *miso;
+} board_spi_pin_t;
+
+static const board_spi_pin_t spi_pin[CIRCUITPY_BOARD_SPI] = CIRCUITPY_BOARD_SPI_PIN;
+static busio_spi_obj_t spi_obj[CIRCUITPY_BOARD_SPI];
+static bool spi_obj_created[CIRCUITPY_BOARD_SPI];
+
+bool common_hal_board_is_spi(mp_obj_t obj) {
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_SPI; instance++) {
+        if (obj == &spi_obj[instance]) {
+            return true;
+        }
+    }
+    return false;
 }
 
-mp_obj_t common_hal_board_create_spi(void) {
-    if (spi_singleton != NULL) {
-        return spi_singleton;
+mp_obj_t common_hal_board_get_spi(const mp_int_t instance) {
+    return spi_obj_created[instance] ? &spi_obj[instance] : NULL;
+}
+
+mp_obj_t common_hal_board_create_spi(const mp_int_t instance) {
+    const mp_obj_t singleton = common_hal_board_get_spi(instance);
+    if (singleton != NULL && !common_hal_busio_spi_deinited(singleton)) {
+        return singleton;
     }
-    busio_spi_obj_t *self = &spi_obj;
+
+    busio_spi_obj_t *self = &spi_obj[instance];
     self->base.type = &busio_spi_type;
 
-    const mcu_pin_obj_t* clock = MP_OBJ_TO_PTR(DEFAULT_SPI_BUS_SCK);
-    const mcu_pin_obj_t* mosi = MP_OBJ_TO_PTR(DEFAULT_SPI_BUS_MOSI);
-    const mcu_pin_obj_t* miso = MP_OBJ_TO_PTR(DEFAULT_SPI_BUS_MISO);
-    common_hal_busio_spi_construct(self, clock, mosi, miso);
-    spi_singleton = (mp_obj_t)self;
-    return spi_singleton;
+    assert_pin_free(spi_pin[instance].clock);
+    assert_pin_free(spi_pin[instance].mosi);
+    assert_pin_free(spi_pin[instance].miso);
+
+    common_hal_busio_spi_construct(self, spi_pin[instance].clock, spi_pin[instance].mosi, spi_pin[instance].miso, false);
+
+    spi_obj_created[instance] = true;
+    return &spi_obj[instance];
 }
 #endif
 
-#if BOARD_UART
-mp_obj_t common_hal_board_get_uart(void) {
-    return MP_STATE_VM(shared_uart_bus);
+#if CIRCUITPY_BOARD_UART
+
+typedef struct {
+    const mcu_pin_obj_t *tx;
+    const mcu_pin_obj_t *rx;
+} board_uart_pin_t;
+
+static const board_uart_pin_t uart_pin[CIRCUITPY_BOARD_UART] = CIRCUITPY_BOARD_UART_PIN;
+static busio_uart_obj_t uart_obj[CIRCUITPY_BOARD_UART];
+static bool uart_obj_created[CIRCUITPY_BOARD_UART];
+
+bool common_hal_board_is_uart(mp_obj_t obj) {
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_UART; instance++) {
+        if (obj == &uart_obj[instance]) {
+            return true;
+        }
+    }
+    return false;
 }
 
-mp_obj_t common_hal_board_create_uart(void) {
-    busio_uart_obj_t *self = m_new_ll_obj(busio_uart_obj_t);
+mp_obj_t common_hal_board_get_uart(const mp_int_t instance) {
+    return uart_obj_created[instance] ? &uart_obj[instance] : NULL;
+}
+
+mp_obj_t common_hal_board_create_uart(const mp_int_t instance) {
+    const mp_obj_t singleton = common_hal_board_get_uart(instance);
+    if (singleton != NULL && !common_hal_busio_uart_deinited(singleton)) {
+        return singleton;
+    }
+
+    busio_uart_obj_t *self = &uart_obj[instance];
     self->base.type = &busio_uart_type;
 
-    const mcu_pin_obj_t* rx = MP_OBJ_TO_PTR(DEFAULT_UART_BUS_RX);
-    const mcu_pin_obj_t* tx = MP_OBJ_TO_PTR(DEFAULT_UART_BUS_TX);
+    MP_STATE_VM(board_uart_bus) = &uart_obj;
 
-    common_hal_busio_uart_construct(self, tx, rx, 9600, 8, PARITY_NONE, 1, 1000, 64);
-    MP_STATE_VM(shared_uart_bus) = MP_OBJ_FROM_PTR(self);
-    return MP_STATE_VM(shared_uart_bus);
+    assert_pin_free(uart_pin[instance].tx);
+    assert_pin_free(uart_pin[instance].rx);
+
+    common_hal_busio_uart_construct(self, uart_pin[instance].tx, uart_pin[instance].rx,
+        NULL, NULL, NULL, false, 9600, 8, BUSIO_UART_PARITY_NONE, 1, 1.0f, 64, NULL, false);
+
+    uart_obj_created[instance] = true;
+    return &uart_obj[instance];
 }
 #endif
 
-void reset_board_busses(void) {
-#if BOARD_I2C
-    MP_STATE_VM(shared_i2c_bus) = NULL;
-#endif
-#if BOARD_SPI
-    bool display_using_spi = false;
-    #if CIRCUITPY_DISPLAYIO
-    for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
-        if (displays[i].fourwire_bus.bus == spi_singleton) {
-            display_using_spi = true;
-            break;
+void reset_board_buses(void) {
+    #if CIRCUITPY_BOARD_I2C
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_I2C; instance++) {
+        bool display_using_i2c = false;
+        #if CIRCUITPY_DISPLAYIO
+        for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
+            if (displays[i].bus_base.type == &displayio_i2cdisplay_type && displays[i].i2cdisplay_bus.bus == &i2c_obj[instance]) {
+                display_using_i2c = true;
+                break;
+            }
+        }
+        #endif
+        if (i2c_obj_created[instance]) {
+            // make sure I2C lock is not held over a soft reset
+            common_hal_busio_i2c_unlock(&i2c_obj[instance]);
+            if (!display_using_i2c) {
+                common_hal_busio_i2c_deinit(&i2c_obj[instance]);
+                i2c_obj_created[instance] = false;
+            }
         }
     }
     #endif
-    if (!display_using_spi) {
-        spi_singleton = NULL;
+    #if CIRCUITPY_BOARD_SPI
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_SPI; instance++) {
+        bool display_using_spi = false;
+        #if CIRCUITPY_DISPLAYIO
+        for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
+            mp_const_obj_t bus_type = displays[i].bus_base.type;
+            if (bus_type == &displayio_fourwire_type && displays[i].fourwire_bus.bus == &spi_obj[instance]) {
+                display_using_spi = true;
+                break;
+            }
+            #if CIRCUITPY_SHARPDISPLAY
+            if (displays[i].bus_base.type == &sharpdisplay_framebuffer_type && displays[i].sharpdisplay.bus == &spi_obj[instance]) {
+                display_using_spi = true;
+                break;
+            }
+            #endif
+        }
+        #endif
+        if (spi_obj_created[instance]) {
+            // make sure SPI lock is not held over a soft reset
+            common_hal_busio_spi_unlock(&spi_obj[instance]);
+            if (!display_using_spi) {
+                common_hal_busio_spi_deinit(&spi_obj[instance]);
+                spi_obj_created[instance] = false;
+            }
+        }
     }
-#endif
-#if BOARD_UART
-    MP_STATE_VM(shared_uart_bus) = NULL;
-#endif
+    #endif
+    #if CIRCUITPY_BOARD_UART
+    for (uint8_t instance = 0; instance < CIRCUITPY_BOARD_UART; instance++) {
+        if (uart_obj_created[instance]) {
+            common_hal_busio_uart_deinit(&uart_obj[instance]);
+            uart_obj_created[instance] = false;
+        }
+    }
+    #endif
 }

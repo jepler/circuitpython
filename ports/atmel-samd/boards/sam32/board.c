@@ -27,7 +27,7 @@
 
 #include <string.h>
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "py/mpconfig.h"
 
 #include "common-hal/digitalio/DigitalInOut.h"
@@ -49,4 +49,7 @@ void reset_board(void) {
     common_hal_digitalio_digitalinout_switch_to_output(&neopixel, false, DRIVE_MODE_PUSH_PULL);
     common_hal_neopixel_write(&neopixel, zeroes, 96);
     common_hal_digitalio_digitalinout_deinit(&neopixel);
+}
+
+void board_deinit(void) {
 }

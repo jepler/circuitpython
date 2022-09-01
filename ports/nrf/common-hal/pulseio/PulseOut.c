@@ -34,8 +34,8 @@
 #include "py/gc.h"
 #include "py/runtime.h"
 #include "shared-bindings/pulseio/PulseOut.h"
-#include "shared-bindings/pulseio/PWMOut.h"
-#include "supervisor/shared/translate.h"
+#include "shared-bindings/pwmio/PWMOut.h"
+#include "supervisor/shared/translate/translate.h"
 
 // A single timer is shared amongst all PulseOut objects under the assumption that
 // the code is single threaded.
@@ -48,14 +48,14 @@ static volatile uint16_t pulse_array_index = 0;
 static uint16_t pulse_array_length;
 
 static void turn_on(pulseio_pulseout_obj_t *pulseout) {
-    pulseout->pwmout->pwm->PSEL.OUT[0] = pulseout->pwmout->pin_number;
+    pulseout->pwmout.pwm->PSEL.OUT[0] = pulseout->pwmout.pin->number;
 }
 
 static void turn_off(pulseio_pulseout_obj_t *pulseout) {
     // Disconnect pin from PWM.
-    pulseout->pwmout->pwm->PSEL.OUT[0] = 0xffffffff;
+    pulseout->pwmout.pwm->PSEL.OUT[0] = 0xffffffff;
     // Make sure pin is low.
-    nrf_gpio_pin_clear(pulseout->pwmout->pin_number);
+    nrf_gpio_pin_clear(pulseout->pwmout.pin->number);
 }
 
 static void start_timer(void) {
@@ -66,7 +66,7 @@ static void start_timer(void) {
 }
 
 static void pulseout_event_handler(nrf_timer_event_t event_type, void *p_context) {
-    pulseio_pulseout_obj_t *pulseout = (pulseio_pulseout_obj_t*) p_context;
+    pulseio_pulseout_obj_t *pulseout = (pulseio_pulseout_obj_t *)p_context;
     if (event_type != NRF_TIMER_EVENT_COMPARE0) {
         // Spurious event.
         return;
@@ -74,6 +74,11 @@ static void pulseout_event_handler(nrf_timer_event_t event_type, void *p_context
     nrfx_timer_pause(timer);
 
     pulse_array_index++;
+    // Ignore a zero-length pulse
+    while (pulse_array_index < pulse_array_length &&
+           pulse_array[pulse_array_index] == 0) {
+        pulse_array_index++;
+    }
 
     // No more pulses. Turn off output and don't restart.
     if (pulse_array_index >= pulse_array_length) {
@@ -99,13 +104,19 @@ void pulseout_reset() {
     refcount = 0;
 }
 
-void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t* self,
-                                           const pulseio_pwmout_obj_t* carrier) {
+void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t *self,
+    const mcu_pin_obj_t *pin,
+    uint32_t frequency,
+    uint16_t duty_cycle) {
+
+    pwmout_result_t result = common_hal_pwmio_pwmout_construct(
+        &self->pwmout, pin, duty_cycle, frequency, false);
+
+    // This will raise an exception and not return if needed.
+    common_hal_pwmio_pwmout_raise_error(result);
+
     if (refcount == 0) {
-        timer = nrf_peripherals_allocate_timer();
-        if (timer == NULL) {
-            mp_raise_RuntimeError(translate("All timers in use"));
-        }
+        timer = nrf_peripherals_allocate_timer_or_throw();
     }
     refcount++;
 
@@ -118,22 +129,20 @@ void common_hal_pulseio_pulseout_construct(pulseio_pulseout_obj_t* self,
         .p_context = self,
     };
 
-    self->pwmout = carrier;
-
     nrfx_timer_init(timer, &timer_config, &pulseout_event_handler);
     turn_off(self);
 }
 
-bool common_hal_pulseio_pulseout_deinited(pulseio_pulseout_obj_t* self) {
-    return self->pwmout == NULL;
+bool common_hal_pulseio_pulseout_deinited(pulseio_pulseout_obj_t *self) {
+    return common_hal_pwmio_pwmout_deinited(&self->pwmout);
 }
 
-void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t* self) {
+void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t *self) {
     if (common_hal_pulseio_pulseout_deinited(self)) {
         return;
     }
     turn_on(self);
-    self->pwmout = NULL;
+    common_hal_pwmio_pwmout_deinit(&self->pwmout);
 
     refcount--;
     if (refcount == 0) {
@@ -141,7 +150,7 @@ void common_hal_pulseio_pulseout_deinit(pulseio_pulseout_obj_t* self) {
     }
 }
 
-void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t* self, uint16_t* pulses, uint16_t length) {
+void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t *self, uint16_t *pulses, uint16_t length) {
     pulse_array = pulses;
     pulse_array_index = 0;
     pulse_array_length = length;
@@ -152,12 +161,10 @@ void common_hal_pulseio_pulseout_send(pulseio_pulseout_obj_t* self, uint16_t* pu
     // Count up to the next given value.
     start_timer();
 
-    while(pulse_array_index < length) {
+    while (pulse_array_index < length) {
         // Do other things while we wait. The interrupts will handle sending the
         // signal.
-        #ifdef MICROPY_VM_HOOK_LOOP
-            MICROPY_VM_HOOK_LOOP
-        #endif
+        RUN_BACKGROUND_TASKS;
     }
 
     nrfx_timer_disable(timer);

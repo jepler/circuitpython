@@ -1,39 +1,27 @@
-# The MIT License (MIT)
+# SPDX-FileCopyrightText: Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+# SPDX-FileCopyrightText: 2014 MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)
 #
-# Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 # This must be on one line so its skipped when built into tests.
 """This file provides helpers to detect particular running conditions and skip the test when appropriate."""
+
 
 def skip():
     print("SKIP")
     raise SystemExit
 
+
 def always():
     skip()
 
+
 def no_reversed():
     import builtins
+
     if "reversed" not in dir(builtins):
         skip()
+
 
 def no_bigint():
     try:
@@ -44,27 +32,34 @@ def no_bigint():
     except OverflowError:
         skip()
 
+
 def board_in(*board):
     try:
         import test_env
     except ImportError:
+
         class Env:
             def __init__(self, board):
                 self.board = board
+
         test_env = Env("unknown")
     if test_env.board in board:
         skip()
+
 
 def board_not_in(*board):
     try:
         import test_env
     except ImportError:
+
         class Env:
             def __init__(self, board):
                 self.board = board
+
         test_env = Env("unknown")
     if test_env.board not in board:
         skip()
+
 
 def no_cpython_compat():
     try:
@@ -76,13 +71,14 @@ def no_cpython_compat():
     except TypeError:
         skip()
 
+
 def no_slice_assign():
     try:
         memoryview
     except:
         skip()
-    b1 = bytearray(b'1234')
-    b2 = bytearray(b'5678')
+    b1 = bytearray(b"1234")
+    b2 = bytearray(b"5678")
     m1 = memoryview(b1)
     m2 = memoryview(b2)
     try:
@@ -95,6 +91,7 @@ def no_reverse_ops():
     class Foo:
         def __radd__(self, other):
             pass
+
     try:
         5 + Foo()
     except TypeError:

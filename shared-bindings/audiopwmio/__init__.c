@@ -33,21 +33,9 @@
 #include "shared-bindings/audiopwmio/__init__.h"
 #include "shared-bindings/audiopwmio/PWMAudioOut.h"
 
-//| :mod:`audiopwmio` --- Support for audio input and output
-//| ========================================================
-//|
-//| .. module:: audiopwmio
-//|   :synopsis: Support for audio output via digital PWM
-//|   :platform: NRF52
+//| """Audio output via digital PWM
 //|
 //| The `audiopwmio` module contains classes to provide access to audio IO.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     PWMAudioOut
 //|
 //| All classes change hardware state and should be deinitialized when they
 //| are no longer needed if the program continues after use. To do so, either
@@ -55,7 +43,7 @@
 //| :ref:`lifetime-and-contextmanagers` for more info.
 //|
 //| Since CircuitPython 5, `Mixer`, `RawSample` and `WaveFile` are moved
-//| to :mod:`audiocore`.
+//| to :mod:`audiocore`."""
 //|
 
 STATIC const mp_rom_map_elem_t audiopwmio_module_globals_table[] = {
@@ -67,5 +55,7 @@ STATIC MP_DEFINE_CONST_DICT(audiopwmio_module_globals, audiopwmio_module_globals
 
 const mp_obj_module_t audiopwmio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&audiopwmio_module_globals,
+    .globals = (mp_obj_dict_t *)&audiopwmio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_audiopwmio, audiopwmio_module, CIRCUITPY_AUDIOPWMIO);

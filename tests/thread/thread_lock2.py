@@ -1,6 +1,8 @@
 # test _thread lock objects with multiple threads
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 try:
     import utime as time
@@ -10,10 +12,12 @@ import _thread
 
 lock = _thread.allocate_lock()
 
+
 def thread_entry():
     lock.acquire()
-    print('have it')
+    print("have it")
     lock.release()
+
 
 # spawn the threads
 for i in range(4):
@@ -21,4 +25,4 @@ for i in range(4):
 
 # wait for threads to finish
 time.sleep(1)
-print('done')
+print("done")

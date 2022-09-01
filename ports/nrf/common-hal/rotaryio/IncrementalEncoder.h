@@ -35,8 +35,9 @@ typedef struct {
     mp_obj_base_t base;
     uint8_t pin_a;
     uint8_t pin_b;
-    uint8_t state;
-    int8_t quarter;
+    uint8_t state;        // <old A><old B>
+    int8_t sub_count; // count intermediate transitions between detents
+    int8_t divisor; // Number of quadrature edges required per count
     mp_int_t position;
 } rotaryio_incrementalencoder_obj_t;
 

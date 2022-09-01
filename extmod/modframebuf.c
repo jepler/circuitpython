@@ -1,37 +1,18 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2016 Damien P. George
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+// SPDX-FileCopyrightText: 2014 MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)
+// SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George
+//
+// SPDX-License-Identifier: MIT
 
 #include <stdio.h>
 #include <string.h>
 
 #include "py/runtime.h"
+#include "py/objtype.h"
+#include "py/proto.h"
 
 #if MICROPY_PY_FRAMEBUF
 
-#include "ports/stm32/font_petme128_8x8.h"
+#include "font_petme128_8x8.h"
 
 typedef struct _mp_obj_framebuf_t {
     mp_obj_base_t base;
@@ -41,9 +22,13 @@ typedef struct _mp_obj_framebuf_t {
     uint8_t format;
 } mp_obj_framebuf_t;
 
-typedef void (*setpixel_t)(const mp_obj_framebuf_t*, int, int, uint32_t);
-typedef uint32_t (*getpixel_t)(const mp_obj_framebuf_t*, int, int);
-typedef void (*fill_rect_t)(const mp_obj_framebuf_t *, int, int, int, int, uint32_t);
+#if !MICROPY_ENABLE_DYNRUNTIME
+STATIC const mp_obj_type_t mp_type_framebuf;
+#endif
+
+typedef void (*setpixel_t)(const mp_obj_framebuf_t *, unsigned int, unsigned int, uint32_t);
+typedef uint32_t (*getpixel_t)(const mp_obj_framebuf_t *, unsigned int, unsigned int);
+typedef void (*fill_rect_t)(const mp_obj_framebuf_t *, unsigned int, unsigned int, unsigned int, unsigned int, uint32_t);
 
 typedef struct _mp_framebuf_p_t {
     setpixel_t setpixel;
@@ -62,25 +47,25 @@ typedef struct _mp_framebuf_p_t {
 
 // Functions for MHLSB and MHMSB
 
-STATIC void mono_horiz_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
+STATIC void mono_horiz_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
     size_t index = (x + y * fb->stride) >> 3;
-    int offset = fb->format == FRAMEBUF_MHMSB ? x & 0x07 : 7 - (x & 0x07);
-    ((uint8_t*)fb->buf)[index] = (((uint8_t*)fb->buf)[index] & ~(0x01 << offset)) | ((col != 0) << offset);
+    unsigned int offset = fb->format == FRAMEBUF_MHMSB ? x & 0x07 : 7 - (x & 0x07);
+    ((uint8_t *)fb->buf)[index] = (((uint8_t *)fb->buf)[index] & ~(0x01 << offset)) | ((col != 0) << offset);
 }
 
-STATIC uint32_t mono_horiz_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
+STATIC uint32_t mono_horiz_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
     size_t index = (x + y * fb->stride) >> 3;
-    int offset = fb->format == FRAMEBUF_MHMSB ? x & 0x07 : 7 - (x & 0x07);
-    return (((uint8_t*)fb->buf)[index] >> (offset)) & 0x01;
+    unsigned int offset = fb->format == FRAMEBUF_MHMSB ? x & 0x07 : 7 - (x & 0x07);
+    return (((uint8_t *)fb->buf)[index] >> (offset)) & 0x01;
 }
 
-STATIC void mono_horiz_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
-    int reverse = fb->format == FRAMEBUF_MHMSB;
-    int advance = fb->stride >> 3;
+STATIC void mono_horiz_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
+    unsigned int reverse = fb->format == FRAMEBUF_MHMSB;
+    unsigned int advance = fb->stride >> 3;
     while (w--) {
-        uint8_t *b = &((uint8_t*)fb->buf)[(x >> 3) + y * advance];
-        int offset = reverse ?  x & 7 : 7 - (x & 7);
-        for (int hh = h; hh; --hh) {
+        uint8_t *b = &((uint8_t *)fb->buf)[(x >> 3) + y * advance];
+        unsigned int offset = reverse ?  x & 7 : 7 - (x & 7);
+        for (unsigned int hh = h; hh; --hh) {
             *b = (*b & ~(0x01 << offset)) | ((col != 0) << offset);
             b += advance;
         }
@@ -90,21 +75,21 @@ STATIC void mono_horiz_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int 
 
 // Functions for MVLSB format
 
-STATIC void mvlsb_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
+STATIC void mvlsb_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
     size_t index = (y >> 3) * fb->stride + x;
     uint8_t offset = y & 0x07;
-    ((uint8_t*)fb->buf)[index] = (((uint8_t*)fb->buf)[index] & ~(0x01 << offset)) | ((col != 0) << offset);
+    ((uint8_t *)fb->buf)[index] = (((uint8_t *)fb->buf)[index] & ~(0x01 << offset)) | ((col != 0) << offset);
 }
 
-STATIC uint32_t mvlsb_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
-    return (((uint8_t*)fb->buf)[(y >> 3) * fb->stride + x] >> (y & 0x07)) & 0x01;
+STATIC uint32_t mvlsb_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
+    return (((uint8_t *)fb->buf)[(y >> 3) * fb->stride + x] >> (y & 0x07)) & 0x01;
 }
 
-STATIC void mvlsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
+STATIC void mvlsb_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
     while (h--) {
-        uint8_t *b = &((uint8_t*)fb->buf)[(y >> 3) * fb->stride + x];
+        uint8_t *b = &((uint8_t *)fb->buf)[(y >> 3) * fb->stride + x];
         uint8_t offset = y & 0x07;
-        for (int ww = w; ww; --ww) {
+        for (unsigned int ww = w; ww; --ww) {
             *b = (*b & ~(0x01 << offset)) | ((col != 0) << offset);
             ++b;
         }
@@ -114,18 +99,18 @@ STATIC void mvlsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, in
 
 // Functions for RGB565 format
 
-STATIC void rgb565_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
-    ((uint16_t*)fb->buf)[x + y * fb->stride] = col;
+STATIC void rgb565_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
+    ((uint16_t *)fb->buf)[x + y * fb->stride] = col;
 }
 
-STATIC uint32_t rgb565_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
-    return ((uint16_t*)fb->buf)[x + y * fb->stride];
+STATIC uint32_t rgb565_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
+    return ((uint16_t *)fb->buf)[x + y * fb->stride];
 }
 
-STATIC void rgb565_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
-    uint16_t *b = &((uint16_t*)fb->buf)[x + y * fb->stride];
+STATIC void rgb565_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
+    uint16_t *b = &((uint16_t *)fb->buf)[x + y * fb->stride];
     while (h--) {
-        for (int ww = w; ww; --ww) {
+        for (unsigned int ww = w; ww; --ww) {
             *b++ = col;
         }
         b += fb->stride - w;
@@ -134,23 +119,23 @@ STATIC void rgb565_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, i
 
 // Functions for GS2_HMSB format
 
-STATIC void gs2_hmsb_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
-    uint8_t *pixel = &((uint8_t*)fb->buf)[(x + y * fb->stride) >> 2];
+STATIC void gs2_hmsb_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
+    uint8_t *pixel = &((uint8_t *)fb->buf)[(x + y * fb->stride) >> 2];
     uint8_t shift = (x & 0x3) << 1;
     uint8_t mask = 0x3 << shift;
     uint8_t color = (col & 0x3) << shift;
     *pixel = color | (*pixel & (~mask));
 }
 
-STATIC uint32_t gs2_hmsb_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
-    uint8_t pixel = ((uint8_t*)fb->buf)[(x + y * fb->stride) >> 2];
+STATIC uint32_t gs2_hmsb_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
+    uint8_t pixel = ((uint8_t *)fb->buf)[(x + y * fb->stride) >> 2];
     uint8_t shift = (x & 0x3) << 1;
     return (pixel >> shift) & 0x3;
 }
 
-STATIC void gs2_hmsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
-    for (int xx=x; xx < x+w; xx++) {
-        for (int yy=y; yy < y+h; yy++) {
+STATIC void gs2_hmsb_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
+    for (unsigned int xx = x; xx < x + w; xx++) {
+        for (unsigned int yy = y; yy < y + h; yy++) {
             gs2_hmsb_setpixel(fb, xx, yy, col);
         }
     }
@@ -158,8 +143,8 @@ STATIC void gs2_hmsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w,
 
 // Functions for GS4_HMSB format
 
-STATIC void gs4_hmsb_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
-    uint8_t *pixel = &((uint8_t*)fb->buf)[(x + y * fb->stride) >> 1];
+STATIC void gs4_hmsb_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
+    uint8_t *pixel = &((uint8_t *)fb->buf)[(x + y * fb->stride) >> 1];
 
     if (x % 2) {
         *pixel = ((uint8_t)col & 0x0f) | (*pixel & 0xf0);
@@ -168,24 +153,24 @@ STATIC void gs4_hmsb_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_
     }
 }
 
-STATIC uint32_t gs4_hmsb_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
+STATIC uint32_t gs4_hmsb_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
     if (x % 2) {
-        return ((uint8_t*)fb->buf)[(x + y * fb->stride) >> 1] & 0x0f;
+        return ((uint8_t *)fb->buf)[(x + y * fb->stride) >> 1] & 0x0f;
     }
 
-    return ((uint8_t*)fb->buf)[(x + y * fb->stride) >> 1] >> 4;
+    return ((uint8_t *)fb->buf)[(x + y * fb->stride) >> 1] >> 4;
 }
 
-STATIC void gs4_hmsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
+STATIC void gs4_hmsb_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
     col &= 0x0f;
-    uint8_t *pixel_pair = &((uint8_t*)fb->buf)[(x + y * fb->stride) >> 1];
+    uint8_t *pixel_pair = &((uint8_t *)fb->buf)[(x + y * fb->stride) >> 1];
     uint8_t col_shifted_left = col << 4;
     uint8_t col_pixel_pair = col_shifted_left | col;
-    int pixel_count_till_next_line = (fb->stride - w) >> 1;
+    unsigned int pixel_count_till_next_line = (fb->stride - w) >> 1;
     bool odd_x = (x % 2 == 1);
 
     while (h--) {
-        int ww = w;
+        unsigned int ww = w;
 
         if (odd_x && ww > 0) {
             *pixel_pair = (*pixel_pair & 0xf0) | col;
@@ -209,24 +194,24 @@ STATIC void gs4_hmsb_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w,
 
 // Functions for GS8 format
 
-STATIC void gs8_setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
-    uint8_t *pixel = &((uint8_t*)fb->buf)[(x + y * fb->stride)];
+STATIC void gs8_setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
+    uint8_t *pixel = &((uint8_t *)fb->buf)[(x + y * fb->stride)];
     *pixel = col & 0xff;
 }
 
-STATIC uint32_t gs8_getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
-    return ((uint8_t*)fb->buf)[(x + y * fb->stride)];
+STATIC uint32_t gs8_getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
+    return ((uint8_t *)fb->buf)[(x + y * fb->stride)];
 }
 
-STATIC void gs8_fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, uint32_t col) {
-    uint8_t *pixel = &((uint8_t*)fb->buf)[(x + y * fb->stride)];
+STATIC void gs8_fill_rect(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h, uint32_t col) {
+    uint8_t *pixel = &((uint8_t *)fb->buf)[(x + y * fb->stride)];
     while (h--) {
         memset(pixel, col, w);
         pixel += fb->stride;
     }
 }
 
-STATIC mp_framebuf_p_t formats[] = {
+STATIC const mp_framebuf_p_t formats[] = {
     [FRAMEBUF_MVLSB] = {mvlsb_setpixel, mvlsb_getpixel, mvlsb_fill_rect},
     [FRAMEBUF_RGB565] = {rgb565_setpixel, rgb565_getpixel, rgb565_fill_rect},
     [FRAMEBUF_GS2_HMSB] = {gs2_hmsb_setpixel, gs2_hmsb_getpixel, gs2_hmsb_fill_rect},
@@ -236,11 +221,11 @@ STATIC mp_framebuf_p_t formats[] = {
     [FRAMEBUF_MHMSB] = {mono_horiz_setpixel, mono_horiz_getpixel, mono_horiz_fill_rect},
 };
 
-static inline void setpixel(const mp_obj_framebuf_t *fb, int x, int y, uint32_t col) {
+static inline void setpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y, uint32_t col) {
     formats[fb->format].setpixel(fb, x, y, col);
 }
 
-static inline uint32_t getpixel(const mp_obj_framebuf_t *fb, int x, int y) {
+static inline uint32_t getpixel(const mp_obj_framebuf_t *fb, unsigned int x, unsigned int y) {
     return formats[fb->format].getpixel(fb, x, y);
 }
 
@@ -259,8 +244,8 @@ STATIC void fill_rect(const mp_obj_framebuf_t *fb, int x, int y, int w, int h, u
     formats[fb->format].fill_rect(fb, x, y, xend - x, yend - y, col);
 }
 
-STATIC mp_obj_t framebuf_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
-    mp_arg_check_num(n_args, kw_args, 4, 5, false);
+STATIC mp_obj_t framebuf_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+    mp_arg_check_num(n_args, n_kw, 4, 5, false);
 
     mp_obj_framebuf_t *o = m_new_obj(mp_obj_framebuf_t);
     o->base.type = type;
@@ -296,15 +281,29 @@ STATIC mp_obj_t framebuf_make_new(const mp_obj_type_t *type, size_t n_args, cons
         case FRAMEBUF_GS8:
             break;
         default:
-            mp_raise_ValueError(translate("invalid format"));
+            mp_raise_ValueError(MP_ERROR_TEXT("invalid format"));
     }
 
     return MP_OBJ_FROM_PTR(o);
 }
 
+#if !(defined(MICROPY_ENABLE_DYNRUNTIME) && MICROPY_ENABLE_DYNRUNTIME)
+STATIC const mp_obj_type_t mp_type_framebuf;
+#endif
+
+// Helper to ensure we have the native super class instead of a subclass.
+static mp_obj_framebuf_t *native_framebuf(mp_obj_t framebuf_obj) {
+    mp_obj_t native_framebuf = mp_obj_cast_to_native_base(framebuf_obj, &mp_type_framebuf);
+    mp_obj_assert_native_inited(native_framebuf);
+    if (native_framebuf == MP_OBJ_NULL) {
+        mp_raise_TypeError(NULL);
+    }
+    return MP_OBJ_TO_PTR(native_framebuf);
+}
+
 STATIC mp_int_t framebuf_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_uint_t flags) {
     (void)flags;
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(self_in);
+    mp_obj_framebuf_t *self = native_framebuf(self_in);
     bufinfo->buf = self->buf;
     bufinfo->len = self->stride * self->height * (self->format == FRAMEBUF_RGB565 ? 2 : 1);
     bufinfo->typecode = 'B'; // view framebuf as bytes
@@ -312,7 +311,7 @@ STATIC mp_int_t framebuf_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo,
 }
 
 STATIC mp_obj_t framebuf_fill(mp_obj_t self_in, mp_obj_t col_in) {
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(self_in);
+    mp_obj_framebuf_t *self = native_framebuf(self_in);
     mp_int_t col = mp_obj_get_int(col_in);
     formats[self->format].fill_rect(self, 0, 0, self->width, self->height, col);
     return mp_const_none;
@@ -322,7 +321,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(framebuf_fill_obj, framebuf_fill);
 STATIC mp_obj_t framebuf_fill_rect(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
 
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x = mp_obj_get_int(args[1]);
     mp_int_t y = mp_obj_get_int(args[2]);
     mp_int_t width = mp_obj_get_int(args[3]);
@@ -336,7 +335,7 @@ STATIC mp_obj_t framebuf_fill_rect(size_t n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_fill_rect_obj, 6, 6, framebuf_fill_rect);
 
 STATIC mp_obj_t framebuf_pixel(size_t n_args, const mp_obj_t *args) {
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x = mp_obj_get_int(args[1]);
     mp_int_t y = mp_obj_get_int(args[2]);
     if (0 <= x && x < self->width && 0 <= y && y < self->height) {
@@ -355,7 +354,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_pixel_obj, 3, 4, framebuf_pi
 STATIC mp_obj_t framebuf_hline(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
 
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x = mp_obj_get_int(args[1]);
     mp_int_t y = mp_obj_get_int(args[2]);
     mp_int_t w = mp_obj_get_int(args[3]);
@@ -370,7 +369,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_hline_obj, 5, 5, framebuf_hl
 STATIC mp_obj_t framebuf_vline(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
 
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x = mp_obj_get_int(args[1]);
     mp_int_t y = mp_obj_get_int(args[2]);
     mp_int_t h = mp_obj_get_int(args[3]);
@@ -385,7 +384,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_vline_obj, 5, 5, framebuf_vl
 STATIC mp_obj_t framebuf_rect(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
 
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x = mp_obj_get_int(args[1]);
     mp_int_t y = mp_obj_get_int(args[2]);
     mp_int_t w = mp_obj_get_int(args[3]);
@@ -393,9 +392,9 @@ STATIC mp_obj_t framebuf_rect(size_t n_args, const mp_obj_t *args) {
     mp_int_t col = mp_obj_get_int(args[5]);
 
     fill_rect(self, x, y, w, 1, col);
-    fill_rect(self, x, y + h- 1, w, 1, col);
+    fill_rect(self, x, y + h - 1, w, 1, col);
     fill_rect(self, x, y, 1, h, col);
-    fill_rect(self, x + w- 1, y, 1, h, col);
+    fill_rect(self, x + w - 1, y, 1, h, col);
 
     return mp_const_none;
 }
@@ -404,7 +403,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_rect_obj, 6, 6, framebuf_rec
 STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
 
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     mp_int_t x1 = mp_obj_get_int(args[1]);
     mp_int_t y1 = mp_obj_get_int(args[2]);
     mp_int_t x2 = mp_obj_get_int(args[3]);
@@ -432,9 +431,15 @@ STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
     bool steep;
     if (dy > dx) {
         mp_int_t temp;
-        temp = x1; x1 = y1; y1 = temp;
-        temp = dx; dx = dy; dy = temp;
-        temp = sx; sx = sy; sy = temp;
+        temp = x1;
+        x1 = y1;
+        y1 = temp;
+        temp = dx;
+        dx = dy;
+        dy = temp;
+        temp = sx;
+        sx = sy;
+        sy = temp;
         steep = true;
     } else {
         steep = false;
@@ -468,13 +473,17 @@ STATIC mp_obj_t framebuf_line(size_t n_args, const mp_obj_t *args) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_line_obj, 6, 6, framebuf_line);
 
 STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
-    mp_obj_framebuf_t *source = MP_OBJ_TO_PTR(args[1]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
+    mp_obj_framebuf_t *source = native_framebuf(args[1]);
     mp_int_t x = mp_obj_get_int(args[2]);
     mp_int_t y = mp_obj_get_int(args[3]);
     mp_int_t key = -1;
     if (n_args > 4) {
         key = mp_obj_get_int(args[4]);
+    }
+    mp_obj_framebuf_t *palette = NULL;
+    if (n_args > 5 && args[5] != mp_const_none) {
+        palette = MP_OBJ_TO_PTR(mp_obj_cast_to_native_base(args[5], MP_OBJ_FROM_PTR(&mp_type_framebuf)));
     }
 
     if (
@@ -482,7 +491,7 @@ STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
         (y >= self->height) ||
         (-x >= source->width) ||
         (-y >= source->height)
-    ) {
+        ) {
         // Out of bounds, no-op.
         return mp_const_none;
     }
@@ -499,6 +508,9 @@ STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
         int cx1 = x1;
         for (int cx0 = x0; cx0 < x0end; ++cx0) {
             uint32_t col = getpixel(source, cx1, y1);
+            if (palette) {
+                col = getpixel(palette, col, 0);
+            }
             if (col != (uint32_t)key) {
                 setpixel(self, cx0, y0, col);
             }
@@ -508,10 +520,10 @@ STATIC mp_obj_t framebuf_blit(size_t n_args, const mp_obj_t *args) {
     }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_blit_obj, 4, 5, framebuf_blit);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_blit_obj, 4, 6, framebuf_blit);
 
 STATIC mp_obj_t framebuf_scroll(mp_obj_t self_in, mp_obj_t xstep_in, mp_obj_t ystep_in) {
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(self_in);
+    mp_obj_framebuf_t *self = native_framebuf(self_in);
     mp_int_t xstep = mp_obj_get_int(xstep_in);
     mp_int_t ystep = mp_obj_get_int(ystep_in);
     int sx, y, xend, yend, dx, dy;
@@ -544,7 +556,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_3(framebuf_scroll_obj, framebuf_scroll);
 
 STATIC mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args) {
     // extract arguments
-    mp_obj_framebuf_t *self = MP_OBJ_TO_PTR(args[0]);
+    mp_obj_framebuf_t *self = native_framebuf(args[0]);
     const char *str = mp_obj_str_get_str(args[1]);
     mp_int_t x0 = mp_obj_get_int(args[2]);
     mp_int_t y0 = mp_obj_get_int(args[3]);
@@ -556,7 +568,7 @@ STATIC mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args) {
     // loop over chars
     for (; *str; ++str) {
         // get char and make sure its in range of font
-        int chr = *(uint8_t*)str;
+        int chr = *(uint8_t *)str;
         if (chr < 32 || chr > 127) {
             chr = 127;
         }
@@ -580,6 +592,7 @@ STATIC mp_obj_t framebuf_text(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(framebuf_text_obj, 4, 5, framebuf_text);
 
+#if !MICROPY_ENABLE_DYNRUNTIME
 STATIC const mp_rom_map_elem_t framebuf_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_fill), MP_ROM_PTR(&framebuf_fill_obj) },
     { MP_ROM_QSTR(MP_QSTR_fill_rect), MP_ROM_PTR(&framebuf_fill_rect_obj) },
@@ -596,16 +609,20 @@ STATIC MP_DEFINE_CONST_DICT(framebuf_locals_dict, framebuf_locals_dict_table);
 
 STATIC const mp_obj_type_t mp_type_framebuf = {
     { &mp_type_type },
+    .flags = MP_TYPE_FLAG_EXTENDED,
     .name = MP_QSTR_FrameBuffer,
     .make_new = framebuf_make_new,
-    .buffer_p = { .get_buffer = framebuf_get_buffer },
-    .locals_dict = (mp_obj_dict_t*)&framebuf_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&framebuf_locals_dict,
+    MP_TYPE_EXTENDED_FIELDS(
+        .buffer_p = { .get_buffer = framebuf_get_buffer },
+        ),
 };
+#endif
 
 // this factory function is provided for backwards compatibility with old FrameBuffer1 class
 STATIC mp_obj_t legacy_framebuffer1(size_t n_args, const mp_obj_t *args) {
     mp_obj_framebuf_t *o = m_new_obj(mp_obj_framebuf_t);
-    o->base.type = &mp_type_framebuf;
+    o->base.type = (mp_obj_type_t *)&mp_type_framebuf;
 
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[0], &bufinfo, MP_BUFFER_WRITE);
@@ -624,6 +641,7 @@ STATIC mp_obj_t legacy_framebuffer1(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(legacy_framebuffer1_obj, 3, 4, legacy_framebuffer1);
 
+#if !MICROPY_ENABLE_DYNRUNTIME
 STATIC const mp_rom_map_elem_t framebuf_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_framebuf) },
     { MP_ROM_QSTR(MP_QSTR_FrameBuffer), MP_ROM_PTR(&mp_type_framebuf) },
@@ -642,7 +660,8 @@ STATIC MP_DEFINE_CONST_DICT(framebuf_module_globals, framebuf_module_globals_tab
 
 const mp_obj_module_t mp_module_framebuf = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&framebuf_module_globals,
+    .globals = (mp_obj_dict_t *)&framebuf_module_globals,
 };
+#endif
 
 #endif // MICROPY_PY_FRAMEBUF

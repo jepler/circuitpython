@@ -1,6 +1,8 @@
 # test _thread lock object using a single thread
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 import _thread
 
@@ -36,11 +38,11 @@ try:
         print(lock.locked())
         raise KeyError
 except KeyError:
-    print('KeyError')
+    print("KeyError")
     print(lock.locked())
 
 # test that we can't release an unlocked lock
 try:
     lock.release()
 except RuntimeError:
-    print('RuntimeError')
+    print("RuntimeError")

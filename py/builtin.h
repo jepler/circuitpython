@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,11 @@ MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_len_obj);
 MP_DECLARE_CONST_FUN_OBJ_0(mp_builtin_locals_obj);
 MP_DECLARE_CONST_FUN_OBJ_KW(mp_builtin_max_obj);
 MP_DECLARE_CONST_FUN_OBJ_KW(mp_builtin_min_obj);
+#if MICROPY_PY_BUILTINS_NEXT2
+MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_next_obj);
+#else
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_next_obj);
+#endif
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_oct_obj);
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_ord_obj);
 MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_pow_obj);
@@ -99,6 +103,7 @@ extern const mp_obj_module_t mp_module_thread;
 extern const mp_obj_dict_t mp_module_builtins_globals;
 
 // extmod modules
+extern const mp_obj_module_t mp_module_uasyncio;
 extern const mp_obj_module_t mp_module_uerrno;
 extern const mp_obj_module_t mp_module_uctypes;
 extern const mp_obj_module_t mp_module_uzlib;
@@ -106,17 +111,16 @@ extern const mp_obj_module_t mp_module_ujson;
 extern const mp_obj_module_t mp_module_ure;
 extern const mp_obj_module_t mp_module_uheapq;
 extern const mp_obj_module_t mp_module_uhashlib;
+extern const mp_obj_module_t mp_module_ucryptolib;
 extern const mp_obj_module_t mp_module_ubinascii;
 extern const mp_obj_module_t mp_module_urandom;
 extern const mp_obj_module_t mp_module_uselect;
-extern const mp_obj_module_t mp_module_ussl;
 extern const mp_obj_module_t mp_module_utimeq;
 extern const mp_obj_module_t mp_module_machine;
-extern const mp_obj_module_t mp_module_lwip;
-extern const mp_obj_module_t mp_module_websocket;
-extern const mp_obj_module_t mp_module_webrepl;
 extern const mp_obj_module_t mp_module_framebuf;
 extern const mp_obj_module_t mp_module_btree;
+extern const mp_obj_module_t mp_module_ubluetooth;
+extern const mp_obj_module_t mp_module_uplatform;
 
 extern const char MICROPY_PY_BUILTINS_HELP_TEXT[];
 

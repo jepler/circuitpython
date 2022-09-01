@@ -12,17 +12,6 @@
 #define SPI_FLASH_SCK_PIN           &pin_PA09
 #define SPI_FLASH_CS_PIN            &pin_PA13
 
-// These are pins not to reset.
-#define MICROPY_PORT_A        (PORT_PA06)
-#define MICROPY_PORT_B        ( 0 )
-#define MICROPY_PORT_C        ( 0 )
-
-// If you change this, then make sure to update the linker scripts as well to
-// make sure you don't overwrite code.
-#define CIRCUITPY_INTERNAL_NVM_SIZE 256
-
-#define BOARD_FLASH_SIZE (0x00040000 - 0x2000 - CIRCUITPY_INTERNAL_NVM_SIZE)
-
 #define DEFAULT_I2C_BUS_SCL (&pin_PA23)
 #define DEFAULT_I2C_BUS_SDA (&pin_PA22)
 

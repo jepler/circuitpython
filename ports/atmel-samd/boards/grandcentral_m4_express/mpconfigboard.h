@@ -12,23 +12,6 @@
 
 #define MICROPY_HW_NEOPIXEL (&pin_PC24)
 
-// These are pins not to reset.
-// QSPI Data pins
-#define MICROPY_PORT_A ( PORT_PA08 | PORT_PA09 | PORT_PA10 | PORT_PA11 )
-// QSPI CS, and QSPI SCK
-#define MICROPY_PORT_B ( PORT_PB10 | PORT_PB11 )
-// NeoPixel pin, RX LED, TX LED
-#define MICROPY_PORT_C ( PORT_PC24 | PORT_PC30 | PORT_PC31 )
-#define MICROPY_PORT_D (0)
-
-#define AUTORESET_DELAY_MS 500
-
-// If you change this, then make sure to update the linker scripts as well to
-// make sure you don't overwrite code
-#define CIRCUITPY_INTERNAL_NVM_SIZE 8192
-
-#define BOARD_FLASH_SIZE (FLASH_SIZE - 0x4000 - CIRCUITPY_INTERNAL_NVM_SIZE)
-
 #define BOARD_HAS_CRYSTAL 1
 
 #define DEFAULT_I2C_BUS_SCL (&pin_PB21)

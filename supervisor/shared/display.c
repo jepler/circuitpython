@@ -29,206 +29,216 @@
 #include <string.h>
 
 #include "py/mpstate.h"
+#include "shared-bindings/displayio/Bitmap.h"
 #include "shared-bindings/displayio/Group.h"
 #include "shared-bindings/displayio/Palette.h"
 #include "shared-bindings/displayio/TileGrid.h"
 #include "supervisor/memory.h"
+#include "supervisor/shared/title_bar.h"
 
-extern size_t blinka_bitmap_data[];
+#if CIRCUITPY_RGBMATRIX
+#include "shared-module/displayio/__init__.h"
+#endif
+
+#if CIRCUITPY_SHARPDISPLAY
+#include "shared-module/displayio/__init__.h"
+#include "shared-bindings/sharpdisplay/SharpMemoryFramebuffer.h"
+#include "shared-module/sharpdisplay/SharpMemoryFramebuffer.h"
+#endif
+
+#if CIRCUITPY_REPL_LOGO
+extern uint32_t blinka_bitmap_data[];
 extern displayio_bitmap_t blinka_bitmap;
+#endif
 extern displayio_group_t circuitpython_splash;
 
-static supervisor_allocation* tilegrid_tiles = NULL;
+#if CIRCUITPY_TERMINALIO
+static supervisor_allocation *tilegrid_tiles = NULL;
+#endif
 
 void supervisor_start_terminal(uint16_t width_px, uint16_t height_px) {
-    displayio_tilegrid_t* grid = &supervisor_terminal_text_grid;
-    uint16_t width_in_tiles = (width_px - blinka_bitmap.width) / grid->tile_width;
-    // determine scale based on h
-    uint8_t scale = 1;
-    if (width_in_tiles > 80) {
-        scale = 2;
+    // Default the scale to 2 because we may show blinka without the terminal for
+    // languages that don't have font support.
+    uint8_t scale = 2;
+
+    #if CIRCUITPY_TERMINALIO
+    displayio_tilegrid_t *scroll_area = &supervisor_terminal_scroll_area_text_grid;
+    displayio_tilegrid_t *title_bar = &supervisor_terminal_title_bar_text_grid;
+    bool reset_tiles = false;
+    uint16_t width_in_tiles = width_px / scroll_area->tile_width;
+    // determine scale based on width
+    if (width_in_tiles <= 80) {
+        scale = 1;
     }
-    width_in_tiles = (width_px - blinka_bitmap.width * scale) / (grid->tile_width * scale);
-    uint16_t height_in_tiles = height_px / (grid->tile_height * scale);
-    uint16_t remaining_pixels = height_px % (grid->tile_height * scale);
-    if (remaining_pixels > 0) {
-        height_in_tiles += 1;
+
+    width_in_tiles = width_px / (scroll_area->tile_width * scale);
+    if (width_in_tiles < 1) {
+        width_in_tiles = 1;
     }
-    circuitpython_splash.scale = scale;
+    uint16_t height_in_tiles = height_px / (scroll_area->tile_height * scale);
 
     uint16_t total_tiles = width_in_tiles * height_in_tiles;
 
-    // First try to allocate outside the heap. This will fail when the VM is running.
-    tilegrid_tiles = allocate_memory(align32_size(total_tiles), false);
-    uint8_t* tiles;
-    if (tilegrid_tiles == NULL) {
-        tiles = m_malloc(total_tiles, true);
-        MP_STATE_VM(terminal_tilegrid_tiles) = tiles;
-    } else {
-        tiles = (uint8_t*) tilegrid_tiles->ptr;
+    // check if the terminal tile dimensions are the same
+    if ((scroll_area->width_in_tiles != width_in_tiles) ||
+        (scroll_area->height_in_tiles != height_in_tiles - 1)) {
+        reset_tiles = true;
+    }
+    // Reuse the previous allocation if possible
+    if (tilegrid_tiles) {
+        if (get_allocation_length(tilegrid_tiles) != align32_size(total_tiles)) {
+            free_memory(tilegrid_tiles);
+            tilegrid_tiles = NULL;
+            reset_tiles = true;
+        }
+    }
+    if (!tilegrid_tiles) {
+        tilegrid_tiles = allocate_memory(align32_size(total_tiles), false, true);
+        reset_tiles = true;
+        if (!tilegrid_tiles) {
+            return;
+        }
     }
 
-    if (tiles == NULL) {
-        return;
-    }
-    grid->y = 0;
-    grid->top_left_y = 0;
-    if (remaining_pixels > 0) {
-        grid->y -= (grid->tile_height - remaining_pixels);
-    }
-    grid->width_in_tiles = width_in_tiles;
-    grid->height_in_tiles = height_in_tiles;
-    grid->pixel_width = width_in_tiles * grid->tile_width;
-    grid->pixel_height = height_in_tiles * grid->tile_height;
-    grid->tiles = tiles;
+    if (reset_tiles) {
+        uint8_t *tiles = (uint8_t *)tilegrid_tiles->ptr;
 
-    common_hal_terminalio_terminal_construct(&supervisor_terminal, grid, &supervisor_terminal_font);
+        #if CIRCUITPY_REPL_LOGO
+        title_bar->x = supervisor_blinka_sprite.pixel_width + 1;
+        // Align the title bar to the bottom of the logo.
+        title_bar->y = supervisor_blinka_sprite.pixel_height - title_bar->tile_height;
+        #else
+        title_bar->x = 0;
+        title_bar->y = 0;
+        #endif
+        title_bar->top_left_y = 0;
+        title_bar->width_in_tiles = width_in_tiles;
+        title_bar->height_in_tiles = 1;
+        assert(width_in_tiles > 0);
+        title_bar->pixel_width = width_in_tiles * title_bar->tile_width;
+        title_bar->pixel_height = title_bar->tile_height;
+        title_bar->tiles = tiles;
+        title_bar->full_change = true;
+
+        scroll_area->x = 0;
+        scroll_area->top_left_y = 0;
+        scroll_area->width_in_tiles = width_in_tiles;
+        scroll_area->height_in_tiles = height_in_tiles - 1;
+        assert(width_in_tiles > 0);
+        assert(height_in_tiles > 1);
+        scroll_area->pixel_width = width_in_tiles * scroll_area->tile_width;
+        scroll_area->pixel_height = (height_in_tiles - 1) * scroll_area->tile_height;
+        #if CIRCUITPY_REPL_LOGO
+        scroll_area->y = blinka_bitmap.height;
+        #else
+        scroll_area->y = title_bar->tile_height;
+        #endif
+        int16_t extra_height = (scroll_area->pixel_height + scroll_area->y) - (height_px / scale);
+        // Subtract extra height so that the bottom line fully shows. The top line will be under the
+        // title bar and Blinka logo.
+        scroll_area->y -= extra_height;
+        scroll_area->tiles = tiles + width_in_tiles;
+        scroll_area->full_change = true;
+
+        common_hal_terminalio_terminal_construct(&supervisor_terminal, scroll_area, &supervisor_terminal_font, title_bar);
+        // Update the title bar since we just cleared the terminal.
+        supervisor_title_bar_update();
+    }
+    #endif
+
+    circuitpython_splash.scale = scale;
 }
 
 void supervisor_stop_terminal(void) {
+    #if CIRCUITPY_TERMINALIO
     if (tilegrid_tiles != NULL) {
         free_memory(tilegrid_tiles);
         tilegrid_tiles = NULL;
-        supervisor_terminal_text_grid.inline_tiles = false;
-        supervisor_terminal_text_grid.tiles = NULL;
+        supervisor_terminal_scroll_area_text_grid.tiles = NULL;
+        supervisor_terminal_title_bar_text_grid.tiles = NULL;
+        supervisor_terminal.scroll_area = NULL;
+        supervisor_terminal.title_bar = NULL;
     }
-}
-
-void supervisor_display_move_memory(void) {
-    #if CIRCUITPY_DISPLAYIO
-    displayio_tilegrid_t* grid = &supervisor_terminal_text_grid;
-    if (MP_STATE_VM(terminal_tilegrid_tiles) == NULL || grid->tiles != MP_STATE_VM(terminal_tilegrid_tiles)) {
-        return;
-    }
-    uint16_t total_tiles = grid->width_in_tiles * grid->height_in_tiles;
-
-    tilegrid_tiles = allocate_memory(align32_size(total_tiles), false);
-    if (tilegrid_tiles != NULL) {
-        memcpy(tilegrid_tiles->ptr, grid->tiles, total_tiles);
-        grid->tiles = (uint8_t*) tilegrid_tiles->ptr;
-    } else {
-        grid->tiles = NULL;
-        grid->inline_tiles = false;
-    }
-    MP_STATE_VM(terminal_tilegrid_tiles) = NULL;
     #endif
 }
 
-size_t blinka_bitmap_data[32] = {
-    0x00000011, 0x11000000,
-    0x00000111, 0x53100000,
-    0x00000111, 0x56110000,
-    0x00000111, 0x11140000,
-    0x00000111, 0x20002000,
-    0x00000011, 0x13000000,
-    0x00000001, 0x11200000,
-    0x00000000, 0x11330000,
-    0x00000000, 0x01122000,
-    0x00001111, 0x44133000,
-    0x00032323, 0x24112200,
-    0x00111114, 0x44113300,
-    0x00323232, 0x34112200,
-    0x11111144, 0x44443300,
-    0x11111111, 0x11144401,
-    0x23232323, 0x21111110
-};
+void supervisor_display_move_memory(void) {
+    #if CIRCUITPY_TERMINALIO
+    displayio_tilegrid_t *scroll_area = &supervisor_terminal_scroll_area_text_grid;
+    displayio_tilegrid_t *title_bar = &supervisor_terminal_title_bar_text_grid;
+    if (tilegrid_tiles != NULL) {
+        title_bar->tiles = (uint8_t *)tilegrid_tiles->ptr;
+        scroll_area->tiles = (uint8_t *)tilegrid_tiles->ptr + scroll_area->width_in_tiles;
+    } else {
+        scroll_area->tiles = NULL;
+        title_bar->tiles = NULL;
+    }
+    #endif
 
-displayio_bitmap_t blinka_bitmap = {
-    .base = {.type = &displayio_bitmap_type },
-    .width = 16,
-    .height = 16,
-    .data = blinka_bitmap_data,
-    .stride = 2,
-    .bits_per_value = 4,
-    .x_shift = 3,
-    .x_mask = 0x7,
-    .bitmask = 0xf,
-    .read_only = true
-};
+    #if CIRCUITPY_DISPLAYIO
+    for (uint8_t i = 0; i < CIRCUITPY_DISPLAY_LIMIT; i++) {
+        #if CIRCUITPY_RGBMATRIX
+        if (displays[i].rgbmatrix.base.type == &rgbmatrix_RGBMatrix_type) {
+            rgbmatrix_rgbmatrix_obj_t *pm = &displays[i].rgbmatrix;
+            common_hal_rgbmatrix_rgbmatrix_reconstruct(pm, NULL);
+        }
+        #endif
+        #if CIRCUITPY_SHARPDISPLAY
+        if (displays[i].bus_base.type == &sharpdisplay_framebuffer_type) {
+            sharpdisplay_framebuffer_obj_t *sharp = &displays[i].sharpdisplay;
+            common_hal_sharpdisplay_framebuffer_reconstruct(sharp);
+        }
+        #endif
+    }
+    #endif
+}
 
-_displayio_color_t blinka_colors[7] = {
-    {
-        .rgb888 = 0x000000,
-        .rgb565 = 0x0000,
-        .luma = 0x00,
-        .transparent = true
-    },
-    {
-        .rgb888 = 0x8428bc,
-        .rgb565 = 0x7889,
-        .luma = 0xff // We cheat the luma here. It is actually 0x60
-    },
-    {
-        .rgb888 = 0xff89bc,
-        .rgb565 = 0xB8FC,
-        .luma = 0xb5
-    },
-    {
-        .rgb888 = 0x7beffe,
-        .rgb565 = 0x9F86,
-        .luma = 0xe0
-    },
-    {
-        .rgb888 = 0x51395f,
-        .rgb565 = 0x0D5A,
-        .luma = 0x47
-    },
-    {
-        .rgb888 = 0xffffff,
-        .rgb565 = 0xffff,
-        .luma = 0xff
-    },
-    {
-        .rgb888 = 0x0736a0,
-        .rgb565 = 0xf501,
-        .luma = 0x44
-    },
+#if CIRCUITPY_TERMINALIO
+#if CIRCUITPY_REPL_LOGO
+mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_blinka_sprite, &supervisor_terminal_title_bar_text_grid, };
+mp_obj_list_t splash_children = {
+    .base = {.type = &mp_type_list },
+    .alloc = 3,
+    .len = 3,
+    .items = members,
 };
-
-displayio_palette_t blinka_palette = {
-    .base = {.type = &displayio_palette_type },
-    .colors = blinka_colors,
-    .color_count = 7,
-    .needs_refresh = false
+#else
+mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_terminal_title_bar_text_grid,};
+mp_obj_list_t splash_children = {
+    .base = {.type = &mp_type_list },
+    .alloc = 2,
+    .len = 2,
+    .items = members,
 };
-
-displayio_tilegrid_t blinka_sprite = {
-    .base = {.type = &displayio_tilegrid_type },
-    .bitmap = &blinka_bitmap,
-    .pixel_shader = &blinka_palette,
-    .x = 0,
-    .y = 0,
-    .pixel_width = 16,
-    .pixel_height = 16,
-    .bitmap_width_in_tiles = 1,
-    .width_in_tiles = 1,
-    .height_in_tiles = 1,
-    .tile_width = 16,
-    .tile_height = 16,
-    .top_left_x = 16,
-    .top_left_y = 16,
-    .tiles = 0,
-    .partial_change = false,
-    .full_change = false,
-    .first_draw = true,
-    .moved = false,
-    .inline_tiles = true,
-    .in_group = true
+#endif
+#else
+#if CIRCUITPY_REPL_LOGO
+mp_obj_t members[] = { &supervisor_blinka_sprite };
+mp_obj_list_t splash_children = {
+    .base = {.type = &mp_type_list },
+    .alloc = 1,
+    .len = 1,
+    .items = members,
 };
-
-displayio_group_child_t splash_children[2] = {
-    {&blinka_sprite, &blinka_sprite},
-    {&supervisor_terminal_text_grid, &supervisor_terminal_text_grid}
+#else
+mp_obj_t members[] = {};
+mp_obj_list_t splash_children = {
+    .base = {.type = &mp_type_list },
+    .alloc = 0,
+    .len = 0,
+    .items = members,
 };
+#endif
+#endif
 
 displayio_group_t circuitpython_splash = {
     .base = {.type = &displayio_group_type },
     .x = 0,
     .y = 0,
     .scale = 2,
-    .size = 2,
-    .max_size = 2,
-    .children = splash_children,
+    .members = &splash_children,
     .item_removed = false,
-    .in_group = false
+    .in_group = false,
+    .hidden = false,
+    .hidden_by_parent = false
 };

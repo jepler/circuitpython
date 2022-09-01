@@ -26,55 +26,50 @@
 
 #include <stdint.h>
 
-#include "lib/utils/context_manager_helpers.h"
+#include "shared/runtime/context_manager_helpers.h"
 #include "py/binary.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
-#include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/util.h"
 #include "shared-bindings/audiocore/RawSample.h"
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
-//| .. currentmodule:: audiocore
+//| class RawSample:
+//|     """A raw audio sample buffer in memory"""
 //|
-//| :class:`RawSample` -- A raw audio sample buffer
-//| ========================================================
+//|     def __init__(self, buffer: ReadableBuffer, *, channel_count: int = 1, sample_rate: int = 8000) -> None:
+//|         """Create a RawSample based on the given buffer of signed values. If channel_count is more than
+//|         1 then each channel's samples should alternate. In other words, for a two channel buffer, the
+//|         first sample will be for channel 1, the second sample will be for channel two, the third for
+//|         channel 1 and so on.
 //|
-//| An in-memory sound sample
+//|         :param ~circuitpython_typing.ReadableBuffer buffer: A buffer with samples
+//|         :param int channel_count: The number of channels in the buffer
+//|         :param int sample_rate: The desired playback sample rate
 //|
-//| .. class:: RawSample(buffer, *, channel_count=1, sample_rate=8000)
+//|         Simple 8ksps 440 Hz sin wave::
 //|
-//|   Create a RawSample based on the given buffer of signed values. If channel_count is more than
-//|   1 then each channel's samples should alternate. In other words, for a two channel buffer, the
-//|   first sample will be for channel 1, the second sample will be for channel two, the third for
-//|   channel 1 and so on.
+//|           import audiocore
+//|           import audioio
+//|           import board
+//|           import array
+//|           import time
+//|           import math
 //|
-//|   :param array buffer: An `array.array` with samples
-//|   :param int channel_count: The number of channels in the buffer
-//|   :param int sample_rate: The desired playback sample rate
+//|           # Generate one period of sine wav.
+//|           length = 8000 // 440
+//|           sine_wave = array.array("h", [0] * length)
+//|           for i in range(length):
+//|               sine_wave[i] = int(math.sin(math.pi * 2 * i / length) * (2 ** 15))
 //|
-//|   Simple 8ksps 440 Hz sin wave::
+//|           dac = audioio.AudioOut(board.SPEAKER)
+//|           sine_wave = audiocore.RawSample(sine_wave)
+//|           dac.play(sine_wave, loop=True)
+//|           time.sleep(1)
+//|           dac.stop()"""
+//|         ...
 //|
-//|     import audiocore
-//|     import audioio
-//|     import board
-//|     import array
-//|     import time
-//|     import math
-//|
-//|     # Generate one period of sine wav.
-//|     length = 8000 // 440
-//|     sine_wave = array.array("h", [0] * length)
-//|     for i in range(length):
-//|         sine_wave[i] = int(math.sin(math.pi * 2 * i / 18) * (2 ** 15))
-//|
-//|     dac = audioio.AudioOut(board.SPEAKER)
-//|     sine_wave = audiocore.RawSample(sine_wave)
-//|     dac.play(sine_wave, loop=True)
-//|     time.sleep(1)
-//|     dac.stop()
-//|
-STATIC mp_obj_t audioio_rawsample_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t audioio_rawsample_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_buffer, ARG_channel_count, ARG_sample_rate };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer, MP_ARG_OBJ | MP_ARG_REQUIRED },
@@ -82,32 +77,29 @@ STATIC mp_obj_t audioio_rawsample_make_new(const mp_obj_type_t *type, size_t n_a
         { MP_QSTR_sample_rate, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 8000} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     audioio_rawsample_obj_t *self = m_new_obj(audioio_rawsample_obj_t);
     self->base.type = &audioio_rawsample_type;
     mp_buffer_info_t bufinfo;
-    if (mp_get_buffer(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_READ)) {
-        uint8_t bytes_per_sample = 1;
-        bool signed_samples = bufinfo.typecode == 'b' || bufinfo.typecode == 'h';
-        if (bufinfo.typecode == 'h' || bufinfo.typecode == 'H') {
-            bytes_per_sample = 2;
-        } else if (bufinfo.typecode != 'b' && bufinfo.typecode != 'B' && bufinfo.typecode != BYTEARRAY_TYPECODE) {
-            mp_raise_ValueError(translate("sample_source buffer must be a bytearray or array of type 'h', 'H', 'b' or 'B'"));
-        }
-        common_hal_audioio_rawsample_construct(self, ((uint8_t*)bufinfo.buf), bufinfo.len,
-                                               bytes_per_sample, signed_samples, args[ARG_channel_count].u_int,
-                                               args[ARG_sample_rate].u_int);
-    } else {
-        mp_raise_TypeError(translate("buffer must be a bytes-like object"));
+    mp_get_buffer_raise(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_READ);
+    uint8_t bytes_per_sample = 1;
+    bool signed_samples = bufinfo.typecode == 'b' || bufinfo.typecode == 'h';
+    if (bufinfo.typecode == 'h' || bufinfo.typecode == 'H') {
+        bytes_per_sample = 2;
+    } else if (bufinfo.typecode != 'b' && bufinfo.typecode != 'B' && bufinfo.typecode != BYTEARRAY_TYPECODE) {
+        mp_raise_ValueError(translate("sample_source buffer must be a bytearray or array of type 'h', 'H', 'b' or 'B'"));
     }
+    common_hal_audioio_rawsample_construct(self, ((uint8_t *)bufinfo.buf), bufinfo.len,
+        bytes_per_sample, signed_samples, args[ARG_channel_count].u_int,
+        args[ARG_sample_rate].u_int);
 
     return MP_OBJ_FROM_PTR(self);
 }
 
-//|   .. method:: deinit()
-//|
-//|      Deinitialises the AudioOut and releases any hardware resources for reuse.
+//|     def deinit(self) -> None:
+//|         """Deinitialises the RawSample and releases any hardware resources for reuse."""
+//|         ...
 //|
 STATIC mp_obj_t audioio_rawsample_deinit(mp_obj_t self_in) {
     audioio_rawsample_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -122,16 +114,16 @@ STATIC void check_for_deinit(audioio_rawsample_obj_t *self) {
     }
 }
 
-//|   .. method:: __enter__()
-//|
-//|      No-op used by Context Managers.
+//|     def __enter__(self) -> RawSample:
+//|         """No-op used by Context Managers."""
+//|         ...
 //|
 //  Provided by context manager helper.
 
-//|   .. method:: __exit__()
-//|
-//|      Automatically deinitializes the hardware when exiting a context. See
-//|      :ref:`lifetime-and-contextmanagers` for more info.
+//|     def __exit__(self) -> None:
+//|         """Automatically deinitializes the hardware when exiting a context. See
+//|         :ref:`lifetime-and-contextmanagers` for more info."""
+//|         ...
 //|
 STATIC mp_obj_t audioio_rawsample_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
@@ -140,12 +132,11 @@ STATIC mp_obj_t audioio_rawsample_obj___exit__(size_t n_args, const mp_obj_t *ar
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audioio_rawsample___exit___obj, 4, 4, audioio_rawsample_obj___exit__);
 
-//|   .. attribute:: sample_rate
-//|
-//|     32 bit value that dictates how quickly samples are played in Hertz (cycles per second).
+//|     sample_rate: Optional[int]
+//|     """32 bit value that dictates how quickly samples are played in Hertz (cycles per second).
 //|     When the sample is looped, this can change the pitch output without changing the underlying
 //|     sample. This will not change the sample rate of any active playback. Call ``play`` again to
-//|     change it.
+//|     change it."""
 //|
 STATIC mp_obj_t audioio_rawsample_obj_get_sample_rate(mp_obj_t self_in) {
     audioio_rawsample_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -162,12 +153,9 @@ STATIC mp_obj_t audioio_rawsample_obj_set_sample_rate(mp_obj_t self_in, mp_obj_t
 }
 MP_DEFINE_CONST_FUN_OBJ_2(audioio_rawsample_set_sample_rate_obj, audioio_rawsample_obj_set_sample_rate);
 
-const mp_obj_property_t audioio_rawsample_sample_rate_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&audioio_rawsample_get_sample_rate_obj,
-              (mp_obj_t)&audioio_rawsample_set_sample_rate_obj,
-              (mp_obj_t)&mp_const_none_obj},
-};
+MP_PROPERTY_GETSET(audioio_rawsample_sample_rate_obj,
+    (mp_obj_t)&audioio_rawsample_get_sample_rate_obj,
+    (mp_obj_t)&audioio_rawsample_set_sample_rate_obj);
 
 STATIC const mp_rom_map_elem_t audioio_rawsample_locals_dict_table[] = {
     // Methods
@@ -180,9 +168,23 @@ STATIC const mp_rom_map_elem_t audioio_rawsample_locals_dict_table[] = {
 };
 STATIC MP_DEFINE_CONST_DICT(audioio_rawsample_locals_dict, audioio_rawsample_locals_dict_table);
 
+STATIC const audiosample_p_t audioio_rawsample_proto = {
+    MP_PROTO_IMPLEMENT(MP_QSTR_protocol_audiosample)
+    .sample_rate = (audiosample_sample_rate_fun)common_hal_audioio_rawsample_get_sample_rate,
+    .bits_per_sample = (audiosample_bits_per_sample_fun)common_hal_audioio_rawsample_get_bits_per_sample,
+    .channel_count = (audiosample_channel_count_fun)common_hal_audioio_rawsample_get_channel_count,
+    .reset_buffer = (audiosample_reset_buffer_fun)audioio_rawsample_reset_buffer,
+    .get_buffer = (audiosample_get_buffer_fun)audioio_rawsample_get_buffer,
+    .get_buffer_structure = (audiosample_get_buffer_structure_fun)audioio_rawsample_get_buffer_structure,
+};
+
 const mp_obj_type_t audioio_rawsample_type = {
     { &mp_type_type },
     .name = MP_QSTR_RawSample,
+    .flags = MP_TYPE_FLAG_EXTENDED,
     .make_new = audioio_rawsample_make_new,
-    .locals_dict = (mp_obj_dict_t*)&audioio_rawsample_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&audioio_rawsample_locals_dict,
+    MP_TYPE_EXTENDED_FIELDS(
+        .protocol = &audioio_rawsample_proto,
+        ),
 };

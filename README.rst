@@ -3,7 +3,7 @@ CircuitPython
 
 .. image:: https://s3.amazonaws.com/adafruit-circuit-python/CircuitPython_Repo_header_logo.png
 
-|Build Status| |Doc Status| |License| |Discord|
+|Build Status| |Doc Status| |License| |Discord| |Weblate|
 
 `circuitpython.org <https://circuitpython.org>`__ \| `Get CircuitPython <#get-circuitpython>`__ \|
 `Documentation <#documentation>`__ \| `Contributing <#contributing>`__ \|
@@ -14,25 +14,30 @@ CircuitPython
 computers called microcontrollers. Microcontrollers are the brains of many electronics including a
 wide variety of development boards used to build hobby projects and prototypes. CircuitPython in
 electronics is one of the best ways to learn to code because it connects code to reality. Simply
-install CircuitPython on a supported board via drag and drop and then edit a ``code.py`` file on
-the CIRCUITPY drive. The code will automatically reload. No software installs are needed besides a
-text editor (we recommend `Mu <https://codewith.mu/>`_ for beginners.)
+install CircuitPython on a supported USB board usually via drag and drop and then edit a ``code.py``
+file on the CIRCUITPY drive. The code will automatically reload. No software installs are needed
+besides a text editor (we recommend `Mu <https://codewith.mu/>`_ for beginners.)
 
-CircuitPython features unified Python core APIs and a growing list of 150+ device libraries and
+Starting with CircuitPython 7.0.0, some boards may only be connectable over Bluetooth Low Energy
+(BLE). Those boards provide serial and file access over BLE instead of USB using open protocols.
+(Some boards may use both USB and BLE.) BLE access can be done from a variety of apps including
+`code.circuitpython.org <https://code.circuitpython.org>`_.
+
+CircuitPython features unified Python core APIs and a growing list of 300+ device libraries and
 drivers that work with it. These libraries also work on single board computers with regular
 Python via the `Adafruit Blinka Library <https://github.com/adafruit/Adafruit_Blinka>`_.
 
 CircuitPython is based on `MicroPython <https://micropython.org>`_. See
-`below <#differences-from-micropython>`_ for differences. CircuitPython development is sponsored by
-`Adafruit <https://adafruit.com>`_ and is available on their educational development boards. Please
-support both MicroPython and Adafruit.
+`below <#differences-from-micropython>`_ for differences. Most, but not all, CircuitPython
+development is sponsored by `Adafruit <https://adafruit.com>`_ and is available on their educational
+development boards. Please support both MicroPython and Adafruit.
 
 Get CircuitPython
 ------------------
 
 Official binaries for all supported boards are available through
 `circuitpython.org/downloads <https://circuitpython.org/downloads>`_. The site includes stable, unstable and
-continuous builds. Full release notes and assets are available through
+continuous builds. Full release notes are available through
 `GitHub releases <https://github.com/adafruit/circuitpython/releases>`_ as well.
 
 Documentation
@@ -51,16 +56,20 @@ Specifically useful documentation when starting out:
 - `CircuitPython Essentials <https://learn.adafruit.com/circuitpython-essentials>`__
 - `Example Code <https://github.com/adafruit/Adafruit_Learning_System_Guides/tree/master/CircuitPython_Essentials>`__
 
+Code Search
+------------
+GitHub doesn't currently support code search on forks. Therefore, CircuitPython doesn't have code search through GitHub because it is a fork of MicroPython. Luckily, `SourceGraph <https://sourcegraph.com/github.com/adafruit/circuitpython>`_ has free code search for public repos like CircuitPython. So, visit `sourcegraph.com/github.com/adafruit/circuitpython <https://sourcegraph.com/github.com/adafruit/circuitpython>`_ to search the CircuitPython codebase online.
+
 Contributing
 ------------
 
 See
-`CONTRIBUTING.md <https://github.com/adafruit/circuitpython/blob/master/CONTRIBUTING.md>`__
+`CONTRIBUTING.md <https://github.com/adafruit/circuitpython/blob/main/CONTRIBUTING.md>`__
 for full guidelines but please be aware that by contributing to this
 project you are agreeing to the `Code of
-Conduct <https://github.com/adafruit/circuitpython/blob/master/CODE_OF_CONDUCT.md>`__.
+Conduct <https://github.com/adafruit/circuitpython/blob/main/CODE_OF_CONDUCT.md>`__.
 Contributors who follow the `Code of
-Conduct <https://github.com/adafruit/circuitpython/blob/master/CODE_OF_CONDUCT.md>`__
+Conduct <https://github.com/adafruit/circuitpython/blob/main/CODE_OF_CONDUCT.md>`__
 are welcome to submit pull requests and they will be promptly reviewed
 by project admins. Please join the
 `Discord <https://adafru.it/discord>`__ too.
@@ -78,10 +87,14 @@ If you'd like to use the term "CircuitPython" and Blinka for your product here i
 * Your product is supported by the primary
   `"adafruit/circuitpython" <https://github.com/adafruit/circuitpython>`_ repo. This way we can
   update any custom code as we update the CircuitPython internals.
-* Your product is listed on `circuitpython.org <https:/circuitpython.org>`__ (source
+* Your product is listed on `circuitpython.org <https://circuitpython.org>`__ (source
   `here <https://github.com/adafruit/circuitpython-org/>`_). This is to ensure that a user of your
   product can always download the latest version of CircuitPython from the standard place.
-* Your product has a user accessible USB plug which appears as a CIRCUITPY drive when plugged in.
+* Your product supports at least one standard "`Workflow <https://docs.circuitpython.org/en/latest/docs/workflows.html>`__" for serial and file access:
+  * With a user accessible USB plug which appears as a CIRCUITPY drive when plugged in.
+  * With file and serial access over Bluetooth Low Energy using the BLE Workflow.
+  * With file access over WiFi using the WiFi Workflow with serial access over USB and/or WebSocket.
+* Boards that do not support the USB Workflow should be clearly marked.
 
 If you choose not to meet these requirements, then we ask you call your version of CircuitPython
 something else (for example, SuperDuperPython) and not use the Blinka logo. You can say it is
@@ -94,13 +107,11 @@ Differences from `MicroPython <https://github.com/micropython/micropython>`__
 
 CircuitPython:
 
--  includes ports for MicroChip SAMD21 (Commonly known as M0 in Adafruit
-   product names) and SAMD51 (M4).
--  supports only SAMD21, SAMD51, and nRF52840 ports.
--  tracks MicroPython's releases (not master).
--  floats (aka decimals) are enabled for all builds.
--  error messages are translated into 10+ languages.
--  does not support concurrency within Python (including interrupts and threading). Some concurrency
+-  Supports native USB on most boards and BLE otherwise, allowing file editing without special tools.
+-  Floats (aka decimals) are enabled for all builds.
+-  Error messages are translated into 10+ languages.
+-  Concurrency within Python is not well supported. Interrupts and threading are disabled.
+   async/await keywords are available on some boards for cooperative multitasking. Some concurrency
    is achieved with native modules for tasks that require it such as audio file playback.
 
 Behavior
@@ -109,39 +120,39 @@ Behavior
 -  The order that files are run and the state that is shared between
    them. CircuitPython's goal is to clarify the role of each file and
    make each file independent from each other.
--  ``boot.py`` (or ``settings.py``) runs only once on start up before
-   USB is initialized. This lays the ground work for configuring USB at
-   startup rather than it being fixed. Since serial is not available,
-   output is written to ``boot_out.txt``.
--  ``code.py`` (or ``main.py``) is run after every reload until it
-   finishes or is interrupted. After it is done running, the vm and
-   hardware is reinitialized. **This means you cannot read state from**
-   ``code.py`` **in the REPL anymore.** CircuitPython's goal for this
-   change includes reduce confusion about pins and memory being used.
--  After ``code.py`` the REPL can be entered by pressing any key. It no
-   longer shares state with ``code.py`` so it is a fresh vm.
--  Autoreload state will be maintained across reload.
--  Adds a safe mode that does not run user code after a hard crash or
-   brown out. The hope is that this will make it easier to fix code that
-   causes nasty crashes by making it available through mass storage
-   after the crash. A reset (the button) is needed after its fixed to
-   get back into normal mode.
--  RGB status LED indicating CircuitPython state, and errors through a sequence of colored flashes.
--  Re-runs ``code.py`` or other main file after file system writes over USB mass storage. (Disable with
-   ``samd.disable_autoreload()``)
--  Entering the REPL after the main code is finished requires a key press which enters the REPL and
-   disables autoreload.
+
+   -  ``boot.py`` runs only once on start up before
+      workflows are initialized. This lays the ground work for configuring USB at
+      startup rather than it being fixed. Since serial is not available,
+      output is written to ``boot_out.txt``.
+   -  ``code.py`` (or ``main.py``) is run after every reload until it
+      finishes or is interrupted. After it is done running, the vm and
+      hardware is reinitialized. **This means you cannot read state from**
+      ``code.py`` **in the REPL anymore, as the REPL is a fresh vm.** CircuitPython's goal for this
+      change includes reducing confusion about pins and memory being used.
+   -  After the main code is finished the REPL can be entered by pressing any key.
+   -  Autoreload state will be maintained across reload.
+
+-  Adds a safe mode that does not run user code after a hard crash or brown out. This makes it
+   possible to fix code that causes nasty crashes by making it available through mass storage after
+   the crash. A reset (the button) is needed after it's fixed to get back into normal mode.
+-  RGB status LED indicating CircuitPython state.
+   - One green flash - code completed without error.
+   - Two red flashes - code ended due to an exception.
+   - Three yellow flashes - safe mode. May be due to CircuitPython internal error.
+-  Re-runs ``code.py`` or other main file after file system writes by a workflow. (Disable with
+   ``supervisor.disable_autoreload()``)
+-  Autoreload is disabled while the REPL is active.
 -  Main is one of these: ``code.txt``, ``code.py``, ``main.py``,
    ``main.txt``
--  Boot is one of these: ``settings.txt``, ``settings.py``, ``boot.py``,
-   ``boot.txt``
+-  Boot is one of these: ``boot.py``, ``boot.txt``
 
 API
 ~~~
 
--  Unified hardware APIs. Documented
-   `on ReadTheDocs <https://circuitpython.readthedocs.io/en/latest/shared-bindings/index.html>`_.
--  API docs are rST within the C files in ``shared-bindings``.
+-  Unified hardware APIs. Documented on
+   `ReadTheDocs <https://circuitpython.readthedocs.io/en/latest/shared-bindings/index.html>`_.
+-  API docs are Python stubs within the C files in ``shared-bindings``.
 -  No ``machine`` API.
 
 Modules
@@ -200,23 +211,43 @@ amongst ports including CircuitPython:
 Ports
 ~~~~~
 
-Ports include the code unique to a microcontroller line and also
-variations based on the board.
+Ports include the code unique to a microcontroller line.
 
--  ``atmel-samd`` Support for SAMD21 and SAMD51 based boards.
--  ``nrf`` Support for the nRF52840 based boards.
--  ``unix`` Support for UNIX. Only used for automated testing.
+================  ============================================================
+Supported         Support status
+================  ============================================================
+atmel-samd        ``SAMD21`` stable | ``SAMD51`` stable
+cxd56             stable
+espressif         ``ESP32-C3`` beta | ``ESP32-S2`` stable | ``ESP32-S3`` beta
+litex             alpha
+mimxrt10xx        alpha
+nrf               stable
+raspberrypi       stable
+stm               ``F4`` stable | ``others`` beta
+unix              alpha
+================  ============================================================
 
-The remaining port directories not listed above are in the repo to maintain compatibility with the
-`MicroPython <https://github.com/micropython/micropython>`__ parent project.
+-  ``stable`` Highly unlikely to have bugs or missing functionality.
+-  ``beta``   Being actively improved but may be missing functionality and have bugs.
+-  ``alpha``  Will have bugs and missing functionality.
 
-`back to top <#circuitpython>`__
+Boards
+~~~~~~
 
-.. |Build Status| image:: https://travis-ci.com/adafruit/circuitpython.svg?branch=master
-   :target: https://travis-ci.org/adafruit/circuitpython
+-  Each ``port`` has a ``boards`` directory containing boards
+   which belong to a specific microcontroller line.
+-  A list of native modules supported by a particular board can be found
+   `here <https://circuitpython.readthedocs.io/en/latest/shared-bindings/support_matrix.html>`__.
+
+`Back to Top <#circuitpython>`__
+
+.. |Build Status| image:: https://github.com/adafruit/circuitpython/workflows/Build%20CI/badge.svg
+   :target: https://github.com/adafruit/circuitpython/actions?query=branch%3Amain
 .. |Doc Status| image:: https://readthedocs.org/projects/circuitpython/badge/?version=latest
    :target: http://circuitpython.readthedocs.io/
 .. |Discord| image:: https://img.shields.io/discord/327254708534116352.svg
    :target: https://adafru.it/discord
 .. |License| image:: https://img.shields.io/badge/License-MIT-brightgreen.svg
    :target: https://choosealicense.com/licenses/mit/
+.. |Weblate| image:: https://hosted.weblate.org/widgets/circuitpython/-/svg-badge.svg
+   :target: https://hosted.weblate.org/engage/circuitpython/?utm_source=widget

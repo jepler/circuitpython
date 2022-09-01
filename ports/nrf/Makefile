@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2019 Dan Halbert for Adafruit Industries
+# SPDX-FileCopyrightText: Copyright (c) 2019 Dan Halbert for Adafruit Industries
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -63,8 +63,6 @@ ifneq ($(SD), )
 	include bluetooth/bluetooth_common.mk
 endif
 
-FROZEN_MPY_DIR = freeze
-
 CROSS_COMPILE = arm-none-eabi-
 
 FATFS_DIR = lib/oofatfs
@@ -75,13 +73,11 @@ INC += -I$(BUILD)
 INC += -I$(BUILD)/genhdr
 INC += -I./../../lib/cmsis/inc
 INC += -I./boards/$(BOARD)
-INC += -I./modules/ubluepy
-INC += -I./modules/ble
-INC += -I./nrfx
-INC += -I./nrfx/hal
-INC += -I./nrfx/mdk
-INC += -I./nrfx/drivers/include
-INC += -I./nrfx/drivers/src
+INC += -isystem ./nrfx
+INC += -isystem ./nrfx/hal
+INC += -isystem ./nrfx/mdk
+INC += -isystem ./nrfx/drivers/include
+INC += -isystem ./nrfx/drivers/src
 INC += -I./bluetooth
 INC += -I./peripherals
 INC += -I../../lib/mp-readline
@@ -90,21 +86,35 @@ INC += -I../../supervisor/shared/usb
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
-  # You may want to enable these flags to make setting breakpoints easier.
-  CFLAGS += -fno-inline -fno-ipa-sra
+  CFLAGS += -ggdb3
+  OPTIMIZATION_FLAGS = -Og
 else
-  CFLAGS += -Os -DNDEBUG
-  # TODO: Test with -flto
-  ### CFLAGS += -flto
+  OPTIMIZATION_FLAGS ?= -O2 -fno-inline-functions
+  CFLAGS += -DNDEBUG -ggdb3
 endif
 
+ifeq ($(NRF_DEBUG_PRINT), 1)
+  CFLAGS += -DNRF_DEBUG_PRINT=1
+endif
 
-CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
+# option to override compiler optimization level, set in boards/$(BOARD)/mpconfigboard.mk
+CFLAGS += $(OPTIMIZATION_FLAGS)
+
+CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT) -Werror=missing-prototypes
+
+# Nordic Softdevice SDK header files contains inline assembler that has
+# broken constraints. As a result the IPA-modref pass, introduced in gcc-11,
+# is able to "prove" that arguments to wrapper functions generated with
+# the SVCALL() macro are unused and, as a result, the optimizer will remove
+# code within the callers that sets up these arguments (which results in
+# a broken bootloader). The broken headers come from Nordic-supplied zip
+# files and are not trivial to patch so, for now, we'll simply disable the
+# new gcc-11 inter-procedural optimizations.
+ifeq (,$(findstring unrecognized,$(shell $(CC) $(CFLAGS) -fno-ipa-modref 2>&1)))
+CFLAGS += -fno-ipa-modref
+endif
 
 # Undo some warnings.
-# nrfx uses undefined preprocessor variables quite casually, so we can't do warning checks for these.
-CFLAGS += -Wno-undef
 # nrfx does casts that increase alignment requirements.
 CFLAGS += -Wno-cast-align
 
@@ -121,7 +131,7 @@ CFLAGS += \
 # TODO: check this
 CFLAGS += -D__START=main
 
-LDFLAGS = $(CFLAGS) -nostartfiles -fshort-enums -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
+LDFLAGS = $(CFLAGS) -nostartfiles -Wl,-nostdlib -Wl,-z,max-page-size=0x1000 -Wl,-T,$(GENERATED_LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
 LIBS := -lgcc -lc
 
 LDFLAGS += -mthumb -mcpu=cortex-m4
@@ -142,6 +152,8 @@ SRC_NRFX = $(addprefix nrfx/,\
 	drivers/src/nrfx_uarte.c \
 	drivers/src/nrfx_gpiote.c \
 	drivers/src/nrfx_rtc.c \
+	drivers/src/nrfx_nvmc.c \
+	drivers/src/nrfx_wdt.c \
 	)
 
 ifdef EXTERNAL_FLASH_DEVICES
@@ -154,62 +166,69 @@ endif
 SRC_C += \
 	background.c \
 	fatfs_port.c \
-	mphalport.c \
-	tick.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/pins.c \
 	device/$(MCU_VARIANT)/startup_$(MCU_SUB_VARIANT).c \
 	bluetooth/ble_drv.c \
-	lib/libc/string0.c \
-	lib/mp-readline/readline.c \
-	lib/oofatfs/ff.c \
-	lib/oofatfs/option/ccsbcs.c \
-	lib/timeutils/timeutils.c \
-	lib/utils/buffer_helper.c \
-	lib/utils/context_manager_helpers.c \
-	lib/utils/interrupt_char.c \
-	lib/utils/pyexec.c \
-	lib/utils/stdout_helpers.c \
-	lib/utils/sys_stdio_mphal.c \
-	nrfx/hal/nrf_nvmc.c \
+	common-hal/_bleio/bonding.c \
 	nrfx/mdk/system_$(MCU_SUB_VARIANT).c \
+	sd_mutex.c \
+
+SRC_PERIPHERALS := \
 	peripherals/nrf/cache.c \
 	peripherals/nrf/clocks.c \
 	peripherals/nrf/$(MCU_CHIP)/pins.c \
 	peripherals/nrf/$(MCU_CHIP)/power.c \
         peripherals/nrf/nvm.c \
 	peripherals/nrf/timers.c \
-	sd_mutex.c \
-	supervisor/shared/memory.c
 
+$(patsubst %.c,$(BUILD)/%.o,$(SRC_PERIPHERALS)): CFLAGS += -Wno-missing-prototypes
+
+SRC_C += $(SRC_PERIPHERALS)
+ifneq ($(CIRCUITPY_USB),0)
 # USB source files for nrf52840
 ifeq ($(MCU_SUB_VARIANT),nrf52840)
-SRC_C += \
-	lib/tinyusb/src/portable/nordic/nrf5x/dcd_nrf5x.c \
-	lib/tinyusb/src/portable/nordic/nrf5x/hal_nrf5x.c
+SRC_DCD = \
+	lib/tinyusb/src/portable/nordic/nrf5x/dcd_nrf5x.c
 endif
+
+ifeq ($(MCU_SUB_VARIANT),nrf52833)
+SRC_DCD += \
+	lib/tinyusb/src/portable/nordic/nrf5x/dcd_nrf5x.c
+endif
+SRC_C += $(SRC_DCD)
+$(patsubst %.c,$(BUILD)/%.o,$(SRC_DCD)): CFLAGS += -Wno-missing-prototypes
+endif # CIRCUITPY_USB
 
 SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
                           $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
                           $(addprefix common-hal/, $(SRC_COMMON_HAL))
 
 SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
-                             $(addprefix shared-module/, $(SRC_SHARED_MODULE))
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE_INTERNAL))
+
+# There may be duplicates between SRC_COMMON_HAL_EXPANDED and SRC_SHARED_MODULE_EXPANDED,
+# because a few modules have files both in common-hal/ and shared-module/.
+# Doing a $(sort ...) removes duplicates as part of sorting.
+SRC_COMMON_HAL_SHARED_MODULE_EXPANDED = $(sort $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED))
 
 SRC_S = supervisor/cpu.s
 
-FROZEN_MPY_PY_FILES := $(shell find -L $(FROZEN_MPY_DIR) -type f -name '*.py')
-FROZEN_MPY_MPY_FILES := $(addprefix $(BUILD)/,$(FROZEN_MPY_PY_FILES:.py=.mpy))
-
 OBJ += $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_NRFX:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_EXPANDED:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_SHARED_MODULE_EXPANDED:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
+
+# nrfx uses undefined preprocessor variables quite casually, so we can't do
+# warning checks for these.  Happily, we've confined the offenders to the NRFX
+# source files themselves.
+$(addprefix $(BUILD)/, $(SRC_NRFX:.c=.o)): CFLAGS += -Wno-undef
 
 $(BUILD)/$(FATFS_DIR)/ff.o: COPT += -Os
 $(filter $(PY_BUILD)/../extmod/vfs_fat_%.o, $(PY_O)): COPT += -Os
@@ -219,13 +238,17 @@ SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_MOD) $(SRC_COMMON_HAL_EXPANDED) $(S
 # Sources that only hold QSTRs after pre-processing.
 SRC_QSTR_PREPROCESSOR +=
 
+UF2_FAMILY_ID_nrf52840 = 0xADA52840
+UF2_FAMILY_ID_nrf52833 = 0x621E937A
 
-all: $(BUILD)/firmware.bin $(BUILD)/firmware.uf2
 
-$(BUILD)/firmware.elf: $(OBJ)
+all: $(BUILD)/firmware.bin $(BUILD)/firmware.uf2 $(BUILD)/firmware.combined.hex
+
+$(BUILD)/firmware.elf: $(OBJ) $(GENERATED_LD_FILE)
 	$(STEPECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(LDFLAGS) $^ -Wl,--start-group $(LIBS) -Wl,--end-group
-	$(Q)$(SIZE) $@ | $(PYTHON3) $(TOP)/tools/build_memory_info.py $(LD_FILE)
+	$(Q)echo $(OBJ) > $(BUILD)/firmware.objs
+	$(Q)$(CC) -o $@ $(LDFLAGS) @$(BUILD)/firmware.objs -Wl,--start-group $(LIBS) -Wl,--end-group
+	$(Q)$(SIZE) $@ | $(PYTHON) $(TOP)/tools/build_memory_info.py $(GENERATED_LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
 	$(STEPECHO) "Create $@"
@@ -237,9 +260,13 @@ $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(Q)$(OBJCOPY) -O ihex $^ $@
 #	$(Q)$(OBJCOPY) -O ihex -j .vectors -j .text -j .data $^ $@
 
+$(BUILD)/firmware.combined.hex: $(BUILD)/firmware.hex $(SOFTDEV_HEX)
+	$(STEPECHO) "Create $@"
+	$(Q)hexmerge.py -o $@ $^
+
 $(BUILD)/firmware.uf2: $(BUILD)/firmware.hex
 	$(ECHO) "Create $@"
-	$(PYTHON3) $(TOP)/tools/uf2/utils/uf2conv.py -f 0xADA52840 -c -o "$(BUILD)/firmware.uf2" $^
+	$(PYTHON) $(TOP)/tools/uf2/utils/uf2conv.py -f $(UF2_FAMILY_ID_$(MCU_CHIP)) -c -o "$(BUILD)/firmware.uf2" $^
 
 
 
@@ -267,7 +294,7 @@ else ifeq ($(FLASHER), pyocd)
 
 flash: $(BUILD)/firmware.hex
 	pyocd-flashtool -t $(MCU_VARIANT) $< --sector_erase
-	#pyocd-tool -t $(MCU_VARIANT) erase $(BOOT_SETTING_ADDR)
+#	pyocd-tool -t $(MCU_VARIANT) erase $(BOOT_SETTING_ADDR)
 	pyocd-tool -t $(MCU_VARIANT) write32 $(BOOT_SETTING_ADDR) 0x00000001
 	pyocd-tool -t $(MCU_VARIANT) reset
 

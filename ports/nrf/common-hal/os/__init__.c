@@ -29,6 +29,8 @@
 #include "py/objstr.h"
 #include "py/objtuple.h"
 
+#include "shared-bindings/os/__init__.h"
+
 #ifdef BLUETOOTH_SD
 #include "nrf_sdm.h"
 #endif
@@ -55,32 +57,50 @@ STATIC MP_DEFINE_ATTRTUPLE(
     (mp_obj_t)&os_uname_info_release_obj,
     (mp_obj_t)&os_uname_info_version_obj,
     (mp_obj_t)&os_uname_info_machine_obj
-);
+    );
 
 mp_obj_t common_hal_os_uname(void) {
     return (mp_obj_t)&os_uname_info_obj;
 }
 
-bool common_hal_os_urandom(uint8_t *buffer, uint32_t length) {
-#ifdef BLUETOOTH_SD
+bool common_hal_os_urandom(uint8_t *buffer, mp_uint_t length) {
+    #ifdef BLUETOOTH_SD
     uint8_t sd_en = 0;
-    (void) sd_softdevice_is_enabled(&sd_en);
+    (void)sd_softdevice_is_enabled(&sd_en);
 
-    if (sd_en)
-        return NRF_SUCCESS == sd_rand_application_vector_get(buffer, length);
-#endif
+    if (sd_en) {
+        while (length != 0) {
+            uint8_t available = 0;
+            sd_rand_application_bytes_available_get(&available);
+            if (available) {
+                uint32_t request = MIN(length, available);
+                uint32_t result = sd_rand_application_vector_get(buffer, request);
+                if (result != NRF_SUCCESS) {
+                    return false;
+                }
+                buffer += request;
+                length -= request;
+            } else {
+                RUN_BACKGROUND_TASKS;
+            }
+        }
+        return true;
+    }
+    #endif
 
-    nrf_rng_event_clear(NRF_RNG_EVENT_VALRDY);
-    nrf_rng_task_trigger(NRF_RNG_TASK_START);
+    nrf_rng_event_clear(NRF_RNG, NRF_RNG_EVENT_VALRDY);
+    nrf_rng_task_trigger(NRF_RNG, NRF_RNG_TASK_START);
 
     for (uint32_t i = 0; i < length; i++) {
-        while (nrf_rng_event_get(NRF_RNG_EVENT_VALRDY) == 0);
-        nrf_rng_event_clear(NRF_RNG_EVENT_VALRDY);
+        while (nrf_rng_event_check(NRF_RNG, NRF_RNG_EVENT_VALRDY) == 0) {
+            ;
+        }
+        nrf_rng_event_clear(NRF_RNG, NRF_RNG_EVENT_VALRDY);
 
-        buffer[i] = nrf_rng_random_value_get();
+        buffer[i] = nrf_rng_random_value_get(NRF_RNG);
     }
 
-    nrf_rng_task_trigger(NRF_RNG_TASK_STOP);
+    nrf_rng_task_trigger(NRF_RNG, NRF_RNG_TASK_STOP);
 
     return true;
 }

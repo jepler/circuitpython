@@ -30,7 +30,9 @@
 #include "py/objtuple.h"
 #include "py/qstr.h"
 
-#ifdef SAMD51
+#include "shared-bindings/os/__init__.h"
+
+#ifdef SAM_D5X_E5X
 #include "hal/include/hal_rand_sync.h"
 #endif
 
@@ -42,7 +44,7 @@ STATIC const qstr os_uname_info_fields[] = {
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_sysname_obj, "samd21");
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_nodename_obj, "samd21");
 #endif
-#ifdef SAMD51
+#ifdef SAM_D5X_E5X
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_sysname_obj, "samd51");
 STATIC const MP_DEFINE_STR_OBJ(os_uname_info_nodename_obj, "samd51");
 #endif
@@ -60,14 +62,14 @@ STATIC MP_DEFINE_ATTRTUPLE(
     (mp_obj_t)&os_uname_info_release_obj,
     (mp_obj_t)&os_uname_info_version_obj,
     (mp_obj_t)&os_uname_info_machine_obj
-);
+    );
 
 mp_obj_t common_hal_os_uname(void) {
     return (mp_obj_t)&os_uname_info_obj;
 }
 
-bool common_hal_os_urandom(uint8_t* buffer, uint32_t length) {
-    #ifdef SAMD51
+bool common_hal_os_urandom(uint8_t *buffer, mp_uint_t length) {
+    #ifdef SAM_D5X_E5X
     hri_mclk_set_APBCMASK_TRNG_bit(MCLK);
     struct rand_sync_desc random;
     rand_sync_init(&random, TRNG);

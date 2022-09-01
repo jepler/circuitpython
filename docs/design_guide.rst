@@ -1,9 +1,11 @@
+.. role:: strike
+
 Design Guide
 ============
 
 This guide covers a variety of development practices for CircuitPython core and library APIs. These
 APIs are both `built-into CircuitPython
-<https://github.com/adafruit/circuitpython/tree/master/shared-bindings>`_ and those that are
+<https://github.com/adafruit/circuitpython/tree/main/shared-bindings>`_ and those that are
 `distributed on GitHub <https://github.com/search?utf8=%E2%9C%93&q=topic%3Acircuitpython&type=>`_
 and in the `Adafruit <https://github.com/adafruit/Adafruit_CircuitPython_Bundle>`_ and `Community
 <https://github.com/adafruit/CircuitPython_Community_Bundle/>`_ bundles. Consistency with these
@@ -16,7 +18,7 @@ Start libraries with the cookiecutter
 Cookiecutter is a tool that lets you bootstrap a new repo based on another repo.
 We've made one `here <https://github.com/adafruit/cookiecutter-adafruit-circuitpython>`_
 for CircuitPython libraries that include configs for Travis CI and ReadTheDocs
-along with a setup.py, license, code of conduct and readme.
+along with a setup.py, license, code of conduct, readme among other files.
 
 .. code-block::sh
 
@@ -46,6 +48,41 @@ not have the ``adafruit_`` module or package prefix.
 
 Both should have the CircuitPython repository topic on GitHub.
 
+Terminology
+-----------
+
+As our Code of Conduct states, we strive to use "welcoming and inclusive
+language." Whether it is in documentation or in code, the words we use matter.
+This means we disfavor language that due to historical and social context can
+make community members and potential community members feel unwelcome.
+
+There are specific terms to avoid except where technical limitations require it.
+While specific cases may call for other terms, consider using these suggested
+terms first:
+
++--------------------+---------------------+
+| Preferred          | Deprecated          |
++====================+=====================+
+| Main (device)      | :strike:`Master`    |
++--------------------+---------------------+
+| Peripheral         | :strike:`Slave`     |
++--------------------+                     +
+| Sensor             |                     |
++--------------------+                     +
+| Secondary (device) |                     |
++--------------------+---------------------+
+| Denylist           | :strike:`Blacklist` |
++--------------------+---------------------+
+| Allowlist          | :strike:`Whitelist` |
++--------------------+---------------------+
+
+Note that "technical limitations" refers e.g., to the situation where an
+upstream library or URL has to contain those substrings in order to work.
+However, when it comes to documentation and the names of parameters and
+properties in CircuitPython, we will use alternate terms even if this breaks
+tradition with past practice.
+
+
 .. _lifetime-and-contextmanagers:
 
 Lifetime and ContextManagers
@@ -62,7 +99,7 @@ For example, a user can then use ``deinit()```::
     import board
     import time
 
-    led = digitalio.DigitalInOut(board.D13)
+    led = digitalio.DigitalInOut(board.LED)
     led.direction = digitalio.Direction.OUTPUT
 
     for i in range(10):
@@ -82,7 +119,7 @@ Alternatively, using a ``with`` statement ensures that the hardware is deinitial
     import board
     import time
 
-    with digitalio.DigitalInOut(board.D13) as led:
+    with digitalio.DigitalInOut(board.LED) as led:
         led.direction = digitalio.Direction.OUTPUT
 
         for i in range(10):
@@ -127,6 +164,24 @@ use what.
 
 Here is more info on properties from
 `Python <https://docs.python.org/3/library/functions.html#property>`_.
+
+Exceptions and asserts
+--------------------------------------------------------------------------------
+
+Raise an appropriate `Exception <https://docs.python.org/3/library/exceptions.html#bltin-exceptions>`_,
+along with a useful message, whenever a critical test or other condition fails.
+
+Example::
+
+    if not 0 <= pin <= 7:
+        raise ValueError("Pin number must be 0-7.")
+
+If memory is constrained and a more compact method is needed, use `assert`
+instead.
+
+Example::
+
+    assert 0 <= pin <= 7, "Pin number must be 0-7."
 
 Design for compatibility with CPython
 --------------------------------------------------------------------------------
@@ -183,10 +238,35 @@ Module description
 After the license comment::
 
     """
-    `<module name>` - <Short description>
+    `<module name>`
     =================================================
-    <Longer description.>
+
+    <Longer description>
+
+    * Author(s):
+
+    Implementation Notes
+    --------------------
+
+
+    **Hardware:**
+
+    * `Adafruit Device Description
+      <hyperlink>`_ (Product ID: <Product Number>)
+
+    **Software and Dependencies:**
+
+    * Adafruit CircuitPython firmware for the supported boards:
+      https://circuitpython.org/downloads
+
+    * Adafruit's Bus Device library:
+      https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+
+    * Adafruit's Register library:
+      https://github.com/adafruit/Adafruit_CircuitPython_Register
+
     """
+
 
 Class description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -197,7 +277,7 @@ At the class level document what class does and how to initialize it::
         """DS3231 real-time clock.
 
            :param ~busio.I2C i2c_bus: The I2C bus the DS3231 is connected to.
-           :param int address: The I2C address of the device.
+           :param int address: The I2C address of the device. Defaults to :const:`0x40`
         """
 
         def __init__(self, i2c_bus, address=0x40):
@@ -212,7 +292,85 @@ Renders as:
     DS3231 real-time clock.
 
     :param ~busio.I2C i2c_bus: The I2C bus the DS3231 is connected to.
-    :param int address: The I2C address of the device.
+    :param int address: The I2C address of the device. Defaults to :const:`0x40`
+
+
+Documenting Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Although there are different ways to document class and functions definitions in Python,
+the following is the prevalent method of documenting parameters
+for CircuitPython libraries. When documenting class parameters you should use the
+following structure:
+
+.. code-block:: sh
+
+    :param param_type param_name: Parameter_description
+
+
+param_type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The type of the parameter. This could be among other `int`, `float`, `str` `bool`, etc.
+To document an object in the CircuitPython domain, you need to include a ``~`` before the
+definition as shown in the following example:
+
+.. code-block:: sh
+
+    :param ~busio.I2C i2c_bus: The I2C bus the DS3231 is connected to.
+
+
+To include references to CircuitPython modules, cookiecutter creates an entry in the
+intersphinx_mapping section in the ``conf.py`` file located within the ``docs`` directory.
+To add different types outside CircuitPython you need to include them in the intersphinx_mapping::
+
+
+    intersphinx_mapping = {
+        "python": ("https://docs.python.org/3.4", None),
+        "BusDevice":("https://circuitpython.readthedocs.io/projects/busdevice/en/latest/", None,),
+        "CircuitPython": ("https://circuitpython.readthedocs.io/en/latest/", None),
+    }
+
+The intersphinx_mapping above includes references to Python, BusDevice and CircuitPython
+Documentation
+
+When the parameter have two different types, you should reference them as follows::
+
+
+    class Character_LCD:
+        """Base class for character LCD
+
+           :param ~digitalio.DigitalInOut rs: The reset data line
+           :param ~pwmio.PWMOut,~digitalio.DigitalInOut blue: Blue RGB Anode
+
+        """
+
+        def __init__(self, rs, blue):
+            self._rc = rs
+            self.blue = blue
+
+
+Renders as:
+
+.. py:class:: Character_LCD(rs, blue)
+    :noindex:
+
+    Base class for character LCD
+
+    :param ~digitalio.DigitalInOut rs: The reset data line
+    :param ~pwmio.PWMOut,~digitalio.DigitalInOut blue: Blue RGB Anode
+
+
+param_name
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parameter name used in the class or method definition
+
+
+Parameter_description
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parameter description. When the parameter defaults to a particular value, it is good
+practice to include the default::
+
+    :param int pitch: Pitch value for the servo. Defaults to :const:`4500`
+
 
 Attributes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -328,6 +486,53 @@ Renders as:
 
   :param float degrees: Degrees to turn right
 
+Documentation References to other Libraries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When you need to make references to documentation in other libraries you should refer the class using single
+backticks  ``:class:`~adafruit_motor.servo.Servo```. You must also add the reference in the ``conf.py`` file in the
+``intersphinx_mapping section`` by adding a new entry::
+
+    "adafruit_motor": ("https://circuitpython.readthedocs.io/projects/motor/en/latest/", None,),
+
+Use ``adafruit_register`` when possible
+--------------------------------------------------------------------------------
+`Register <https://github.com/adafruit/Adafruit_CircuitPython_Register>`_ is
+a foundational library that manages packing and unpacking data from I2C device
+registers. There is also `Register SPI <https://github.com/adafruit/Adafruit_CircuitPython_Register_SPI>`_
+for SPI devices. When possible, use one of these libraries for unpacking and
+packing registers. This ensures the packing code is shared amongst all
+registers (even across drivers). Furthermore, it simplifies device definitions
+by making them declarative (only data.)
+
+Values with non-consecutive bits in a register or that represent FIFO endpoints
+may not map well to existing register classes. In unique cases like these, it is
+ok to read and write the register directly.
+
+*Do not* add all registers from a datasheet upfront. Instead, only add the ones
+necessary for the functionality the driver exposes. Adding them all will lead to
+unnecessary file size and API clutter. See `this video about outside-in design
+from @tannewt <https://www.youtube.com/watch?v=3QewiyfBQh8>`_.
+
+I2C Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+  from adafruit_register import i2c_bit
+  from adafruit_bus_device import i2c_device
+
+  class HelloWorldDevice:
+      """Device with two bits to control when the words 'hello' and 'world' are lit."""
+
+      hello = i2c_bit.RWBit(0x0, 0x0)
+      """Bit to indicate if hello is lit."""
+
+      world = i2c_bit.RWBit(0x1, 0x0)
+      """Bit to indicate if world is lit."""
+
+      def __init__(self, i2c, device_address=0x0):
+          self.i2c_device = i2c_device.I2CDevice(i2c, device_address)
+
 Use BusDevice
 --------------------------------------------------------------------------------
 
@@ -384,8 +589,52 @@ SPI Example
           """Widget's one register."""
           with self.spi_device as spi:
               spi.write(b'0x00')
-              i2c.readinto(self.buf)
+              spi.readinto(self.buf)
           return self.buf[0]
+
+
+
+Class documentation example template
+--------------------------------------------------------------------------------
+When documenting classes, you should use the following template to illustrate basic usage.
+It is similar with the simpletest example, however this will display the information in the Read The Docs
+documentation.
+The advantage of using this template is it makes the documentation consistent across the libraries.
+
+This is an example for a AHT20 temperature sensor. Include the following after the class parameter:
+
+
+.. code-block:: python
+
+    """
+
+    **Quickstart: Importing and using the AHT10/AHT20 temperature sensor**
+
+        Here is an example of using the :class:`AHTx0` class.
+        First you will need to import the libraries to use the sensor
+
+        .. code-block:: python
+
+            import board
+            import adafruit_ahtx0
+
+        Once this is done you can define your `board.I2C` object and define your sensor object
+
+        .. code-block:: python
+
+            i2c = board.I2C()  # uses board.SCL and board.SDA
+            aht = adafruit_ahtx0.AHTx0(i2c)
+
+        Now you have access to the temperature and humidity using
+        the :attr:`temperature` and :attr:`relative_humidity` attributes
+
+        .. code-block:: python
+
+            temperature = aht.temperature
+            relative_humidity = aht.relative_humidity
+
+    """
+
 
 Use composition
 --------------------------------------------------------------------------------
@@ -403,10 +652,10 @@ object instead of the pins themselves. This allows the calling code to provide
 any object with the appropriate methods such as an I2C expansion board.
 
 Another example is to expect a :py:class:`~digitalio.DigitalInOut` for a pin to
-toggle instead of a :py:class:`~microcontroller.Pin` from `board`. Taking in the
-:py:class:`~microcontroller.Pin` object alone would limit the driver to pins on
-the actual microcontroller instead of pins provided by another driver such as an
-IO expander.
+toggle instead of a :py:class:`~microcontroller.Pin` from :py:mod:`board`.
+Taking in the :py:class:`~microcontroller.Pin` object alone would limit the
+driver to pins on the actual microcontroller instead of pins provided by another
+driver such as an IO expander.
 
 Lots of small modules
 --------------------------------------------------------------------------------
@@ -425,7 +674,7 @@ like properties for state even if it sacrifices a bit of speed.
 Avoid allocations in drivers
 --------------------------------------------------------------------------------
 
-Although Python doesn't require managing memory, its still a good practice for
+Although Python doesn't require managing memory, it's still a good practice for
 library writers to think about memory allocations. Avoid them in drivers if
 you can because you never know how much something will be called. Fewer
 allocations means less time spent cleaning up. So, where you can, prefer
@@ -434,7 +683,7 @@ object with methods that read or write into the buffer instead of creating new
 objects. Unified hardware API classes such as `busio.SPI` are design to read and
 write to subsections of buffers.
 
-Its ok to allocate an object to return to the user. Just beware of causing more
+It's ok to allocate an object to return to the user. Just beware of causing more
 than one allocation per call due to internal logic.
 
 **However**, this is a memory tradeoff so do not do it for large or rarely used
@@ -447,6 +696,52 @@ struct.pack
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use `struct.pack_into` instead of `struct.pack`.
+
+Use of MicroPython ``const()``
+--------------------------------------------------------------------------------
+The MicroPython ``const()`` feature, as discussed in `this forum post
+<https://forum.micropython.org/viewtopic.php?t=450>`_, and in `this issue thread
+<https://github.com/micropython/micropython/issues/573>`_, provides some
+optimizations that can be useful on smaller, memory constrained devices. However,
+when using ``const()``, keep in mind these general guide lines:
+
+- Always use via an import, ex: ``from micropython import const``
+- Limit use to global (module level) variables only.
+- Only used when the user will not need access to variable and prefix name with
+  a leading underscore, ex: ``_SOME_CONST``.
+
+Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+  from adafruit_bus_device import i2c_device
+  from micropython import const
+
+  _DEFAULT_I2C_ADDR = const(0x42)
+
+  class Widget:
+      """A generic widget."""
+
+      def __init__(self, i2c, address=_DEFAULT_I2C_ADDR):
+          self.i2c_device = i2c_device.I2CDevice(i2c, address)
+
+Libraries Examples
+------------------
+When adding examples, cookiecutter will add a ``<name>_simpletest.py`` file in the examples directory for you.
+Be sure to include code with the library minimal functionalities to work on a device.
+You could other examples if needed featuring different
+functionalities of the library.
+If you add additional examples, be sure to include them in the ``examples.rst``. Naming of the examples
+files should use the name of the library followed by a description, using underscore to separate them.
+When using print statements you should use the ``" ".format()`` format, as there are particular boards
+that are not capable to use f-strings.
+
+.. code-block:: python
+
+  text_to_display = "World!"
+
+  print("Hello {}".format(text_to_display))
 
 Sensor properties and units
 --------------------------------------------------------------------------------
@@ -468,13 +763,17 @@ properties.
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``gyro``              | (float, float, float) | x, y, z radians per second                                              |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
-| ``temperature``       | float                 | degrees centigrade                                                      |
+| ``temperature``       | float                 | degrees Celsius                                                         |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
-| ``eCO2``              | float                 | equivalent CO2 in ppm                                                   |
+| ``CO2``               | float                 | measured CO2 in ppm                                                     |
++-----------------------+-----------------------+-------------------------------------------------------------------------+
+| ``eCO2``              | float                 | equivalent/estimated CO2 in ppm (estimated from some other measurement) |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``TVOC``              | float                 | Total Volatile Organic Compounds in ppb                                 |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
-| ``distance``          | float                 | centimeters                                                             |
+| ``distance``          | float                 | centimeters (cm)                                                        |
++-----------------------+-----------------------+-------------------------------------------------------------------------+
+| ``proximity``         | int                   | non-unit-specific proximity values (monotonic but not actual distance)  |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``light``             | float                 | non-unit-specific light levels (should be monotonic but is not lux)     |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
@@ -496,7 +795,7 @@ properties.
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``duty_cycle``        | int                   | 16-bit PWM duty cycle (regardless of output resolution)                 |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
-| ``frequency``         | int                   | Hertz                                                                   |
+| ``frequency``         | int                   | Hertz (Hz)                                                              |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``value``             | bool                  | Digital logic                                                           |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
@@ -504,6 +803,18 @@ properties.
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
 | ``weight``            | float                 | grams (g)                                                               |
 +-----------------------+-----------------------+-------------------------------------------------------------------------+
+| ``sound_level``       | float                 | non-unit-specific sound level (monotonic but not actual decibels)       |
++-----------------------+-----------------------+-------------------------------------------------------------------------+
+
+Driver constant naming
+--------------------------------------------------------------------------------
+
+When adding variables for constant values for a driver. Do not include the
+device's name in the variable name. For example, in ``adafruit_fancy123.py``,
+variables should not start with ``FANCY123_``. Adding this prefix increases RAM
+usage and .mpy file size because variable names are preserved. User code should
+refer to these constants as ``adafruit_fancy123.HELLO_WORLD`` for clarity.
+``adafruit_fancy123.FANCY123_HELLO_WORLD`` would be overly verbose.
 
 Adding native modules
 --------------------------------------------------------------------------------
@@ -518,12 +829,11 @@ mimic the structure in ``shared-bindings``.
 To test your native modules or core enhancements, follow these Adafruit Learning Guides
 for building local firmware to flash onto your device(s):
 
-`SAMD21 - Build Firmware Learning Guide <https://learn.adafruit.com/micropython-for-samd21/build-firmware>`_
+`Build CircuitPython <https://learn.adafruit.com/building-circuitpython>`_
 
-`ESP8266 - Build Firmware Learning Guide <https://learn.adafruit.com/building-and-running-micropython-on-the-esp8266/overview>`_
 
 MicroPython compatibility
 --------------------------------------------------------------------------------
 
 Keeping compatibility with MicroPython isn't a high priority. It should be done
-when its not in conflict with any of the above goals.
+when it's not in conflict with any of the above goals.

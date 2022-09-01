@@ -1,11 +1,15 @@
 # test capability for threads to access a shared immutable data structure
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 import _thread
 
+
 def foo(i):
     pass
+
 
 def thread_entry(n, tup):
     for i in tup:
@@ -13,6 +17,7 @@ def thread_entry(n, tup):
     with lock:
         global n_finished
         n_finished += 1
+
 
 lock = _thread.allocate_lock()
 n_thread = 2

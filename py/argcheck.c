@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,60 +29,56 @@
 
 #include "py/runtime.h"
 
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
-
-void mp_arg_check_num(size_t n_args, mp_map_t *kw_args, size_t n_args_min, size_t n_args_max, bool takes_kw) {
-    size_t n_kw = 0;
-    if (kw_args != NULL) {
-        n_kw = kw_args->used;
-    }
-    mp_arg_check_num_kw_array(n_args, n_kw, n_args_min, n_args_max, takes_kw);
-}
-
-void mp_arg_check_num_kw_array(size_t n_args, size_t n_kw, size_t n_args_min, size_t n_args_max, bool takes_kw) {
-    // NOTE(tannewt): This prevents this function from being optimized away.
-    // Without it, functions can crash when reading invalid args.
-    __asm volatile ("");
+void mp_arg_check_num_sig(size_t n_args, size_t n_kw, uint32_t sig) {
     // TODO maybe take the function name as an argument so we can print nicer error messages
 
-    if (n_kw > 0 && !takes_kw) {
-        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
-            mp_arg_error_terse_mismatch();
+    // The reverse of MP_OBJ_FUN_MAKE_SIG
+    bool takes_kw = sig & 1;
+    size_t n_args_min = sig >> 17;
+    size_t n_args_max = (sig >> 1) & 0xffff;
+
+    if (n_kw && !takes_kw) {
+        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+        mp_arg_error_terse_mismatch();
         #else
-            mp_raise_TypeError(translate("function does not take keyword arguments"));
+        mp_raise_TypeError(MP_ERROR_TEXT("function doesn't take keyword arguments"));
         #endif
     }
 
     if (n_args_min == n_args_max) {
         if (n_args != n_args_min) {
-            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
-                mp_arg_error_terse_mismatch();
+            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+            mp_arg_error_terse_mismatch();
             #else
-                mp_raise_TypeError_varg(
-                    translate("function takes %d positional arguments but %d were given"),
-                    n_args_min, n_args);
+            mp_raise_TypeError_varg(MP_ERROR_TEXT("function takes %d positional arguments but %d were given"),
+                n_args_min, n_args);
             #endif
         }
     } else {
         if (n_args < n_args_min) {
-            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
-                mp_arg_error_terse_mismatch();
+            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+            mp_arg_error_terse_mismatch();
             #else
-                mp_raise_TypeError_varg(
-                    translate("function missing %d required positional arguments"),
-                    n_args_min - n_args);
+            mp_raise_TypeError_varg(
+                MP_ERROR_TEXT("function missing %d required positional arguments"),
+                n_args_min - n_args);
             #endif
         } else if (n_args > n_args_max) {
-            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
-                mp_arg_error_terse_mismatch();
+            #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+            mp_arg_error_terse_mismatch();
             #else
-                mp_raise_TypeError_varg(
-                    translate("function expected at most %d arguments, got %d"),
-                    n_args_max, n_args);
+            mp_raise_TypeError_varg(
+                MP_ERROR_TEXT("function expected at most %d arguments, got %d"),
+                n_args_max, n_args);
             #endif
         }
     }
+}
+
+inline void mp_arg_check_num_kw_array(size_t n_args, size_t n_kw, size_t n_args_min, size_t n_args_max, bool takes_kw) {
+    mp_arg_check_num_sig(n_args, n_kw, MP_OBJ_FUN_MAKE_SIG(n_args_min, n_args_max, takes_kw));
 }
 
 void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n_allowed, const mp_arg_t *allowed, mp_arg_val_t *out_vals) {
@@ -96,15 +92,17 @@ void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n
             pos_found++;
             given_arg = pos[i];
         } else {
-            mp_map_elem_t *kw = mp_map_lookup(kws, MP_OBJ_NEW_QSTR(allowed[i].qst), MP_MAP_LOOKUP);
+            mp_map_elem_t *kw = NULL;
+            if (kws != NULL) {
+                kw = mp_map_lookup(kws, MP_OBJ_NEW_QSTR(allowed[i].qst), MP_MAP_LOOKUP);
+            }
             if (kw == NULL) {
                 if (allowed[i].flags & MP_ARG_REQUIRED) {
-                    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
-                        mp_arg_error_terse_mismatch();
-                    } else {
-                        mp_raise_TypeError_varg(
-                            translate("'%q' argument required"), allowed[i].qst);
-                    }
+                    #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+                    mp_arg_error_terse_mismatch();
+                    #else
+                    mp_raise_TypeError_varg(MP_ERROR_TEXT("'%q' argument required"), allowed[i].qst);
+                    #endif
                 }
                 out_vals[i] = allowed[i].defval;
                 continue;
@@ -123,21 +121,21 @@ void mp_arg_parse_all(size_t n_pos, const mp_obj_t *pos, mp_map_t *kws, size_t n
         }
     }
     if (pos_found < n_pos) {
-        extra_positional:
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
-            mp_arg_error_terse_mismatch();
-        } else {
-            // TODO better error message
-            mp_raise_TypeError(translate("extra positional arguments given"));
-        }
+    extra_positional:
+        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+        mp_arg_error_terse_mismatch();
+        #else
+        // TODO better error message
+        mp_raise_TypeError(MP_ERROR_TEXT("extra positional arguments given"));
+        #endif
     }
-    if (kws_found < kws->used) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
-            mp_arg_error_terse_mismatch();
-        } else {
-            // TODO better error message
-            mp_raise_TypeError(translate("extra keyword arguments given"));
-        }
+    if (kws != NULL && kws_found < kws->used) {
+        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+        mp_arg_error_terse_mismatch();
+        #else
+        // TODO better error message
+        mp_raise_TypeError(MP_ERROR_TEXT("extra keyword arguments given"));
+        #endif
     }
 }
 
@@ -148,11 +146,112 @@ void mp_arg_parse_all_kw_array(size_t n_pos, size_t n_kw, const mp_obj_t *args, 
 }
 
 NORETURN void mp_arg_error_terse_mismatch(void) {
-    mp_raise_TypeError(translate("argument num/types mismatch"));
+    mp_raise_TypeError(MP_ERROR_TEXT("argument num/types mismatch"));
 }
 
 #if MICROPY_CPYTHON_COMPAT
 NORETURN void mp_arg_error_unimpl_kw(void) {
-    mp_raise_NotImplementedError(translate("keyword argument(s) not yet implemented - use normal args instead"));
+    mp_raise_NotImplementedError(MP_ERROR_TEXT("keyword argument(s) not yet implemented - use normal args instead"));
 }
 #endif
+
+
+mp_int_t mp_arg_validate_int(mp_int_t i, mp_int_t required_i, qstr arg_name) {
+    if (i != required_i) {
+        mp_raise_ValueError_varg(translate("%q must be %d"), arg_name, required_i);
+    }
+    return i;
+}
+
+mp_int_t mp_arg_validate_int_min(mp_int_t i, mp_int_t min, qstr arg_name) {
+    if (i < min) {
+        mp_raise_ValueError_varg(translate("%q must be >= %d"), arg_name, min);
+    }
+    return i;
+}
+
+mp_int_t mp_arg_validate_int_max(mp_int_t i, mp_int_t max, qstr arg_name) {
+    if (i > max) {
+        mp_raise_ValueError_varg(translate("%q must be <= %d"), arg_name, max);
+    }
+    return i;
+}
+
+mp_int_t mp_arg_validate_int_range(mp_int_t i, mp_int_t min, mp_int_t max, qstr arg_name) {
+    if (i < min || i > max) {
+        mp_raise_ValueError_varg(translate("%q must be %d-%d"), arg_name, min, max);
+    }
+    return i;
+}
+
+mp_float_t mp_arg_validate_obj_float_non_negative(mp_obj_t float_in, mp_float_t default_for_null, qstr arg_name) {
+    const mp_float_t f = (float_in == MP_OBJ_NULL)
+        ? default_for_null
+        : mp_obj_get_float(float_in);
+    if (f <= (mp_float_t)0.0) {
+        mp_raise_ValueError_varg(translate("%q must be >= 0"), arg_name);
+    }
+    return f;
+}
+
+mp_uint_t mp_arg_validate_length_range(mp_uint_t length, mp_uint_t min, mp_uint_t max, qstr arg_name) {
+    if (length < min || length > max) {
+        mp_raise_ValueError_varg(translate("%q length must be %d-%d"), arg_name, min, max);
+    }
+    return length;
+}
+
+mp_uint_t mp_arg_validate_length_min(mp_uint_t length, mp_uint_t min, qstr arg_name) {
+    if (length < min) {
+        mp_raise_ValueError_varg(translate("%q length must be >= %d"), arg_name, min);
+    }
+    return length;
+}
+
+mp_uint_t mp_arg_validate_length_max(mp_uint_t length, mp_uint_t max, qstr arg_name) {
+    if (length > max) {
+        mp_raise_ValueError_varg(translate("%q length must be <= %d"), arg_name, max);
+    }
+    return length;
+}
+
+mp_uint_t mp_arg_validate_length(mp_uint_t length, mp_uint_t required_length, qstr arg_name) {
+    if (length != required_length) {
+        mp_raise_ValueError_varg(translate("%q length must be %d"), arg_name, required_length);
+    }
+    return length;
+}
+
+// int instead of uint because an index can be negative in some cases.
+mp_int_t mp_arg_validate_index_range(mp_int_t index, mp_int_t min, mp_int_t max, qstr arg_name) {
+    if (index < min || index > max) {
+        mp_raise_IndexError_varg(translate("%q out of range"), arg_name, min, max);
+    }
+    return index;
+}
+
+mp_obj_t mp_arg_validate_type(mp_obj_t obj, const mp_obj_type_t *type, qstr arg_name) {
+    if (!mp_obj_is_type(obj, type)) {
+        mp_raise_TypeError_varg(translate("%q must be of type %q"), arg_name, type->name);
+    }
+    return obj;
+}
+
+mp_obj_t mp_arg_validate_type_string(mp_obj_t obj, qstr arg_name) {
+    if (!mp_obj_is_str(obj)) {
+        mp_raise_TypeError_varg(translate("%q must be a string"), arg_name);
+    }
+    return obj;
+}
+
+mp_int_t mp_arg_validate_type_int(mp_obj_t obj, qstr arg_name) {
+    mp_int_t an_int;
+    if (!mp_obj_get_int_maybe(obj, &an_int)) {
+        mp_raise_TypeError_varg(translate("%q must be an int"), arg_name);
+    }
+    return an_int;
+}
+
+NORETURN void mp_arg_error_invalid(qstr arg_name) {
+    mp_raise_ValueError_varg(translate("Invalid %q"), arg_name);
+}

@@ -1,0 +1,20 @@
+# For docs
+mypy
+black
+isort
+twine
+wheel
+astroid
+setuptools>=45
+setuptools_scm
+
+# For sphinx
+sphinx>=4.0.0
+sphinx-autoapi
+sphinx-rtd-theme
+sphinxcontrib-svg2pdfconverter
+readthedocs-sphinx-search
+myst-parser
+
+# For stubs and annotations
+adafruit-circuitpython-typing

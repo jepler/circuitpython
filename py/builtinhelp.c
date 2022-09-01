@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013-2016 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013-2016 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,21 +32,23 @@
 #include "py/mpconfig.h"
 #include "py/objmodule.h"
 
+#include "supervisor/shared/translate/translate.h"
+
 #if MICROPY_PY_BUILTINS_HELP
 
 const char mp_help_default_text[] =
-"Welcome to MicroPython!\n"
-"\n"
-"For online docs please visit http://docs.micropython.org/\n"
-"\n"
-"Control commands:\n"
-"  CTRL-A        -- on a blank line, enter raw REPL mode\n"
-"  CTRL-B        -- on a blank line, enter normal REPL mode\n"
-"  CTRL-C        -- interrupt a running program\n"
-"  CTRL-D        -- on a blank line, exit or do a soft reset\n"
-"  CTRL-E        -- on a blank line, enter paste mode\n"
-"\n"
-"For further help on a specific object, type help(obj)\n"
+    "Welcome to MicroPython!\n"
+    "\n"
+    "For online docs please visit http://docs.micropython.org/\n"
+    "\n"
+    "Control commands:\n"
+    "  CTRL-A        -- on a blank line, enter raw REPL mode\n"
+    "  CTRL-B        -- on a blank line, enter normal REPL mode\n"
+    "  CTRL-C        -- interrupt a running program\n"
+    "  CTRL-D        -- on a blank line, exit or do a soft reset\n"
+    "  CTRL-E        -- on a blank line, enter paste mode\n"
+    "\n"
+    "For further help on a specific object, type help(obj)\n"
 ;
 
 STATIC void mp_help_print_info_about_object(mp_obj_t name_o, mp_obj_t value) {
@@ -60,7 +62,7 @@ STATIC void mp_help_print_info_about_object(mp_obj_t name_o, mp_obj_t value) {
 #if MICROPY_PY_BUILTINS_HELP_MODULES
 STATIC void mp_help_add_from_map(mp_obj_t list, const mp_map_t *map) {
     for (size_t i = 0; i < map->alloc; i++) {
-        if (MP_MAP_SLOT_IS_FILLED(map, i)) {
+        if (mp_map_slot_is_filled(map, i)) {
             mp_obj_list_append(list, map->table[i].key);
         }
     }
@@ -69,22 +71,18 @@ STATIC void mp_help_add_from_map(mp_obj_t list, const mp_map_t *map) {
 #if MICROPY_MODULE_FROZEN
 STATIC void mp_help_add_from_names(mp_obj_t list, const char *name) {
     while (*name) {
-        size_t l = strlen(name);
+        size_t len = strlen(name);
         // name should end in '.py' and we strip it off
-        mp_obj_list_append(list, mp_obj_new_str(name, l - 3));
-        name += l + 1;
+        mp_obj_list_append(list, mp_obj_new_str(name, len - 3));
+        name += len + 1;
     }
 }
 #endif
 
 // These externs were originally declared inside mp_help_print_modules(),
 // but they triggered -Wnested-externs, so they were moved outside.
-#if MICROPY_MODULE_FROZEN_STR
-extern const char mp_frozen_str_names[];
-#endif
-
-#if MICROPY_MODULE_FROZEN_MPY
-extern const char mp_frozen_mpy_names[];
+#if MICROPY_MODULE_FROZEN
+extern const char mp_frozen_names[];
 #endif
 
 STATIC void mp_help_print_modules(void) {
@@ -92,20 +90,12 @@ STATIC void mp_help_print_modules(void) {
 
     mp_help_add_from_map(list, &mp_builtin_module_map);
 
-    #if MICROPY_MODULE_WEAK_LINKS
-    mp_help_add_from_map(list, &mp_builtin_module_weak_links_map);
-    #endif
-
-    #if MICROPY_MODULE_FROZEN_STR
-    mp_help_add_from_names(list, mp_frozen_str_names);
-    #endif
-
-    #if MICROPY_MODULE_FROZEN_MPY
-    mp_help_add_from_names(list, mp_frozen_mpy_names);
+    #if MICROPY_MODULE_FROZEN
+    mp_help_add_from_names(list, mp_frozen_names);
     #endif
 
     // sort the list so it's printed in alphabetical order
-    mp_obj_list_sort(1, &list, (mp_map_t*)&mp_const_empty_map);
+    mp_obj_list_sort(1, &list, (mp_map_t *)&mp_const_empty_map);
 
     // print the list of modules in a column-first order
     #define NUM_COLUMNS (4)
@@ -133,11 +123,10 @@ STATIC void mp_help_print_modules(void) {
         mp_print_str(MP_PYTHON_PRINTER, "\n");
     }
 
+    #if MICROPY_ENABLE_EXTERNAL_IMPORT
     // let the user know there may be other modules available from the filesystem
-    const compressed_string_t* compressed = translate("Plus any modules on the filesystem\n");
-    char decompressed[compressed->length];
-    decompress(compressed, decompressed);
-    mp_print_str(MP_PYTHON_PRINTER, decompressed);
+    serial_write_compressed(translate("Plus any modules on the filesystem\n"));
+    #endif
 }
 #endif
 
@@ -149,22 +138,23 @@ STATIC void mp_help_print_obj(const mp_obj_t obj) {
     }
     #endif
 
-    mp_obj_type_t *type = mp_obj_get_type(obj);
+    const mp_obj_type_t *type = mp_obj_get_type(obj);
 
     // try to print something sensible about the given object
-    mp_print_str(MP_PYTHON_PRINTER, "object ");
+    mp_cprintf(MP_PYTHON_PRINTER, translate("object "));
     mp_obj_print(obj, PRINT_STR);
-    mp_printf(MP_PYTHON_PRINTER, " is of type %q\n", type->name);
+
+    mp_cprintf(MP_PYTHON_PRINTER, translate(" is of type %q\n"), type->name);
 
     mp_map_t *map = NULL;
     if (type == &mp_type_module) {
-        map = mp_obj_dict_get_map(mp_obj_module_get_globals(obj));
+        map = &mp_obj_module_get_globals(obj)->map;
     } else {
         if (type == &mp_type_type) {
             type = MP_OBJ_TO_PTR(obj);
         }
-        if (type->locals_dict != MP_OBJ_NULL && MP_OBJ_IS_TYPE(type->locals_dict, &mp_type_dict)) {
-            map = mp_obj_dict_get_map(type->locals_dict);
+        if (type->locals_dict != NULL) {
+            map = &type->locals_dict->map;
         }
     }
     if (map != NULL) {
@@ -179,11 +169,9 @@ STATIC void mp_help_print_obj(const mp_obj_t obj) {
 STATIC mp_obj_t mp_builtin_help(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0) {
         // print a general help message. Translate only works on single strings on one line.
-        const compressed_string_t* compressed =
-            translate("Welcome to Adafruit CircuitPython %s!\n\nPlease visit learn.adafruit.com/category/circuitpython for project guides.\n\nTo list built-in modules please do `help(\"modules\")`.\n");
-        char decompressed[compressed->length];
-        decompress(compressed, decompressed);
-        mp_printf(MP_PYTHON_PRINTER, decompressed, MICROPY_GIT_TAG);
+        mp_cprintf(MP_PYTHON_PRINTER,
+            translate("Welcome to Adafruit CircuitPython %s!\n\nVisit circuitpython.org for more information.\n\nTo list built-in modules type `help(\"modules\")`.\n"),
+            MICROPY_GIT_TAG);
     } else {
         // try to print something sensible about the given object
         mp_help_print_obj(args[0]);

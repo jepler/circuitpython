@@ -1,40 +1,77 @@
-/*
- * This file is part of the MicroPython project, http://micropython.org/
- *
- * The MIT License (MIT)
- *
- * Copyright (c) 2014-2016 Damien P. George
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+// SPDX-FileCopyrightText: 2014 MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)
+// SPDX-FileCopyrightText: Copyright (c) 2014-2019 Damien P. George
+//
+// SPDX-License-Identifier: MIT
 
 #include <stdio.h>
 
+#include "py/binary.h"
+#include "py/objarray.h"
 #include "py/objlist.h"
 #include "py/objstringio.h"
 #include "py/parsenum.h"
 #include "py/runtime.h"
 #include "py/stream.h"
 
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
 #if MICROPY_PY_UJSON
+
+#if MICROPY_PY_UJSON_SEPARATORS
+
+enum {
+    DUMP_MODE_TO_STRING = 1,
+    DUMP_MODE_TO_STREAM = 2,
+};
+
+STATIC mp_obj_t mod_ujson_dump_helper(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args, unsigned int mode) {
+    enum { ARG_separators };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_separators, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_rom_obj = MP_ROM_NONE} },
+    };
+
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args - mode, pos_args + mode, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+
+    mp_print_ext_t print_ext;
+
+    if (args[ARG_separators].u_obj == mp_const_none) {
+        print_ext.item_separator = ", ";
+        print_ext.key_separator = ": ";
+    } else {
+        mp_obj_t *items;
+        mp_obj_get_array_fixed_n(args[ARG_separators].u_obj, 2, &items);
+        print_ext.item_separator = mp_obj_str_get_str(items[0]);
+        print_ext.key_separator = mp_obj_str_get_str(items[1]);
+    }
+
+    if (mode == DUMP_MODE_TO_STRING) {
+        // dumps(obj)
+        vstr_t vstr;
+        vstr_init_print(&vstr, 8, &print_ext.base);
+        mp_obj_print_helper(&print_ext.base, pos_args[0], PRINT_JSON);
+        return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+    } else {
+        // dump(obj, stream)
+        print_ext.base.data = MP_OBJ_TO_PTR(pos_args[1]);
+        print_ext.base.print_strn = mp_stream_write_adaptor;
+        mp_get_stream_raise(pos_args[1], MP_STREAM_OP_WRITE);
+        mp_obj_print_helper(&print_ext.base, pos_args[0], PRINT_JSON);
+        return mp_const_none;
+    }
+}
+
+STATIC mp_obj_t mod_ujson_dump(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    return mod_ujson_dump_helper(n_args, pos_args, kw_args, DUMP_MODE_TO_STREAM);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(mod_ujson_dump_obj, 2, mod_ujson_dump);
+
+STATIC mp_obj_t mod_ujson_dumps(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    return mod_ujson_dump_helper(n_args, pos_args, kw_args, DUMP_MODE_TO_STRING);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(mod_ujson_dumps_obj, 1, mod_ujson_dumps);
+
+#else
 
 STATIC mp_obj_t mod_ujson_dump(mp_obj_t obj, mp_obj_t stream) {
     mp_get_stream_raise(stream, MP_STREAM_OP_WRITE);
@@ -52,6 +89,11 @@ STATIC mp_obj_t mod_ujson_dumps(mp_obj_t obj) {
     return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_ujson_dumps_obj, mod_ujson_dumps);
+#endif
+
+#define JSON_DEBUG(...) (void)0
+// #define JSON_DEBUG(...) mp_printf(&mp_plat_print __VA_OPT__(,) __VA_ARGS__)
+
 
 // The function below implements a simple non-recursive JSON parser.
 //
@@ -70,6 +112,10 @@ typedef struct _ujson_stream_t {
     mp_obj_t stream_obj;
     mp_uint_t (*read)(mp_obj_t obj, void *buf, mp_uint_t size, int *errcode);
     int errcode;
+    mp_obj_t python_readinto[2 + 1];
+    mp_obj_array_t bytearray_obj;
+    size_t start;
+    size_t end;
     byte cur;
 } ujson_stream_t;
 
@@ -80,6 +126,7 @@ typedef struct _ujson_stream_t {
 
 STATIC byte ujson_stream_next(ujson_stream_t *s) {
     mp_uint_t ret = s->read(s->stream_obj, &s->cur, 1, &s->errcode);
+    JSON_DEBUG("  usjon_stream_next err:%2d cur: %c \n", s->errcode, s->cur);
     if (s->errcode != 0) {
         mp_raise_OSError(s->errcode);
     }
@@ -89,20 +136,67 @@ STATIC byte ujson_stream_next(ujson_stream_t *s) {
     return s->cur;
 }
 
-STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
-    const mp_stream_p_t *stream_p = mp_get_stream_raise(stream_obj, MP_STREAM_OP_READ);
-    ujson_stream_t s = {stream_obj, stream_p->read, 0, 0};
+// We read from an object's `readinto` method in chunks larger than the json
+// parser needs to reduce the number of function calls done.
+
+#define CIRCUITPY_JSON_READ_CHUNK_SIZE 64
+
+STATIC mp_uint_t ujson_python_readinto(mp_obj_t obj, void *buf, mp_uint_t size, int *errcode) {
+    (void)size;  // Ignore size because we know it's always 1.
+    ujson_stream_t *s = obj;
+
+    if (s->start == s->end) {
+        *errcode = 0;
+        mp_obj_t ret = mp_call_method_n_kw(1, 0, s->python_readinto);
+        if (ret == mp_const_none) {
+            *errcode = MP_EAGAIN;
+            return MP_STREAM_ERROR;
+        }
+        s->start = 0;
+        s->end = mp_obj_get_int(ret);
+    }
+
+    *((uint8_t *)buf) = ((uint8_t *)s->bytearray_obj.items)[s->start];
+    s->start++;
+    return 1;
+}
+
+STATIC mp_obj_t _mod_ujson_load(mp_obj_t stream_obj, bool return_first_json) {
+    const mp_stream_p_t *stream_p = mp_proto_get(MP_QSTR_protocol_stream, stream_obj);
+    ujson_stream_t s;
+    uint8_t character_buffer[CIRCUITPY_JSON_READ_CHUNK_SIZE];
+    if (stream_p == NULL) {
+        s.start = 0;
+        s.end = 0;
+        mp_load_method(stream_obj, MP_QSTR_readinto, s.python_readinto);
+        s.bytearray_obj.base.type = &mp_type_bytearray;
+        s.bytearray_obj.typecode = BYTEARRAY_TYPECODE;
+        s.bytearray_obj.len = CIRCUITPY_JSON_READ_CHUNK_SIZE;
+        s.bytearray_obj.free = 0;
+        s.bytearray_obj.items = character_buffer;
+        s.python_readinto[2] = MP_OBJ_FROM_PTR(&s.bytearray_obj);
+        s.stream_obj = &s;
+        s.read = ujson_python_readinto;
+    } else {
+        stream_p = mp_get_stream_raise(stream_obj, MP_STREAM_OP_READ);
+        s.stream_obj = stream_obj;
+        s.read = stream_p->read;
+        s.errcode = 0;
+        s.cur = 0;
+    }
+
+    JSON_DEBUG("got JSON stream\n");
     vstr_t vstr;
     vstr_init(&vstr, 8);
     mp_obj_list_t stack; // we use a list as a simple stack for nested JSON
     stack.len = 0;
     stack.items = NULL;
     mp_obj_t stack_top = MP_OBJ_NULL;
-    mp_obj_type_t *stack_top_type = NULL;
+    const mp_obj_type_t *stack_top_type = NULL;
     mp_obj_t stack_key = MP_OBJ_NULL;
     S_NEXT(s);
     for (;;) {
-        cont:
+    cont:
         if (S_END(s)) {
             break;
         }
@@ -149,11 +243,21 @@ STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
                     if (c == '\\') {
                         c = S_NEXT(s);
                         switch (c) {
-                            case 'b': c = 0x08; break;
-                            case 'f': c = 0x0c; break;
-                            case 'n': c = 0x0a; break;
-                            case 'r': c = 0x0d; break;
-                            case 't': c = 0x09; break;
+                            case 'b':
+                                c = 0x08;
+                                break;
+                            case 'f':
+                                c = 0x0c;
+                                break;
+                            case 'n':
+                                c = 0x0a;
+                                break;
+                            case 'r':
+                                c = 0x0d;
+                                break;
+                            case 't':
+                                c = 0x09;
+                                break;
                             case 'u': {
                                 mp_uint_t num = 0;
                                 for (int i = 0; i < 4; i++) {
@@ -179,7 +283,16 @@ STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
                 next = mp_obj_new_str(vstr.buf, vstr.len);
                 break;
             case '-':
-            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9': {
                 bool flt = false;
                 vstr_reset(&vstr);
                 for (;;) {
@@ -187,7 +300,7 @@ STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
                     cur = S_CUR(s);
                     if (cur == '.' || cur == 'E' || cur == 'e') {
                         flt = true;
-                    } else if (cur == '-' || unichar_isdigit(cur)) {
+                    } else if (cur == '+' || cur == '-' || unichar_isdigit(cur)) {
                         // pass
                     } else {
                         break;
@@ -261,14 +374,19 @@ STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
             }
         }
     }
-    success:
-    // eat trailing whitespace
-    while (unichar_isspace(S_CUR(s))) {
-        S_NEXT(s);
-    }
-    if (!S_END(s)) {
-        // unexpected chars
-        goto fail;
+success:
+    // It is legal for a stream to have contents after JSON.
+    // E.g., A UART is not closed after receiving an object; in load() we will
+    //   return the first complete JSON object, while in loads() we will retain
+    //   strict adherence to the buffer's complete semantic.
+    if (!return_first_json) {
+        while (unichar_isspace(S_CUR(s))) {
+            S_NEXT(s);
+        }
+        if (!S_END(s)) {
+            // unexpected chars
+            goto fail;
+        }
     }
     if (stack_top == MP_OBJ_NULL || stack.len != 0) {
         // not exactly 1 object
@@ -277,26 +395,30 @@ STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
     vstr_clear(&vstr);
     return stack_top;
 
-    fail:
-    mp_raise_ValueError(translate("syntax error in JSON"));
+fail:
+    mp_raise_ValueError(MP_ERROR_TEXT("syntax error in JSON"));
+}
+
+STATIC mp_obj_t mod_ujson_load(mp_obj_t stream_obj) {
+    return _mod_ujson_load(stream_obj, true);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_ujson_load_obj, mod_ujson_load);
 
 STATIC mp_obj_t mod_ujson_loads(mp_obj_t obj) {
-    size_t len;
-    const char *buf = mp_obj_str_get_data(obj, &len);
-    vstr_t vstr = {len, len, (char*)buf, true};
+    mp_buffer_info_t bufinfo;
+    mp_get_buffer_raise(obj, &bufinfo, MP_BUFFER_READ);
+    vstr_t vstr = {bufinfo.len, bufinfo.len, (char *)bufinfo.buf, true};
     mp_obj_stringio_t sio = {{&mp_type_stringio}, &vstr, 0, MP_OBJ_NULL};
-    return mod_ujson_load(MP_OBJ_FROM_PTR(&sio));
+    return _mod_ujson_load(MP_OBJ_FROM_PTR(&sio), false);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_ujson_loads_obj, mod_ujson_loads);
 
 STATIC const mp_rom_map_elem_t mp_module_ujson_globals_table[] = {
-#if CIRCUITPY
+    #if CIRCUITPY
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_json) },
-#else
+    #else
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ujson) },
-#endif
+    #endif
     { MP_ROM_QSTR(MP_QSTR_dump), MP_ROM_PTR(&mod_ujson_dump_obj) },
     { MP_ROM_QSTR(MP_QSTR_dumps), MP_ROM_PTR(&mod_ujson_dumps_obj) },
     { MP_ROM_QSTR(MP_QSTR_load), MP_ROM_PTR(&mod_ujson_load_obj) },
@@ -307,7 +429,9 @@ STATIC MP_DEFINE_CONST_DICT(mp_module_ujson_globals, mp_module_ujson_globals_tab
 
 const mp_obj_module_t mp_module_ujson = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_ujson_globals,
+    .globals = (mp_obj_dict_t *)&mp_module_ujson_globals,
 };
 
-#endif //MICROPY_PY_UJSON
+MP_REGISTER_MODULE(MP_QSTR_json, mp_module_ujson, MICROPY_PY_UJSON);
+
+#endif // MICROPY_PY_UJSON

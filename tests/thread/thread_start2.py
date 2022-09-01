@@ -1,6 +1,8 @@
 # test capability to start a thread with keyword args
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 try:
     import utime as time
@@ -8,11 +10,13 @@ except ImportError:
     import time
 import _thread
 
+
 def thread_entry(a0, a1, a2, a3):
-    print('thread', a0, a1, a2, a3)
+    print("thread", a0, a1, a2, a3)
+
 
 # spawn thread using kw args
-_thread.start_new_thread(thread_entry, (10, 20), {'a2': 0, 'a3': 1})
+_thread.start_new_thread(thread_entry, (10, 20), {"a2": 0, "a3": 1})
 
 # wait for thread to finish
 time.sleep(1)
@@ -21,6 +25,6 @@ time.sleep(1)
 try:
     _thread.start_new_thread(thread_entry, (), ())
 except TypeError:
-    print('TypeError')
+    print("TypeError")
 
-print('done')
+print("done")

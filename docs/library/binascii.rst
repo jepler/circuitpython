@@ -14,13 +14,11 @@ Functions
 
 .. function:: hexlify(data, [sep])
 
-   Convert binary data to hexadecimal representation. Returns bytes string.
+   Convert the bytes in the *data* object to a hexadecimal representation.
+   Returns a bytes object.
 
-   .. admonition:: Difference to CPython
-      :class: attention
-
-      If additional argument, *sep* is supplied, it is used as a separator
-      between hexadecimal values.
+   If the additional argument *sep* is supplied it is used as a separator
+   between hexadecimal values.
 
 .. function:: unhexlify(data)
 
@@ -38,3 +36,9 @@ Functions
    Encode binary data in base64 format, as in `RFC 3548
    <https://tools.ietf.org/html/rfc3548.html>`_. Returns the encoded data
    followed by a newline character, as a bytes object.
+
+.. function:: crc32(data, value=0, /)
+
+   Compute CRC-32, the 32-bit checksum of the bytes in *data* starting with an
+   initial CRC of *value*. The default initial CRC is 0. The algorithm is
+   consistent with the ZIP file checksum.

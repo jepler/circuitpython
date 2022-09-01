@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Damien P. George, Scott Shawcroft
+ * SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George, Scott Shawcroft
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,8 +32,7 @@
 #include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
-#include "shared-module/bitbangio/types.h"
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
 STATIC void delay(bitbangio_i2c_obj_t *self) {
     // We need to use an accurate delay to get acceptable I2C
@@ -50,9 +49,11 @@ STATIC void scl_release(bitbangio_i2c_obj_t *self) {
     uint32_t count = self->us_timeout;
     delay(self);
     // For clock stretching, wait for the SCL pin to be released, with timeout.
+    common_hal_digitalio_digitalinout_switch_to_input(&self->scl, PULL_UP);
     for (; !common_hal_digitalio_digitalinout_get_value(&self->scl) && count; --count) {
         common_hal_mcu_delay_us(1);
     }
+    common_hal_digitalio_digitalinout_switch_to_output(&self->scl, true, DRIVE_MODE_OPEN_DRAIN);
     // raise exception on timeout
     if (count == 0) {
         mp_raise_msg(&mp_type_TimeoutError, translate("Clock stretch too long"));
@@ -144,10 +145,10 @@ STATIC bool read_byte(bitbangio_i2c_obj_t *self, uint8_t *val, bool ack) {
 }
 
 void shared_module_bitbangio_i2c_construct(bitbangio_i2c_obj_t *self,
-                                           const mcu_pin_obj_t * scl,
-                                           const mcu_pin_obj_t * sda,
-                                           uint32_t frequency,
-                                           uint32_t us_timeout) {
+    const mcu_pin_obj_t *scl,
+    const mcu_pin_obj_t *sda,
+    uint32_t frequency,
+    uint32_t us_timeout) {
 
     self->us_timeout = us_timeout;
     self->us_delay = 500000 / frequency;
@@ -209,7 +210,7 @@ bool shared_module_bitbangio_i2c_probe(bitbangio_i2c_obj_t *self, uint8_t addr) 
 }
 
 uint8_t shared_module_bitbangio_i2c_write(bitbangio_i2c_obj_t *self, uint16_t addr,
-                                       const uint8_t *data, size_t len, bool transmit_stop_bit) {
+    const uint8_t *data, size_t len, bool transmit_stop_bit) {
     // start the I2C transaction
     start(self);
     uint8_t status = 0;
@@ -233,7 +234,7 @@ uint8_t shared_module_bitbangio_i2c_write(bitbangio_i2c_obj_t *self, uint16_t ad
 }
 
 uint8_t shared_module_bitbangio_i2c_read(bitbangio_i2c_obj_t *self, uint16_t addr,
-                                      uint8_t * data, size_t len) {
+    uint8_t *data, size_t len) {
     // start the I2C transaction
     start(self);
     uint8_t status = 0;

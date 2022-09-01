@@ -24,11 +24,12 @@
  * THE SOFTWARE.
  */
 
+#include "shared-bindings/frequencyio/FrequencyIn.h"
+
 #include <stdint.h>
 
 #include "hal/include/hal_gpio.h"
 #include "atmel_start_pins.h"
-#include "supervisor/shared/translate.h"
 
 #include "mpconfigport.h"
 #include "py/runtime.h"
@@ -41,23 +42,46 @@
 #include "samd/pins.h"
 #include "samd/external_interrupts.h"
 
-#include "shared-bindings/frequencyio/FrequencyIn.h"
 #include "peripheral_clk_config.h"
 #include "hpl_gclk_config.h"
 
-#include "tick.h"
+#include "shared-bindings/microcontroller/Pin.h"
+#include "shared-bindings/time/__init__.h"
+#include "supervisor/shared/tick.h"
+#include "supervisor/shared/translate/translate.h"
 
 #ifdef SAMD21
 #include "hpl/gclk/hpl_gclk_base.h"
 #endif
 
 static frequencyio_frequencyin_obj_t *active_frequencyins[TC_INST_NUM];
-volatile uint8_t reference_tc = 0xff;
-#ifdef SAMD51
+volatile uint8_t reference_tc;
+#ifdef SAM_D5X_E5X
 static uint8_t dpll_gclk;
+
+#if !BOARD_HAS_CRYSTAL
+static uint8_t osculp32k_gclk;
 #endif
 
-void frequencyin_emergency_cancel_capture(uint8_t index) {
+#endif
+
+void frequencyin_reset(void) {
+    for (uint8_t i = 0; i < TC_INST_NUM; i++) {
+        active_frequencyins[i] = NULL;
+    }
+
+    reference_tc = 0xff;
+    #ifdef SAM_D5X_E5X
+    dpll_gclk = 0xff;
+
+    #if !BOARD_HAS_CRYSTAL
+    osculp32k_gclk = 0xff;
+    #endif
+
+    #endif
+}
+
+static void frequencyin_emergency_cancel_capture(uint8_t index) {
     frequencyio_frequencyin_obj_t* self = active_frequencyins[index];
 
     NVIC_DisableIRQ(self->TC_IRQ);
@@ -66,7 +90,7 @@ void frequencyin_emergency_cancel_capture(uint8_t index) {
     NVIC_DisableIRQ(EIC_IRQn);
     NVIC_ClearPendingIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_DisableIRQ(EIC_0_IRQn + self->channel);
     NVIC_ClearPendingIRQ(EIC_0_IRQn + self->channel);
     #endif
@@ -77,10 +101,11 @@ void frequencyin_emergency_cancel_capture(uint8_t index) {
     #ifdef SAMD21
     NVIC_EnableIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_EnableIRQ(EIC_0_IRQn + self->channel);
     #endif
-    mp_raise_RuntimeError(translate("Frequency captured is above capability. Capture Paused."));
+    // Frequency captured is above capability. Capture paused.
+    // We can't raise an error here; we're in an interrupt handler.
 }
 
 void frequencyin_interrupt_handler(uint8_t index) {
@@ -88,11 +113,9 @@ void frequencyin_interrupt_handler(uint8_t index) {
 
     if (!ref_tc->COUNT16.INTFLAG.bit.OVF) return; // false trigger
 
-    uint32_t current_us;
-    uint64_t current_ms;
-    current_tick(&current_ms, &current_us);
+    uint64_t current_ns = common_hal_time_monotonic_ns();
 
-    for (uint8_t i = 0; i <= (TC_INST_NUM - 1); i++) {
+    for (uint8_t i = 0; i < TC_INST_NUM; i++) {
         if (active_frequencyins[i] != NULL) {
             frequencyio_frequencyin_obj_t* self = active_frequencyins[i];
             Tc* tc = tc_insts[self->tc_index];
@@ -101,16 +124,14 @@ void frequencyin_interrupt_handler(uint8_t index) {
             if ((EIC->INTFLAG.reg & mask) == mask) {
                 // Make sure capture_period has elapsed before we
                 // record a new event count.
-                if (current_ms - self->last_ms >= self->capture_period) {
-                    float new_factor = self->last_us + (1000 - current_us);
+                if ((current_ns - self->last_ns) / 1000000 >= self->capture_period) {
                     // ms difference will not need 64 bits. If we use 64 bits,
                     // double-precision float routines are required, and we don't
                     // want to include them because they're very large.
-                    self->factor = (uint32_t) (current_ms - self->last_ms) + (new_factor / 1000);
-                    self->last_ms = current_ms;
-                    self->last_us = current_us;
+                    self->factor = (uint32_t) (current_ns - self->last_ns) / 1000000.0;
+                    self->last_ns = current_ns;
 
-                    #ifdef SAMD51
+                    #ifdef SAM_D5X_E5X
                     tc->COUNT16.CTRLBSET.bit.CMD = TC_CTRLBSET_CMD_READSYNC_Val;
                     while ((tc->COUNT16.SYNCBUSY.bit.COUNT == 1) ||
                            (tc->COUNT16.CTRLBSET.bit.CMD == TC_CTRLBSET_CMD_READSYNC_Val)) {
@@ -124,7 +145,7 @@ void frequencyin_interrupt_handler(uint8_t index) {
                     }
                     self->frequency = new_freq;
 
-                    #ifdef SAMD51
+                    #ifdef SAM_D5X_E5X
                     tc->COUNT16.CTRLBSET.bit.CMD = TC_CTRLBSET_CMD_RETRIGGER_Val;
                     while ((tc->COUNT16.SYNCBUSY.bit.COUNT == 1) ||
                            (tc->COUNT16.CTRLBSET.bit.CMD == TC_CTRLBSET_CMD_RETRIGGER_Val)) {
@@ -135,7 +156,7 @@ void frequencyin_interrupt_handler(uint8_t index) {
             }
 
             // Check if we've reached the upper limit of detection
-            if (!background_tasks_ok() || self->errored_too_fast) {
+            if (!supervisor_background_tasks_ok() || self->errored_too_fast) {
                 self->errored_too_fast = true;
                 frequencyin_emergency_cancel_capture(i);
             }
@@ -144,7 +165,7 @@ void frequencyin_interrupt_handler(uint8_t index) {
     ref_tc->COUNT16.INTFLAG.reg |= TC_INTFLAG_OVF;
 }
 
-void frequencyin_reference_tc_init() {
+static void frequencyin_reference_tc_init(void) {
     if (reference_tc == 0xff) {
         return;
     }
@@ -154,10 +175,7 @@ void frequencyin_reference_tc_init() {
     #endif
     // use the DPLL we setup so that the reference_tc and freqin_tc(s)
     // are using the same clock frequency.
-    #ifdef SAMD51
-    if (dpll_gclk == 0xff) {
-        frequencyin_samd51_start_dpll();
-    }
+    #ifdef SAM_D5X_E5X
     set_timer_handler(true, reference_tc, TC_HANDLER_FREQUENCYIN);
     turn_on_clocks(true, reference_tc, dpll_gclk);
     #endif
@@ -168,18 +186,18 @@ void frequencyin_reference_tc_init() {
 
     #ifdef SAMD21
     tc->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | TC_CTRLA_PRESCALER_DIV1;
-    tc->COUNT16.INTENSET.bit.OVF = 1;
+    tc->COUNT16.INTENSET.reg = TC_INTENSET_OVF;
     NVIC_EnableIRQ(TC3_IRQn + reference_tc);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     tc->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 |
                             TC_CTRLA_PRESCALER_DIV1;
-    tc->COUNT16.INTENSET.bit.OVF = 1;
+    tc->COUNT16.INTENSET.reg = TC_INTENSET_OVF;
     NVIC_EnableIRQ(TC0_IRQn + reference_tc);
     #endif
 }
 
-bool frequencyin_reference_tc_enabled() {
+static bool frequencyin_reference_tc_enabled(void) {
     if (reference_tc == 0xff) {
         return false;
     }
@@ -187,7 +205,7 @@ bool frequencyin_reference_tc_enabled() {
     return tc->COUNT16.CTRLA.bit.ENABLE;
 }
 
-void frequencyin_reference_tc_enable(bool enable) {
+static void frequencyin_reference_tc_enable(bool enable) {
     if (reference_tc == 0xff) {
         return;
     }
@@ -195,74 +213,87 @@ void frequencyin_reference_tc_enable(bool enable) {
     tc_set_enable(tc, enable);
 }
 
-#ifdef SAMD51
-void frequencyin_samd51_start_dpll() {
+#ifdef SAM_D5X_E5X
+static bool frequencyin_samd51_start_dpll(void) {
     if (clock_get_enabled(0, GCLK_SOURCE_DPLL1)) {
-        return;
+        return true;
     }
 
-    uint8_t free_gclk = find_free_gclk(1);
-    if (free_gclk == 0xff) {
-        dpll_gclk = 0xff;
-        return;
+    dpll_gclk = find_free_gclk(1);
+    if (dpll_gclk == 0xff) {
+        return false;
     }
 
-    GCLK->PCHCTRL[OSCCTRL_GCLK_ID_FDPLL1].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(free_gclk);
     // TC4-7 can only have a max of 100MHz source
     // DPLL1 frequency equation with [X]OSC32K as source: 98.304MHz = 32768(2999 + 1 + 0/32)
     // Will also enable the Lock Bypass due to low-frequency sources causing DPLL unlocks
     // as outlined in the Errata (1.12.1)
     OSCCTRL->Dpll[1].DPLLRATIO.reg = OSCCTRL_DPLLRATIO_LDRFRAC(0) | OSCCTRL_DPLLRATIO_LDR(2999);
-    if (board_has_crystal()) { // we can use XOSC32K directly as the source
-        OSC32KCTRL->XOSC32K.bit.EN32K = 1;
-        OSCCTRL->Dpll[1].DPLLCTRLB.reg = OSCCTRL_DPLLCTRLB_REFCLK(1) |
-                                         OSCCTRL_DPLLCTRLB_LBYPASS;
-    } else {
-        // can't use OSCULP32K directly; need to setup a GCLK as a reference,
-        // which must be done in samd/clocks.c to avoid waiting for sync
-        return;
-        //OSC32KCTRL->OSCULP32K.bit.EN32K = 1;
-        //OSCCTRL->Dpll[1].DPLLCTRLB.reg = OSCCTRL_DPLLCTRLB_REFCLK(0);
-    }
-    OSCCTRL->Dpll[1].DPLLCTRLA.reg = OSCCTRL_DPLLCTRLA_ENABLE;
 
+#if BOARD_HAS_CRYSTAL
+    // we can use XOSC32K directly as the source. It has already been initialized in clocks.c
+    OSCCTRL->Dpll[1].DPLLCTRLB.reg =
+        OSCCTRL_DPLLCTRLB_REFCLK(OSCCTRL_DPLLCTRLB_REFCLK_XOSC32_Val) | OSCCTRL_DPLLCTRLB_LBYPASS;
+#else
+    // We can't use OSCULP32K directly. Set up a GCLK controlled by it
+    // Then use that GCLK as the reference oscillator for the DPLL.
+    osculp32k_gclk = find_free_gclk(1);
+    if (osculp32k_gclk == 0xff) {
+        return false;
+    }
+    enable_clock_generator(osculp32k_gclk, GCLK_GENCTRL_SRC_OSCULP32K_Val, 1);
+    GCLK->PCHCTRL[OSCCTRL_GCLK_ID_FDPLL1].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(OSCCTRL_GCLK_ID_FDPLL1);
+    OSCCTRL->Dpll[1].DPLLCTRLB.reg =
+        OSCCTRL_DPLLCTRLB_REFCLK(OSCCTRL_DPLLCTRLB_REFCLK_GCLK_Val) | OSCCTRL_DPLLCTRLB_LBYPASS;
+#endif
+
+    OSCCTRL->Dpll[1].DPLLCTRLA.reg = OSCCTRL_DPLLCTRLA_ENABLE;
     while (!(OSCCTRL->Dpll[1].DPLLSTATUS.bit.LOCK || OSCCTRL->Dpll[1].DPLLSTATUS.bit.CLKRDY)) {}
-    enable_clock_generator(free_gclk, GCLK_GENCTRL_SRC_DPLL1_Val, 1);
-    dpll_gclk = free_gclk;
+
+    enable_clock_generator(dpll_gclk, GCLK_GENCTRL_SRC_DPLL1_Val, 1);
+    return true;
 }
 
-void frequencyin_samd51_stop_dpll() {
+static void frequencyin_samd51_stop_dpll(void) {
     if (!clock_get_enabled(0, GCLK_SOURCE_DPLL1)) {
         return;
     }
 
-    disable_clock_generator(dpll_gclk);
+    if (dpll_gclk != 0xff) {
+        disable_clock_generator(dpll_gclk);
+        dpll_gclk = 0xff;
+    }
+
+    #if !BOARD_HAS_CRYSTAL
+    if (osculp32k_gclk != 0xff) {
+        disable_clock_generator(osculp32k_gclk);
+        osculp32k_gclk = 0xff;
+    }
+    #endif
 
     GCLK->PCHCTRL[OSCCTRL_GCLK_ID_FDPLL1].reg = 0;
     OSCCTRL->Dpll[1].DPLLCTRLA.reg = 0;
     OSCCTRL->Dpll[1].DPLLRATIO.reg = 0;
     OSCCTRL->Dpll[1].DPLLCTRLB.reg = 0;
-
     while (OSCCTRL->Dpll[1].DPLLSYNCBUSY.bit.ENABLE) {
     }
-    dpll_gclk = 0xff;
 }
 #endif
 
 void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t* self, const mcu_pin_obj_t* pin, const uint16_t capture_period) {
 
     if (!pin->has_extint) {
-        mp_raise_RuntimeError(translate("No hardware support on pin"));
+        raise_ValueError_invalid_pin();
     }
-    if ((capture_period == 0) || (capture_period > 500)) {
-        mp_raise_ValueError(translate("Invalid capture period. Valid range: 1 - 500"));
-    }
+
+    mp_arg_validate_int_range(capture_period, 0, 500, MP_QSTR_capture_period);
+
     uint32_t mask = 1 << pin->extint_channel;
     if (eic_get_enable() == 1 &&
     #ifdef SAMD21
     ((EIC->INTENSET.vec.EXTINT & mask) != 0 || (EIC->EVCTRL.vec.EXTINTEO & mask) != 0)) {
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     ((EIC->INTENSET.bit.EXTINT & mask) != 0 || (EIC->EVCTRL.bit.EXTINTEO & mask) != 0)) {
     #endif
         mp_raise_RuntimeError(translate("EXTINT channel already in use"));
@@ -278,13 +309,12 @@ void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t*
     self->pin = pin->number;
     self->channel = pin->extint_channel;
     self->errored_too_fast = false;
-    self->last_ms = 0;
-    self->last_us = 1000;
+    self->last_ns = 0;
     self->capture_period = capture_period;
     #ifdef SAMD21
     self->TC_IRQ = TC3_IRQn + timer_index;
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     self->TC_IRQ = TC0_IRQn + timer_index;
     #endif
 
@@ -296,7 +326,7 @@ void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t*
     set_timer_handler(timer_index, 0, TC_HANDLER_NO_INTERRUPT);
     turn_on_clocks(true, timer_index, 0);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     frequencyin_samd51_start_dpll();
     if (dpll_gclk == 0xff && !clock_get_enabled(0, GCLK_SOURCE_DPLL1)) {
         common_hal_frequencyio_frequencyin_deinit(self);
@@ -322,7 +352,7 @@ void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t*
     masked_value = EIC->EVCTRL.vec.EXTINTEO;
     EIC->EVCTRL.vec.EXTINTEO = masked_value | (1 << self->channel);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     masked_value = EIC->EVCTRL.bit.EXTINTEO;
     EIC->EVCTRL.bit.EXTINTEO = masked_value | (1 << self->channel);
     EIC->ASYNCH.bit.ASYNCH = 1;
@@ -338,7 +368,7 @@ void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t*
     #ifdef SAMD21
     connect_event_user_to_channel((EVSYS_ID_USER_TC3_EVU + timer_index), evsys_channel);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     connect_event_user_to_channel((EVSYS_ID_USER_TC0_EVU + timer_index), evsys_channel);
     #endif
     init_async_event_channel(evsys_channel, (EVSYS_ID_GEN_EIC_EXTINT_0 + self->channel));
@@ -353,7 +383,7 @@ void common_hal_frequencyio_frequencyin_construct(frequencyio_frequencyin_obj_t*
     tc->COUNT16.EVCTRL.bit.EVACT = TC_EVCTRL_EVACT_COUNT_Val;
     #endif
 
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     tc->COUNT16.EVCTRL.reg = TC_EVCTRL_EVACT(TC_EVCTRL_EVACT_COUNT_Val) | TC_EVCTRL_TCEI;
     tc->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 |
                             TC_CTRLA_PRESCALER_DIV1;
@@ -397,7 +427,7 @@ void common_hal_frequencyio_frequencyin_deinit(frequencyio_frequencyin_obj_t* se
     uint32_t masked_value = EIC->EVCTRL.vec.EXTINTEO;
     EIC->EVCTRL.vec.EXTINTEO = masked_value ^ (1 << self->channel);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     disable_event_user(EVSYS_ID_USER_TC0_EVU + self->tc_index);
     uint32_t masked_value = EIC->EVCTRL.bit.EXTINTEO;
     EIC->EVCTRL.bit.EXTINTEO = masked_value ^ (1 << self->channel);
@@ -423,7 +453,7 @@ void common_hal_frequencyio_frequencyin_deinit(frequencyio_frequencyin_obj_t* se
     self->pin = NO_PIN;
 
     bool check_active = false;
-    for (uint8_t i = 0; i <= (TC_INST_NUM - 1); i++) {
+    for (uint8_t i = 0; i < TC_INST_NUM; i++) {
         if (active_frequencyins[i] != NULL) {
             check_active = true;
         }
@@ -431,7 +461,7 @@ void common_hal_frequencyio_frequencyin_deinit(frequencyio_frequencyin_obj_t* se
     if (!check_active) {
         frequencyin_reference_tc_enable(false);
         reference_tc = 0xff;
-        #ifdef SAMD51
+        #ifdef SAM_D5X_E5X
         frequencyin_samd51_stop_dpll();
         #endif
     }
@@ -442,7 +472,7 @@ uint32_t common_hal_frequencyio_frequencyin_get_item(frequencyio_frequencyin_obj
     #ifdef SAMD21
     NVIC_DisableIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_DisableIRQ(EIC_0_IRQn + self->channel);
     #endif
 
@@ -466,7 +496,7 @@ uint32_t common_hal_frequencyio_frequencyin_get_item(frequencyio_frequencyin_obj
     NVIC_ClearPendingIRQ(EIC_IRQn);
     NVIC_EnableIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_ClearPendingIRQ(EIC_0_IRQn + self->channel);
     NVIC_EnableIRQ(EIC_0_IRQn + self->channel);
     #endif
@@ -485,7 +515,7 @@ void common_hal_frequencyio_frequencyin_pause(frequencyio_frequencyin_obj_t* sel
     uint32_t masked_value = EIC->EVCTRL.vec.EXTINTEO;
     EIC->EVCTRL.vec.EXTINTEO = masked_value ^ (1 << self->channel);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     uint32_t masked_value = EIC->EVCTRL.bit.EXTINTEO;
     EIC->EVCTRL.bit.EXTINTEO = masked_value ^ (1 << self->channel);
     #endif
@@ -503,7 +533,7 @@ void common_hal_frequencyio_frequencyin_resume(frequencyio_frequencyin_obj_t* se
     uint32_t masked_value = EIC->EVCTRL.vec.EXTINTEO;
     EIC->EVCTRL.vec.EXTINTEO = masked_value | (1 << self->channel);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     uint32_t masked_value = EIC->EVCTRL.bit.EXTINTEO;
     EIC->EVCTRL.bit.EXTINTEO = masked_value | (1 << self->channel);
     #endif
@@ -516,7 +546,7 @@ void common_hal_frequencyio_frequencyin_clear(frequencyio_frequencyin_obj_t* sel
     #ifdef SAMD21
     NVIC_DisableIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_DisableIRQ(EIC_0_IRQn + self->channel);
     #endif
 
@@ -528,7 +558,7 @@ void common_hal_frequencyio_frequencyin_clear(frequencyio_frequencyin_obj_t* sel
     NVIC_ClearPendingIRQ(EIC_IRQn);
     NVIC_EnableIRQ(EIC_IRQn);
     #endif
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     NVIC_ClearPendingIRQ(EIC_0_IRQn + self->channel);
     NVIC_EnableIRQ(EIC_0_IRQn + self->channel);
     #endif
@@ -540,9 +570,7 @@ uint16_t common_hal_frequencyio_frequencyin_get_capture_period(frequencyio_frequ
 }
 
 void common_hal_frequencyio_frequencyin_set_capture_period(frequencyio_frequencyin_obj_t *self, uint16_t capture_period) {
-    if ((capture_period == 0) || (capture_period > 500)) {
-        mp_raise_ValueError(translate("Invalid capture period. Valid range: 1 - 500"));
-    }
+    mp_arg_validate_int_range(capture_period, 1, 500, MP_QSTR_capture_period);
 
     self->capture_period = capture_period;
 

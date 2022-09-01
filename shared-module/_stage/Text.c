@@ -29,7 +29,7 @@
 
 
 // Get the color of the pixel on the text.
-uint16_t get_text_pixel(text_obj_t *text, uint16_t x, uint16_t y) {
+uint16_t get_text_pixel(text_obj_t *text, int16_t x, int16_t y) {
 
     // Shift by the text's position offset.
     x -= text->x;
@@ -37,7 +37,7 @@ uint16_t get_text_pixel(text_obj_t *text, uint16_t x, uint16_t y) {
 
     // Bounds check.
     if ((x < 0) || (x >= text->width << 3) ||
-            (y < 0) || (y >= text->height << 3)) {
+        (y < 0) || (y >= text->height << 3)) {
         return TRANSPARENT;
     }
 

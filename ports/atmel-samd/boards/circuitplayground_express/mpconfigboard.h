@@ -3,6 +3,9 @@
 
 #define MICROPY_HW_LED_STATUS   (&pin_PA17)
 
+#define MICROPY_HW_NEOPIXEL         (&pin_PB23)
+#define MICROPY_HW_NEOPIXEL_COUNT   (10)
+
 // Don't allow touch on A0 (PA02), because it's connected to the speaker.
 #define PA02_NO_TOUCH       (true)
 
@@ -15,23 +18,15 @@
 #define SPI_FLASH_SCK_PIN           &pin_PA21
 #define SPI_FLASH_CS_PIN            &pin_PB22
 
-// These are pins not to reset.
-#define MICROPY_PORT_A        (0)
-#define MICROPY_PORT_B        (0)
-#define MICROPY_PORT_C        (0)
-
 #define SPEAKER_ENABLE_PIN    (&pin_PA30)
-
-// If you change this, then make sure to update the linker scripts as well to
-// make sure you don't overwrite code.
-#define CIRCUITPY_INTERNAL_NVM_SIZE 256
-
-#define BOARD_FLASH_SIZE (0x00040000 - 0x2000 - CIRCUITPY_INTERNAL_NVM_SIZE)
 
 #define CALIBRATE_CRYSTALLESS 1
 
 // Explanation of how a user got into safe mode.
-#define BOARD_USER_SAFE_MODE_ACTION "pressing both buttons at start up"
+#define BOARD_USER_SAFE_MODE_ACTION translate("pressing both buttons at start up.\n")
+
+// Increase stack size slightly due to CPX library import nesting
+#define CIRCUITPY_DEFAULT_STACK_SIZE  (4248) // divisible by 8
 
 #define DEFAULT_I2C_BUS_SCL (&pin_PB03)
 #define DEFAULT_I2C_BUS_SDA (&pin_PB02)

@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,22 +37,34 @@ extern const mp_obj_type_t digitalio_digitalinout_type;
 
 typedef enum {
     DIGITALINOUT_OK,
-    DIGITALINOUT_PIN_BUSY
+    DIGITALINOUT_PIN_BUSY,
+    DIGITALINOUT_INPUT_ONLY
 } digitalinout_result_t;
 
-digitalinout_result_t common_hal_digitalio_digitalinout_construct(digitalio_digitalinout_obj_t* self, const mcu_pin_obj_t* pin);
-void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self);
-bool common_hal_digitalio_digitalinout_deinited(digitalio_digitalinout_obj_t* self);
-void common_hal_digitalio_digitalinout_switch_to_input(digitalio_digitalinout_obj_t* self, digitalio_pull_t pull);
-void common_hal_digitalio_digitalinout_switch_to_output(digitalio_digitalinout_obj_t* self, bool value, digitalio_drive_mode_t drive_mode);
-digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(digitalio_digitalinout_obj_t* self);
-void common_hal_digitalio_digitalinout_set_value(digitalio_digitalinout_obj_t* self, bool value);
-bool common_hal_digitalio_digitalinout_get_value(digitalio_digitalinout_obj_t* self);
-void common_hal_digitalio_digitalinout_set_drive_mode(digitalio_digitalinout_obj_t* self, digitalio_drive_mode_t drive_mode);
-digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(digitalio_digitalinout_obj_t* self);
-void common_hal_digitalio_digitalinout_set_pull(digitalio_digitalinout_obj_t* self, digitalio_pull_t pull);
-digitalio_pull_t common_hal_digitalio_digitalinout_get_pull(digitalio_digitalinout_obj_t* self);
+typedef enum {
+    DIGITALINOUT_REG_READ,
+    DIGITALINOUT_REG_WRITE,
+    DIGITALINOUT_REG_SET,
+    DIGITALINOUT_REG_RESET,
+    DIGITALINOUT_REG_TOGGLE,
+} digitalinout_reg_op_t;
+
+digitalinout_result_t common_hal_digitalio_digitalinout_construct(digitalio_digitalinout_obj_t *self, const mcu_pin_obj_t *pin);
+void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t *self);
+bool common_hal_digitalio_digitalinout_deinited(digitalio_digitalinout_obj_t *self);
+void common_hal_digitalio_digitalinout_switch_to_input(digitalio_digitalinout_obj_t *self, digitalio_pull_t pull);
+digitalinout_result_t common_hal_digitalio_digitalinout_switch_to_output(digitalio_digitalinout_obj_t *self, bool value, digitalio_drive_mode_t drive_mode);
+digitalio_direction_t common_hal_digitalio_digitalinout_get_direction(digitalio_digitalinout_obj_t *self);
+void common_hal_digitalio_digitalinout_set_value(digitalio_digitalinout_obj_t *self, bool value);
+bool common_hal_digitalio_digitalinout_get_value(digitalio_digitalinout_obj_t *self);
+digitalinout_result_t common_hal_digitalio_digitalinout_set_drive_mode(digitalio_digitalinout_obj_t *self, digitalio_drive_mode_t drive_mode);
+digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(digitalio_digitalinout_obj_t *self);
+void common_hal_digitalio_digitalinout_set_pull(digitalio_digitalinout_obj_t *self, digitalio_pull_t pull);
+digitalio_pull_t common_hal_digitalio_digitalinout_get_pull(digitalio_digitalinout_obj_t *self);
 void common_hal_digitalio_digitalinout_never_reset(digitalio_digitalinout_obj_t *self);
 digitalio_digitalinout_obj_t *assert_digitalinout(mp_obj_t obj);
+
+volatile uint32_t *common_hal_digitalio_digitalinout_get_reg(digitalio_digitalinout_obj_t *self, digitalinout_reg_op_t op, uint32_t *mask);
+bool common_hal_digitalio_has_reg_op(digitalinout_reg_op_t op);
 
 #endif // MICROPY_INCLUDED_SHARED_BINDINGS_DIGITALIO_DIGITALINOUT_H

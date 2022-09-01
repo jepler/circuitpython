@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,22 +30,13 @@
 #include "py/parse.h"
 #include "py/emitglue.h"
 
-// These must fit in 8 bits; see scope.h
-enum {
-    MP_EMIT_OPT_NONE,
-    MP_EMIT_OPT_BYTECODE,
-    MP_EMIT_OPT_NATIVE_PYTHON,
-    MP_EMIT_OPT_VIPER,
-    MP_EMIT_OPT_ASM,
-};
-
 // the compiler will raise an exception if an error occurred
 // the compiler will clear the parse tree before it returns
-mp_obj_t mp_compile(mp_parse_tree_t *parse_tree, qstr source_file, uint emit_opt, bool is_repl);
+mp_obj_t mp_compile(mp_parse_tree_t *parse_tree, qstr source_file, bool is_repl);
 
 #if MICROPY_PERSISTENT_CODE_SAVE
 // this has the same semantics as mp_compile
-mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_file, uint emit_opt, bool is_repl);
+mp_raw_code_t *mp_compile_to_raw_code(mp_parse_tree_t *parse_tree, qstr source_file, bool is_repl);
 #endif
 
 // this is implemented in runtime.c

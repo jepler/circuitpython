@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,7 +54,7 @@ extern const mp_obj_type_t mp_type_attrtuple;
     const mp_rom_obj_tuple_t tuple_obj_name = { \
         .base = {&mp_type_attrtuple}, \
         .len = nitems, \
-        .items = { __VA_ARGS__ , MP_ROM_PTR((void*)fields) } \
+        .items = { __VA_ARGS__, MP_ROM_PTR((void *)fields) } \
     }
 
 #if MICROPY_PY_COLLECTIONS

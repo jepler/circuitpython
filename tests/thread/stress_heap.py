@@ -1,7 +1,9 @@
 # stress test for the heap by allocating lots of objects within threads
 # allocates about 5mb on the heap
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 try:
     import utime as time
@@ -9,8 +11,10 @@ except ImportError:
     import time
 import _thread
 
+
 def last(l):
     return l[-1]
+
 
 def thread_entry(n):
     # allocate a bytearray and fill it
@@ -32,6 +36,7 @@ def thread_entry(n):
         print(sum, lst[-1])
         global n_finished
         n_finished += 1
+
 
 lock = _thread.allocate_lock()
 n_thread = 10

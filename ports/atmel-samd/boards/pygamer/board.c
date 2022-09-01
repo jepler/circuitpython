@@ -24,14 +24,14 @@
  * THE SOFTWARE.
  */
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "mpconfigboard.h"
 #include "hal/include/hal_gpio.h"
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/displayio/FourWire.h"
 #include "shared-module/displayio/__init__.h"
 #include "shared-module/displayio/mipi_constants.h"
-#include "tick.h"
+#include "supervisor/shared/board.h"
 
 displayio_fourwire_obj_t board_display_obj;
 
@@ -51,18 +51,18 @@ uint8_t display_init_sequence[] = {
     0xc4, 2, 0x8a, 0xee,
     0xc5, 1, 0x0e, // _VMCTR1 VCOMH = 4V, VOML = -1.1V
     0x2a, 0, // _INVOFF
-    0x36, 1, 0x00, // _MADCTL top to bottom refresh in vsync aligned order.
+    0x36, 1, 0b10100000,  // _MADCTL for rotation 0
     // 1 clk cycle nonoverlap, 2 cycle gate rise, 3 sycle osc equalie,
     // fix on VTL
     0x3a, 1, 0x05, // COLMOD - 16bit color
     0xe0, 16, 0x02, 0x1c, 0x07, 0x12, // _GMCTRP1 Gamma
-              0x37, 0x32, 0x29, 0x2d,
-              0x29, 0x25, 0x2B, 0x39,
-              0x00, 0x01, 0x03, 0x10,
+    0x37, 0x32, 0x29, 0x2d,
+    0x29, 0x25, 0x2B, 0x39,
+    0x00, 0x01, 0x03, 0x10,
     0xe1, 16, 0x03, 0x1d, 0x07, 0x06, // _GMCTRN1
-              0x2E, 0x2C, 0x29, 0x2D,
-              0x2E, 0x2E, 0x37, 0x3F,
-              0x00, 0x00, 0x02, 0x10,
+    0x2E, 0x2C, 0x29, 0x2D,
+    0x2E, 0x2E, 0x37, 0x3F,
+    0x00, 0x00, 0x02, 0x10,
     0x2a, 3, 0x02, 0x00, 0x81, // _CASET XSTART = 2, XEND = 129
     0x2b, 3, 0x02, 0x00, 0x81, // _RASET XSTART = 2, XEND = 129
     0x13, 0 | DELAY, 10, // _NORON
@@ -70,20 +70,22 @@ uint8_t display_init_sequence[] = {
 };
 
 void board_init(void) {
-    busio_spi_obj_t* spi = &displays[0].fourwire_bus.inline_bus;
-    common_hal_busio_spi_construct(spi, &pin_PB13, &pin_PB15, NULL);
+    busio_spi_obj_t *spi = &displays[0].fourwire_bus.inline_bus;
+    common_hal_busio_spi_construct(spi, &pin_PB13, &pin_PB15, NULL, false);
     common_hal_busio_spi_never_reset(spi);
 
-    displayio_fourwire_obj_t* bus = &displays[0].fourwire_bus;
+    displayio_fourwire_obj_t *bus = &displays[0].fourwire_bus;
     bus->base.type = &displayio_fourwire_type;
     common_hal_displayio_fourwire_construct(bus,
         spi,
         &pin_PB05, // TFT_DC Command or data
         &pin_PB12, // TFT_CS Chip select
         &pin_PA00, // TFT_RST Reset
-        60000000);
+        60000000, // Baudrate
+        0, // Polarity
+        0); // Phase
 
-    displayio_display_obj_t* display = &displays[0].display;
+    displayio_display_obj_t *display = &displays[0].display;
     display->base.type = &displayio_display_type;
     common_hal_displayio_display_construct(display,
         bus,
@@ -91,24 +93,28 @@ void board_init(void) {
         128, // Height
         0, // column start
         0, // row start
-        270, // rotation
+        0, // rotation
         16, // Color depth
         false, // Grayscale
         false, // pixels in a byte share a row. Only valid for depths < 8
         1, // bytes per cell. Only valid for depths < 8
         false, // reverse_pixels_in_byte. Only valid for depths < 8
+        true, // reverse_pixels_in_word
         MIPI_COMMAND_SET_COLUMN_ADDRESS, // Set column command
         MIPI_COMMAND_SET_PAGE_ADDRESS, // Set row command
         MIPI_COMMAND_WRITE_MEMORY_START, // Write memory command
-        0x37, // set vertical scroll command
         display_init_sequence,
         sizeof(display_init_sequence),
         &pin_PA01,  // backlight pin
         NO_BRIGHTNESS_COMMAND,
-        1.0f, // brightness (ignored)
-        true, // auto_brightness
+        1.0f, // brightness
         false, // single_byte_bounds
-        false); // data_as_commands
+        false, // data_as_commands
+        true, // auto_refresh
+        60, // native_frames_per_second
+        true, // backlight_on_high
+        false, // SH1107_addressing
+        50000); // backlight pwm frequency
 }
 
 bool board_requests_safe_mode(void) {
@@ -116,4 +122,8 @@ bool board_requests_safe_mode(void) {
 }
 
 void reset_board(void) {
+    board_reset_user_neopixels(&pin_PA15, 5);
+}
+
+void board_deinit(void) {
 }

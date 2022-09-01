@@ -17,7 +17,7 @@
  *
  * Developed at SunPro, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  */
@@ -25,17 +25,17 @@
 #include "fdlibm.h"
 
 #ifdef __STDC__
-static const float 
+static const float
 #else
-static float 
+static float
 #endif
-one =  1.0000000000e+00, /* 0x3f800000 */
-C1  =  4.1666667908e-02, /* 0x3d2aaaab */
-C2  = -1.3888889225e-03, /* 0xbab60b61 */
-C3  =  2.4801587642e-05, /* 0x37d00d01 */
-C4  = -2.7557314297e-07, /* 0xb493f27c */
-C5  =  2.0875723372e-09, /* 0x310f74f6 */
-C6  = -1.1359647598e-11; /* 0xad47d74e */
+one =  1.0000000000e+00f, /* 0x3f800000 */
+C1  =  4.1666667908e-02f, /* 0x3d2aaaab */
+C2  = -1.3888889225e-03f, /* 0xbab60b61 */
+C3  =  2.4801587642e-05f, /* 0x37d00d01 */
+C4  = -2.7557314297e-07f, /* 0xb493f27c */
+C5  =  2.0875723372e-09f, /* 0x310f74f6 */
+C6  = -1.1359647598e-11f; /* 0xad47d74e */
 
 #ifdef __STDC__
 	float __kernel_cosf(float x, float y)
@@ -53,7 +53,7 @@ C6  = -1.1359647598e-11; /* 0xad47d74e */
 	}
 	z  = x*x;
 	r  = z*(C1+z*(C2+z*(C3+z*(C4+z*(C5+z*C6)))));
-	if(ix < 0x3e99999a) 			/* if |x| < 0.3 */ 
+	if(ix < 0x3e99999a) 			/* if |x| < 0.3 */
 	    return one - ((float)0.5*z - (z*r - x*y));
 	else {
 	    if(ix > 0x3f480000) {		/* x > 0.78125 */

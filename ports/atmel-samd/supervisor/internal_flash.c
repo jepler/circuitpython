@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,24 +39,23 @@
 #ifdef SAMD21
 #include "hpl/pm/hpl_pm_base.h"
 #endif
+#ifdef SAME51
+#include "hri/hri_mclk_e51.h"
+#endif
+#ifdef SAME54
+#include "hri/hri_mclk_e54.h"
+#endif
+#ifdef SAMD51
+#include "hri/hri_mclk_d51.h"
+#endif
 #include "hal/include/hal_flash.h"
 
-#include "supervisor/shared/rgb_led_status.h"
+#include "supervisor/flash.h"
 
 static struct flash_descriptor supervisor_flash_desc;
 
 void supervisor_flash_init(void) {
-    // Activity LED for flash writes.
-    #ifdef MICROPY_HW_LED_MSC
-        struct port_config pin_conf;
-        port_get_config_defaults(&pin_conf);
-
-        pin_conf.direction  = PORT_PIN_DIR_OUTPUT;
-        port_pin_set_config(MICROPY_HW_LED_MSC, &pin_conf);
-        port_pin_set_output_level(MICROPY_HW_LED_MSC, false);
-    #endif
-
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     hri_mclk_set_AHBMASK_NVMCTRL_bit(MCLK);
     #endif
     #ifdef SAMD21
@@ -73,26 +72,22 @@ uint32_t supervisor_flash_get_block_count(void) {
     return INTERNAL_FLASH_PART1_NUM_BLOCKS;
 }
 
-void supervisor_flash_flush(void) {
+void port_internal_flash_flush(void) {
 }
 
 void supervisor_flash_release_cache(void) {
 }
 
-void flash_flush(void) {
-    supervisor_flash_flush();
-}
-
 static int32_t convert_block_to_flash_addr(uint32_t block) {
     if (0 <= block && block < INTERNAL_FLASH_PART1_NUM_BLOCKS) {
         // a block in partition 1
-        return INTERNAL_FLASH_MEM_SEG1_START_ADDR + block * FILESYSTEM_BLOCK_SIZE;
+        return CIRCUITPY_INTERNAL_FLASH_FILESYSTEM_START_ADDR + block * FILESYSTEM_BLOCK_SIZE;
     }
     // bad block
     return -1;
 }
 
-bool supervisor_flash_read_block(uint8_t *dest, uint32_t block) {
+STATIC bool supervisor_flash_read_block(uint8_t *dest, uint32_t block) {
     // non-MBR block, get data from flash memory
     int32_t src = convert_block_to_flash_addr(block);
     if (src == -1) {
@@ -103,11 +98,7 @@ bool supervisor_flash_read_block(uint8_t *dest, uint32_t block) {
     return error_code == ERR_NONE;
 }
 
-bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
-    #ifdef MICROPY_HW_LED_MSC
-        port_pin_set_output_level(MICROPY_HW_LED_MSC, true);
-    #endif
-    temp_status_color(ACTIVE_WRITE);
+STATIC bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
     // non-MBR block, copy to cache
     int32_t dest = convert_block_to_flash_addr(block);
     if (dest == -1) {
@@ -116,8 +107,8 @@ bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
     }
     int32_t error_code;
     error_code = flash_erase(&supervisor_flash_desc,
-                             dest,
-                             FILESYSTEM_BLOCK_SIZE / flash_get_page_size(&supervisor_flash_desc));
+        dest,
+        FILESYSTEM_BLOCK_SIZE / flash_get_page_size(&supervisor_flash_desc));
     if (error_code != ERR_NONE) {
         return false;
     }
@@ -126,10 +117,6 @@ bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
     if (error_code != ERR_NONE) {
         return false;
     }
-    clear_temp_status();
-    #ifdef MICROPY_HW_LED_MSC
-        port_pin_set_output_level(MICROPY_HW_LED_MSC, false);
-    #endif
     return true;
 }
 

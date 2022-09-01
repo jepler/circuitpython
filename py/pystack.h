@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2017 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #ifndef MICROPY_INCLUDED_PY_PYSTACK_H
 #define MICROPY_INCLUDED_PY_PYSTACK_H
 
+#include "py/mpconfig.h"
 #include "py/mpstate.h"
 
 // Enable this debugging option to check that the amount of memory freed is
@@ -41,21 +42,21 @@ void *mp_pystack_alloc(size_t n_bytes);
 // pointer to the block that was allocated first and it and all subsequently
 // allocated blocks will be freed.
 static inline void mp_pystack_free(void *ptr) {
-    assert((uint8_t*)ptr >= MP_STATE_THREAD(pystack_start));
-    assert((uint8_t*)ptr <= MP_STATE_THREAD(pystack_cur));
+    assert((uint8_t *)ptr >= MP_STATE_THREAD(pystack_start));
+    assert((uint8_t *)ptr <= MP_STATE_THREAD(pystack_cur));
     #if MP_PYSTACK_DEBUG
-    size_t n_bytes_to_free = MP_STATE_THREAD(pystack_cur) - (uint8_t*)ptr;
-    size_t n_bytes = *(size_t*)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN);
+    size_t n_bytes_to_free = MP_STATE_THREAD(pystack_cur) - (uint8_t *)ptr;
+    size_t n_bytes = *(size_t *)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN);
     while (n_bytes < n_bytes_to_free) {
-        n_bytes += *(size_t*)(MP_STATE_THREAD(pystack_cur) - n_bytes - MICROPY_PYSTACK_ALIGN);
+        n_bytes += *(size_t *)(MP_STATE_THREAD(pystack_cur) - n_bytes - MICROPY_PYSTACK_ALIGN);
     }
     if (n_bytes != n_bytes_to_free) {
         mp_printf(&mp_plat_print, "mp_pystack_free() failed: %u != %u\n", (uint)n_bytes_to_free,
-            (uint)*(size_t*)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN));
+            (uint)*(size_t *)(MP_STATE_THREAD(pystack_cur) - MICROPY_PYSTACK_ALIGN));
         assert(0);
     }
     #endif
-    MP_STATE_THREAD(pystack_cur) = (uint8_t*)ptr;
+    MP_STATE_THREAD(pystack_cur) = (uint8_t *)ptr;
 }
 
 static inline void mp_pystack_realloc(void *ptr, size_t n_bytes) {

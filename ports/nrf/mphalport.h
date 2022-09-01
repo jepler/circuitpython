@@ -30,16 +30,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "lib/utils/interrupt_char.h"
+#include "shared/runtime/interrupt_char.h"
 #include "nrfx_uarte.h"
 #include "py/mpconfig.h"
+#include "supervisor/shared/tick.h"
 
 extern nrfx_uarte_t serial_instance;
 
-extern volatile uint64_t ticks_ms;
-
-#define mp_hal_ticks_ms()       ((mp_uint_t) ticks_ms)
-#define mp_hal_delay_us(us)     NRFX_DELAY_US((uint32_t) (us))
+#define mp_hal_ticks_ms()       ((mp_uint_t)supervisor_ticks_ms32())
+#define mp_hal_delay_us(us)     NRFX_DELAY_US((uint32_t)(us))
 
 bool mp_hal_stdin_any(void);
 

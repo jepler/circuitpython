@@ -35,29 +35,20 @@
 
 #include "py/runtime.h"
 
-//| :mod:`touchio` --- Touch related IO
-//| =================================================
-//|
-//| .. module:: touchio
-//|   :synopsis: Hardware accelerated behavior
-//|   :platform: SAMD21
+//| """Touch related IO
 //|
 //| The `touchio` module contains classes to provide access to touch IO typically
 //| accelerated by hardware on the onboard microcontroller.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     TouchIn
 //|
 //| All classes change hardware state and should be deinitialized when they
 //| are no longer needed if the program continues after use. To do so, either
 //| call :py:meth:`!deinit` or use a context manager. See
 //| :ref:`lifetime-and-contextmanagers` for more info.
 //|
-//| For example::
+//| For more information about working with the `touchio` module in CircuitPython,
+//| see `this Learn guide page <https://learn.adafruit.com/circuitpython-essentials/circuitpython-cap-touch>`_.
+//|
+//| Example::
 //|
 //|   import touchio
 //|   from board import *
@@ -66,7 +57,7 @@
 //|   print(touch_pin.value)
 //|
 //| This example will initialize the the device, and print the
-//| :py:data:`~touchio.TouchIn.value`.
+//| :py:data:`~touchio.TouchIn.value`."""
 //|
 
 STATIC const mp_rom_map_elem_t touchio_module_globals_table[] = {
@@ -78,5 +69,7 @@ STATIC MP_DEFINE_CONST_DICT(touchio_module_globals, touchio_module_globals_table
 
 const mp_obj_module_t touchio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&touchio_module_globals,
+    .globals = (mp_obj_dict_t *)&touchio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_touchio, touchio_module, CIRCUITPY_TOUCHIO);

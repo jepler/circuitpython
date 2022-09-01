@@ -24,14 +24,12 @@
  * THE SOFTWARE.
  */
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "mpconfigboard.h"
 #include "hal/include/hal_gpio.h"
 
 #include "shared-module/displayio/__init__.h"
 #include "shared-module/displayio/mipi_constants.h"
-
-#include "tick.h"
 
 #define DELAY 0x80
 
@@ -55,25 +53,26 @@ uint8_t display_init_sequence[] = {
     0xF2, 1, 0x00,                         // 3Gamma Function Disable
     0x26, 1, 0x01,             // Gamma curve selected
     0xe0, 15, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, // Set Gamma
-      0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
+    0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
     0xe1, 15, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, // Set Gamma
-      0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
+    0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
     0x11, DELAY, 120,                // Exit Sleep
     0x29, DELAY, 120, // Display on
 };
 
 void board_init(void) {
-    displayio_parallelbus_obj_t* bus = &displays[0].parallel_bus;
-    bus->base.type = &displayio_parallelbus_type;
-    common_hal_displayio_parallelbus_construct(bus,
+    paralleldisplay_parallelbus_obj_t *bus = &displays[0].parallel_bus;
+    bus->base.type = &paralleldisplay_parallelbus_type;
+    common_hal_paralleldisplay_parallelbus_construct(bus,
         &pin_PA16, // Data0
         &pin_PB05, // Command or data
         &pin_PB06, // Chip select
         &pin_PB09, // Write
         &pin_PB04, // Read
-        &pin_PA00); // Reset
+        &pin_PA00, // Reset
+        0); // Frequency
 
-    displayio_display_obj_t* display = &displays[0].display;
+    displayio_display_obj_t *display = &displays[0].display;
     display->base.type = &displayio_display_type;
     common_hal_displayio_display_construct(display,
         bus,
@@ -87,18 +86,22 @@ void board_init(void) {
         false, // pixels_in_byte_share_row (unused for depths > 8)
         1, // bytes per cell. Only valid for depths < 8
         false, // reverse_pixels_in_byte. Only valid for depths < 8
+        true, // reverse_pixels_in_word
         MIPI_COMMAND_SET_COLUMN_ADDRESS, // Set column command
         MIPI_COMMAND_SET_PAGE_ADDRESS, // Set row command
         MIPI_COMMAND_WRITE_MEMORY_START, // Write memory command
-        0x37, // Set vertical scroll command
         display_init_sequence,
         sizeof(display_init_sequence),
         &pin_PB31, // Backlight pin
         NO_BRIGHTNESS_COMMAND,
-        1.0f, // brightness (ignored)
-        true, // auto_brightness
+        1.0f, // brightness
         false, // single_byte_bounds
-        false); // data_as_commands
+        false, // data_as_commands
+        true, // auto_refresh
+        60, // native_frames_per_second
+        true, // backlight_on_high
+        false, // SH1107_addressing
+        50000); // backlight pwm frequency
 }
 
 bool board_requests_safe_mode(void) {
@@ -106,4 +109,7 @@ bool board_requests_safe_mode(void) {
 }
 
 void reset_board(void) {
+}
+
+void board_deinit(void) {
 }

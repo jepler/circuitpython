@@ -34,24 +34,11 @@
 #include "shared-bindings/analogio/AnalogIn.h"
 #include "shared-bindings/analogio/AnalogOut.h"
 
-//| :mod:`analogio` --- Analog hardware support
-//| =================================================
-//|
-//| .. module:: analogio
-//|   :synopsis: Analog hardware support
-//|   :platform: SAMD21, ESP8266
+//| """Analog hardware support
 //|
 //| The `analogio` module contains classes to provide access to analog IO
 //| typically implemented with digital-to-analog (DAC) and analog-to-digital
 //| (ADC) converters.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     AnalogIn
-//|     AnalogOut
 //|
 //| All classes change hardware state and should be deinitialized when they
 //| are no longer needed if the program continues after use. To do so, either
@@ -72,6 +59,13 @@
 //| :py:meth:`~analogio.AnalogIn.deinit` the hardware. The last step is optional
 //| because CircuitPython will do it automatically after the program finishes.
 //|
+//| For the essentials of `analogio`, see the `CircuitPython Essentials
+//| Learn guide <https://learn.adafruit.com/circuitpython-essentials/circuitpython-analog-in>`_
+//|
+//| For more information on using `analogio`, see `this additional Learn guide
+//| <https://learn.adafruit.com/circuitpython-basics-analog-inputs-and-outputs>`_
+//| """
+//|
 
 STATIC const mp_rom_map_elem_t analogio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_analogio) },
@@ -83,5 +77,7 @@ STATIC MP_DEFINE_CONST_DICT(analogio_module_globals, analogio_module_globals_tab
 
 const mp_obj_module_t analogio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&analogio_module_globals,
+    .globals = (mp_obj_dict_t *)&analogio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_analogio, analogio_module, CIRCUITPY_ANALOGIO);

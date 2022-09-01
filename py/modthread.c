@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+ * SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include "py/runtime.h"
 #include "py/stackctrl.h"
 
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
 #if MICROPY_PY_THREAD
 
@@ -122,7 +122,7 @@ STATIC MP_DEFINE_CONST_DICT(thread_lock_locals_dict, thread_lock_locals_dict_tab
 STATIC const mp_obj_type_t mp_type_thread_lock = {
     { &mp_type_type },
     .name = MP_QSTR_lock,
-    .locals_dict = (mp_obj_dict_t*)&thread_lock_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&thread_lock_locals_dict,
 };
 
 /****************************************************************/
@@ -159,7 +159,7 @@ typedef struct _thread_entry_args_t {
 STATIC void *thread_entry(void *args_in) {
     // Execution begins here for a new thread.  We do not have the GIL.
 
-    thread_entry_args_t *args = (thread_entry_args_t*)args_in;
+    thread_entry_args_t *args = (thread_entry_args_t *)args_in;
 
     mp_state_thread_t ts;
     mp_thread_set_state(&ts);
@@ -173,6 +173,11 @@ STATIC void *thread_entry(void *args_in) {
     mp_pystack_init(mini_pystack, &mini_pystack[128]);
     #endif
 
+    // The GC starts off unlocked on this thread.
+    ts.gc_lock_depth = 0;
+
+    ts.mp_pending_exception = MP_OBJ_NULL;
+
     // set locals and globals from the calling context
     mp_locals_set(args->dict_locals);
     mp_globals_set(args->dict_globals);
@@ -183,7 +188,6 @@ STATIC void *thread_entry(void *args_in) {
     mp_thread_start();
 
     // TODO set more thread-specific state here:
-    //  mp_pending_exception? (root pointer)
     //  cur_exception (root pointer)
 
     DEBUG_printf("[thread] start ts=%p args=%p stack=%p\n", &ts, &args, MP_STATE_THREAD(stack_top));
@@ -195,7 +199,7 @@ STATIC void *thread_entry(void *args_in) {
     } else {
         // uncaught exception
         // check for SystemExit
-        mp_obj_base_t *exc = (mp_obj_base_t*)nlr.ret_val;
+        mp_obj_base_t *exc = (mp_obj_base_t *)nlr.ret_val;
         if (mp_obj_is_subclass_fast(MP_OBJ_FROM_PTR(exc->type), MP_OBJ_FROM_PTR(&mp_type_SystemExit))) {
             // swallow exception silently
         } else {
@@ -237,21 +241,21 @@ STATIC mp_obj_t mod_thread_start_new_thread(size_t n_args, const mp_obj_t *args)
     } else {
         // positional and keyword arguments
         if (mp_obj_get_type(args[2]) != &mp_type_dict) {
-            mp_raise_TypeError(translate("expecting a dict for keyword args"));
+            mp_raise_TypeError(MP_ERROR_TEXT("expecting a dict for keyword args"));
         }
-        mp_map_t *map = &((mp_obj_dict_t*)MP_OBJ_TO_PTR(args[2]))->map;
+        mp_map_t *map = &((mp_obj_dict_t *)MP_OBJ_TO_PTR(args[2]))->map;
         th_args = m_new_obj_var(thread_entry_args_t, mp_obj_t, pos_args_len + 2 * map->used);
         th_args->n_kw = map->used;
         // copy across the keyword arguments
         for (size_t i = 0, n = pos_args_len; i < map->alloc; ++i) {
-            if (MP_MAP_SLOT_IS_FILLED(map, i)) {
+            if (mp_map_slot_is_filled(map, i)) {
                 th_args->args[n++] = map->table[i].key;
                 th_args->args[n++] = map->table[i].value;
             }
         }
     }
 
-    // copy agross the positional arguments
+    // copy across the positional arguments
     th_args->n_args = pos_args_len;
     memcpy(th_args->args, pos_args_items, pos_args_len * sizeof(mp_obj_t));
 
@@ -273,7 +277,7 @@ STATIC mp_obj_t mod_thread_start_new_thread(size_t n_args, const mp_obj_t *args)
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_thread_start_new_thread_obj, 2, 3, mod_thread_start_new_thread);
 
 STATIC mp_obj_t mod_thread_exit(void) {
-    nlr_raise(mp_obj_new_exception(&mp_type_SystemExit));
+    mp_raise_type(&mp_type_SystemExit);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mod_thread_exit_obj, mod_thread_exit);
 
@@ -296,7 +300,7 @@ STATIC MP_DEFINE_CONST_DICT(mp_module_thread_globals, mp_module_thread_globals_t
 
 const mp_obj_module_t mp_module_thread = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_thread_globals,
+    .globals = (mp_obj_dict_t *)&mp_module_thread_globals,
 };
 
 #endif // MICROPY_PY_THREAD

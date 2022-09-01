@@ -31,17 +31,13 @@
 
 #include "shared-bindings/uheap/__init__.h"
 
-//| :mod:`uheap` --- Heap size analysis
-//| ================================================================
-//|
-//| .. module:: uheap
-//|   :synopsis: Heap size analysis
+//| """Heap size analysis"""
 //|
 
-//| .. function:: info(object)
-//|
-//|   Prints memory debugging info for the given object and returns the
-//|   estimated size.
+//| def info(object: object) -> int:
+//|     """Prints memory debugging info for the given object and returns the
+//|     estimated size."""
+//|     ...
 //|
 STATIC mp_obj_t uheap_info(mp_obj_t obj) {
     uint32_t size = shared_module_uheap_info(obj);
@@ -59,5 +55,7 @@ STATIC MP_DEFINE_CONST_DICT(uheap_module_globals, uheap_module_globals_table);
 
 const mp_obj_module_t uheap_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&uheap_module_globals,
+    .globals = (mp_obj_dict_t *)&uheap_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_uheap, uheap_module, CIRCUITPY_UHEAP);

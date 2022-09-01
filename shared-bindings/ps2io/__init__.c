@@ -33,21 +33,9 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/ps2io/Ps2.h"
 
-//| :mod:`ps2io` --- Support for PS/2 protocol
-//| =====================================================
-//|
-//| .. module:: ps2io
-//|   :synopsis: Support for PS/2 based devices 
-//|   :platform: SAMD21
+//| """Support for PS/2 protocol
 //|
 //| The `ps2io` module contains classes to provide PS/2 communication.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     Ps2
 //|
 
 //| .. warning:: This module is not available in some SAMD21 builds. See the
@@ -57,7 +45,7 @@
 //| All classes change hardware state and should be deinitialized when they
 //| are no longer needed if the program continues after use. To do so, either
 //| call :py:meth:`!deinit` or use a context manager. See
-//| :ref:`lifetime-and-contextmanagers` for more info.
+//| :ref:`lifetime-and-contextmanagers` for more info."""
 //|
 
 STATIC const mp_rom_map_elem_t ps2io_module_globals_table[] = {
@@ -69,5 +57,7 @@ STATIC MP_DEFINE_CONST_DICT(ps2io_module_globals, ps2io_module_globals_table);
 
 const mp_obj_module_t ps2io_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&ps2io_module_globals,
+    .globals = (mp_obj_dict_t *)&ps2io_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_ps2io, ps2io_module, CIRCUITPY_PS2IO);

@@ -25,20 +25,13 @@
  */
 
 #include "shared-bindings/microcontroller/Pin.h"
+#include "shared-bindings/digitalio/DigitalInOut.h"
 
 #include "nrf_gpio.h"
 #include "py/mphal.h"
 
 #include "nrf/pins.h"
-#include "supervisor/shared/rgb_led_status.h"
 
-#ifdef MICROPY_HW_NEOPIXEL
-bool neopixel_in_use;
-#endif
-#ifdef MICROPY_HW_APA102_MOSI
-bool apa102_sck_in_use;
-bool apa102_mosi_in_use;
-#endif
 #ifdef SPEAKER_ENABLE_PIN
 bool speaker_enable_in_use;
 #endif
@@ -46,6 +39,19 @@ bool speaker_enable_in_use;
 // Bit mask of claimed pins on each of up to two ports. nrf52832 has one port; nrf52840 has two.
 STATIC uint32_t claimed_pins[GPIO_COUNT];
 STATIC uint32_t never_reset_pins[GPIO_COUNT];
+
+STATIC void reset_speaker_enable_pin(void) {
+    #ifdef SPEAKER_ENABLE_PIN
+    speaker_enable_in_use = false;
+    nrf_gpio_cfg(SPEAKER_ENABLE_PIN->number,
+        NRF_GPIO_PIN_DIR_OUTPUT,
+        NRF_GPIO_PIN_INPUT_DISCONNECT,
+        NRF_GPIO_PIN_NOPULL,
+        NRF_GPIO_PIN_H0H1,
+        NRF_GPIO_PIN_NOSENSE);
+    nrf_gpio_pin_write(SPEAKER_ENABLE_PIN->number, false);
+    #endif
+}
 
 void reset_all_pins(void) {
     for (size_t i = 0; i < GPIO_COUNT; i++) {
@@ -59,19 +65,8 @@ void reset_all_pins(void) {
         nrf_gpio_cfg_default(pin);
     }
 
-    #ifdef MICROPY_HW_NEOPIXEL
-    neopixel_in_use = false;
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    apa102_sck_in_use = false;
-    apa102_mosi_in_use = false;
-    #endif
-
     // After configuring SWD because it may be shared.
-    #ifdef SPEAKER_ENABLE_PIN
-    speaker_enable_in_use = false;
-    // TODO set pin to out and turn off.
-    #endif
+    reset_speaker_enable_pin();
 }
 
 // Mark pin as free and return it to a quiescent state.
@@ -82,58 +77,37 @@ void reset_pin_number(uint8_t pin_number) {
 
     // Clear claimed bit.
     claimed_pins[nrf_pin_port(pin_number)] &= ~(1 << nrf_relative_pin_number(pin_number));
-
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin_number == MICROPY_HW_NEOPIXEL->number) {
-        neopixel_in_use = false;
-        rgb_led_status_init();
-        return;
-    }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin == MICROPY_HW_APA102_MOSI->number ||
-        pin == MICROPY_HW_APA102_SCK->number) {
-        apa102_mosi_in_use = apa102_mosi_in_use && pin_number != MICROPY_HW_APA102_MOSI->number;
-        apa102_sck_in_use = apa102_sck_in_use && pin_number != MICROPY_HW_APA102_SCK->number;
-        if (!apa102_sck_in_use && !apa102_mosi_in_use) {
-            rgb_led_status_init();
-        }
-        return;
-    }
-    #endif
+    never_reset_pins[nrf_pin_port(pin_number)] &= ~(1 << nrf_relative_pin_number(pin_number));
 
     #ifdef SPEAKER_ENABLE_PIN
     if (pin_number == SPEAKER_ENABLE_PIN->number) {
-        speaker_enable_in_use = false;
-        common_hal_digitalio_digitalinout_switch_to_output(SPEAKER_ENABLE_PIN, true, DRIVE_MODE_PUSH_PULL);
-        nrf_gpio_pin_dir_set(pin_number, NRF_GPIO_PIN_DIR_OUTPUT);
-        nrf_gpio_pin_write(pin_number, false);
+        reset_speaker_enable_pin();
     }
     #endif
 }
 
 
 void never_reset_pin_number(uint8_t pin_number) {
+    if (pin_number == NO_PIN) {
+        return;
+    }
     never_reset_pins[nrf_pin_port(pin_number)] |= 1 << nrf_relative_pin_number(pin_number);
 }
 
-void claim_pin(const mcu_pin_obj_t* pin) {
+void common_hal_never_reset_pin(const mcu_pin_obj_t *pin) {
+    never_reset_pin_number(pin->number);
+}
+
+void common_hal_reset_pin(const mcu_pin_obj_t *pin) {
+    if (pin == NULL) {
+        return;
+    }
+    reset_pin_number(pin->number);
+}
+
+void claim_pin(const mcu_pin_obj_t *pin) {
     // Set bit in claimed_pins bitmask.
     claimed_pins[nrf_pin_port(pin->number)] |= 1 << nrf_relative_pin_number(pin->number);
-
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin == MICROPY_HW_NEOPIXEL) {
-        neopixel_in_use = true;
-    }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin == MICROPY_HW_APA102_MOSI) {
-        apa102_mosi_in_use = true;
-    }
-    if (pin == MICROPY_HW_APA102_SCK) {
-        apa102_sck_in_use = true;
-    }
-    #endif
 
     #ifdef SPEAKER_ENABLE_PIN
     if (pin == SPEAKER_ENABLE_PIN) {
@@ -148,20 +122,6 @@ bool pin_number_is_free(uint8_t pin_number) {
 }
 
 bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t *pin) {
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin == MICROPY_HW_NEOPIXEL) {
-        return !neopixel_in_use;
-    }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin == MICROPY_HW_APA102_MOSI) {
-        return !apa102_mosi_in_use;
-    }
-    if (pin == MICROPY_HW_APA102_SCK) {
-        return !apa102_sck_in_use;
-    }
-    #endif
-
     #ifdef SPEAKER_ENABLE_PIN
     if (pin == SPEAKER_ENABLE_PIN) {
         return !speaker_enable_in_use;
@@ -179,4 +139,16 @@ bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t *pin) {
 
     return pin_number_is_free(pin->number);
 
+}
+
+uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t *pin) {
+    return pin->number;
+}
+
+void common_hal_mcu_pin_claim(const mcu_pin_obj_t *pin) {
+    claim_pin(pin);
+}
+
+void common_hal_mcu_pin_reset_number(uint8_t pin_no) {
+    reset_pin_number(pin_no);
 }

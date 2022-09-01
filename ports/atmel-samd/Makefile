@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2019 Dan Halbert for Adafruit Industries
+# SPDX-FileCopyrightText: Copyright (c) 2019 Dan Halbert for Adafruit Industries
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ HAL_DIR=hal/$(MCU_SERIES)
 INC += -I. \
        -I../.. \
        -I../lib/mp-readline \
-       -I../lib/timeutils \
+       -I../shared/timeutils \
        -Iasf4/$(CHIP_FAMILY) \
        -Iasf4/$(CHIP_FAMILY)/hal/include \
        -Iasf4/$(CHIP_FAMILY)/hal/utils/include \
@@ -86,35 +86,57 @@ INC += -I. \
 # NDEBUG disables assert() statements. This reduces code size pretty dramatically, per tannewt.
 
 ifeq ($(CHIP_FAMILY), samd21)
-CFLAGS += -Os -DNDEBUG
+PERIPHERALS_CHIP_FAMILY=samd21
+OPTIMIZATION_FLAGS ?= -Os
 # TinyUSB defines
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD21 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=128 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=128 -DCFG_TUD_MSC_BUFSIZE=512
 endif
 
 ifeq ($(CHIP_FAMILY), samd51)
-CFLAGS += -Os -DNDEBUG
+PERIPHERALS_CHIP_FAMILY=sam_d5x_e5x
+OPTIMIZATION_FLAGS ?= -Os
 # TinyUSB defines
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
 endif
 
+ifeq ($(CHIP_FAMILY), same51)
+PERIPHERALS_CHIP_FAMILY=sam_d5x_e5x
+OPTIMIZATION_FLAGS ?= -Os
+# TinyUSB defines
+CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAME5X -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
+endif
+
+ifeq ($(CHIP_FAMILY), same54)
+PERIPHERALS_CHIP_FAMILY=sam_d5x_e5x
+OPTIMIZATION_FLAGS ?= -O2
+# TinyUSB defines
+CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAME5X -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
+endif
+
+# option to override default optimization level, set in boards/$(BOARD)/mpconfigboard.mk
+CFLAGS += $(OPTIMIZATION_FLAGS)
+
+# Add -ftree-vrp optimization and checking to all builds. It's not enabled for -Os by default.
+CFLAGS += -ftree-vrp
+
+$(echo PERIPHERALS_CHIP_FAMILY=$(PERIPHERALS_CHIP_FAMILY))
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
-  # You may want to disable -flto if it interferes with debugging.
-  CFLAGS += -flto -flto-partition=none
+  CFLAGS += -ggdb3 -Og -Os
   # You may want to enable these flags to make setting breakpoints easier.
   # CFLAGS += -fno-inline -fno-ipa-sra
   ifeq ($(CHIP_FAMILY), samd21)
     CFLAGS += -DENABLE_MICRO_TRACE_BUFFER
   endif
 else
+  CFLAGS += -DNDEBUG
   # -finline-limit can shrink the image size.
   # -finline-limit=80 or so is similar to not having it on.
   # There is no simple default value, though.
 
   # Do a default shrink for small builds.
   ifndef CFLAGS_INLINE_LIMIT
-    ifeq ($(CIRCUITPY_SMALL_BUILD),1)
+    ifeq ($(CIRCUITPY_FULL_BUILD),0)
       CFLAGS_INLINE_LIMIT = 50
     endif
   endif
@@ -122,10 +144,17 @@ else
   ifdef CFLAGS_INLINE_LIMIT
     CFLAGS += -finline-limit=$(CFLAGS_INLINE_LIMIT)
   endif
-  CFLAGS += -flto -flto-partition=none
+
+  ifeq ($(CIRCUITPY_FULL_BUILD),0)
+    CFLAGS += --param inline-unit-growth=15 --param max-inline-insns-auto=20
+  endif
+
+  ifdef CFLAGS_BOARD
+    CFLAGS += $(CFLAGS_BOARD)
+  endif
 endif
 
-CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
+CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT) -Werror=missing-prototypes
 
 ifeq ($(CHIP_FAMILY), samd21)
 CFLAGS += \
@@ -135,6 +164,9 @@ CFLAGS += \
 	-msoft-float \
 	-mfloat-abi=soft \
 	-DSAMD21
+LIBS := libs/libgcc-12.1.0-Os-v6-m-nofp.a -lc
+else
+LIBS := -lgcc -lc
 endif
 ifeq ($(CHIP_FAMILY), samd51)
 CFLAGS += \
@@ -143,13 +175,34 @@ CFLAGS += \
 	-mcpu=cortex-m4 \
 	-mfloat-abi=hard \
 	-mfpu=fpv4-sp-d16 \
-	-DSAMD51
+	-DSAM_D5X_E5X -DSAMD51
+endif
+ifeq ($(CHIP_FAMILY), same54)
+CFLAGS += \
+	-mthumb \
+	-mabi=aapcs-linux \
+	-mcpu=cortex-m4 \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-DSAM_D5X_E5X -DSAME54
+endif
+ifeq ($(CHIP_FAMILY), same51)
+CFLAGS += \
+	-mthumb \
+	-mabi=aapcs-linux \
+	-mcpu=cortex-m4 \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-DSAM_D5X_E5X -DSAME51
 endif
 
+# GCC 11 adds stringop bounds checks that trigger when writing a memory region
+# we know is ok. It's not clear how to give the compiler the info it needs so
+# disable the checks for now.
+# See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578
+CFLAGS += -Wno-stringop-overread -Wno-stringop-overflow
 
-
-LDFLAGS = $(CFLAGS) -nostartfiles -fshort-enums -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
-LIBS := -lgcc -lc
+LDFLAGS = $(CFLAGS) -nostartfiles -Wl,-nostdlib -Wl,-T,$(GENERATED_LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
 
 # Use toolchain libm if we're not using our own.
 ifndef INTERNAL_LIBM
@@ -160,6 +213,12 @@ ifeq ($(CHIP_FAMILY), samd21)
 LDFLAGS += -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/
 BOOTLOADER_SIZE := 0x2000
 else ifeq ($(CHIP_FAMILY), samd51)
+LDFLAGS += -mthumb -mcpu=cortex-m4
+BOOTLOADER_SIZE := 0x4000
+else ifeq ($(CHIP_FAMILY), same54)
+LDFLAGS += -mthumb -mcpu=cortex-m4
+BOOTLOADER_SIZE := 0x4000
+else ifeq ($(CHIP_FAMILY), same51)
 LDFLAGS += -mthumb -mcpu=cortex-m4
 BOOTLOADER_SIZE := 0x4000
 endif
@@ -185,7 +244,6 @@ SRC_ASF := \
 	hpl/gclk/hpl_gclk.c \
 	hpl/nvmctrl/hpl_nvmctrl.c \
 	hpl/pm/hpl_pm.c \
-	hpl/rtc/hpl_rtc.c \
 	hpl/sercom/hpl_sercom.c \
 	hpl/systick/hpl_systick.c \
 	hal/utils/src/utils_list.c \
@@ -198,7 +256,28 @@ SRC_ASF += \
 
 else ifeq ($(CHIP_FAMILY), samd51)
 SRC_ASF += \
-    hal/src/hal_rand_sync.c \
+	hal/src/hal_rand_sync.c \
+	hpl/core/hpl_core_m4.c \
+	hpl/mclk/hpl_mclk.c \
+	hpl/osc32kctrl/hpl_osc32kctrl.c \
+	hpl/oscctrl/hpl_oscctrl.c \
+	hpl/trng/hpl_trng.c \
+
+else ifeq ($(CHIP_FAMILY), same54)
+SRC_ASF += \
+	hal/src/hal_rand_sync.c \
+	hpl/core/hpl_core_m4.c \
+	hpl/mclk/hpl_mclk.c \
+	hpl/osc32kctrl/hpl_osc32kctrl.c \
+	hpl/oscctrl/hpl_oscctrl.c \
+	hpl/trng/hpl_trng.c \
+
+# Ignore these errors
+$(BUILD)/asf4/same54/hpl/sercom/hpl_sercom.o: CFLAGS += -Wno-maybe-uninitialized
+
+else ifeq ($(CHIP_FAMILY), same51)
+SRC_ASF += \
+	hal/src/hal_rand_sync.c \
 	hpl/core/hpl_core_m4.c \
 	hpl/mclk/hpl_mclk.c \
 	hpl/osc32kctrl/hpl_osc32kctrl.c \
@@ -207,81 +286,72 @@ SRC_ASF += \
 
 endif
 
-SRC_ASF := $(addprefix asf4/$(CHIP_FAMILY)/, $(SRC_ASF))
+ifeq ($(CIRCUITPY_SDIOIO),1)
+SRC_ASF += \
+	hal/src/hal_mci_sync.c \
+	hpl/sdhc/hpl_sdhc.c \
 
-SRC_C = \
-	audio_dma.c \
-	background.c \
-	bindings/samd/Clock.c \
-	bindings/samd/__init__.c \
-	boards/$(BOARD)/board.c \
-	boards/$(BOARD)/pins.c \
-	eic_handler.c \
-	fatfs_port.c \
-	freetouch/adafruit_ptc.c \
-	lib/libc/string0.c \
-	lib/mp-readline/readline.c \
-	lib/oofatfs/ff.c \
-	lib/oofatfs/option/ccsbcs.c \
-	lib/timeutils/timeutils.c \
-	lib/tinyusb/src/portable/microchip/$(CHIP_FAMILY)/dcd_$(CHIP_FAMILY).c \
-	lib/utils/buffer_helper.c \
-	lib/utils/context_manager_helpers.c \
-	lib/utils/interrupt_char.c \
-	lib/utils/pyexec.c \
-	lib/utils/stdout_helpers.c \
-	lib/utils/sys_stdio_mphal.c \
-	mphalport.c \
-	peripherals/samd/$(CHIP_FAMILY)/adc.c \
-	peripherals/samd/$(CHIP_FAMILY)/cache.c \
-	peripherals/samd/$(CHIP_FAMILY)/clocks.c \
-	peripherals/samd/$(CHIP_FAMILY)/dma.c \
-	peripherals/samd/$(CHIP_FAMILY)/events.c \
-	peripherals/samd/$(CHIP_FAMILY)/external_interrupts.c \
-	peripherals/samd/$(CHIP_FAMILY)/pins.c \
-	peripherals/samd/$(CHIP_FAMILY)/sercom.c \
-	peripherals/samd/$(CHIP_FAMILY)/timers.c \
+$(BUILD)/asf4/$(CHIP_FAMILY)/hpl/sdhc/hpl_sdhc.o: CFLAGS += -Wno-cast-align -Wno-implicit-fallthrough
+endif
+
+SRC_ASF := $(addprefix asf4/$(CHIP_FAMILY)/, $(SRC_ASF))
+$(patsubst %.c,$(BUILD)/%.o,$(SRC_ASF)): CFLAGS += -Wno-missing-prototypes
+
+SRC_PERIPHERALS := \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/adc.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/cache.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/clocks.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/dma.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/events.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/external_interrupts.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/pins.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/sercom.c \
+	peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/timers.c \
 	peripherals/samd/clocks.c \
 	peripherals/samd/dma.c \
 	peripherals/samd/events.c \
 	peripherals/samd/external_interrupts.c \
 	peripherals/samd/sercom.c \
 	peripherals/samd/timers.c \
+
+$(patsubst %.c,$(BUILD)/%.o,$(SRC_PERIPHERALS)): CFLAGS += -Wno-missing-prototypes
+
+SRC_C += \
+	audio_dma.c \
+	background.c \
+	boards/$(BOARD)/board.c \
+	boards/$(BOARD)/pins.c \
+	eic_handler.c \
+	fatfs_port.c \
+	lib/tinyusb/src/portable/microchip/samd/dcd_samd.c \
+	mphalport.c \
 	reset.c \
-	supervisor/shared/memory.c \
-	tick.c \
 	timer_handler.c \
+	$(SRC_PERIPHERALS) \
 
+$(BUILD)/lib/tinyusb/src/portable/microchip/samd/dcd_samd.o: CFLAGS += -Wno-missing-prototypes
 
-ifeq ($(CIRCUITPY_NETWORK),1)
-CFLAGS += -DMICROPY_PY_NETWORK=1
-
-SRC_MOD += lib/netutils/netutils.c
-
-ifneq ($(MICROPY_PY_WIZNET5K),0)
-WIZNET5K_DIR=drivers/wiznet5k
-INC += -I$(TOP)/$(WIZNET5K_DIR)
-CFLAGS_MOD += -DMICROPY_PY_WIZNET5K=$(MICROPY_PY_WIZNET5K) -D_WIZCHIP_=$(MICROPY_PY_WIZNET5K)
-SRC_MOD += $(addprefix $(WIZNET5K_DIR)/,\
-        ethernet/w$(MICROPY_PY_WIZNET5K)/w$(MICROPY_PY_WIZNET5K).c \
-        ethernet/wizchip_conf.c \
-        ethernet/socket.c \
-        internet/dns/dns.c \
-        internet/dhcp/dhcp.c \
-        )
-
-endif # MICROPY_PY_WIZNET5K
-endif # CIRCUITPY_NETWORK
-
-ifeq ($(CIRCUITPY_NETWORK),1)
-ifneq ($(MICROPY_PY_WIZNET5K),0)
-SRC_SHARED_MODULE += wiznet/__init__.c wiznet/wiznet5k.c
+# This is an OR because it filters to any 1s and then checks to see if it is not
+# empty.
+ifneq (,$(filter 1,$(CIRCUITPY_PWMIO) $(CIRCUITPY_AUDIOIO) $(CIRCUITPY_RGBMATRIX)))
+SRC_C += shared_timers.c
 endif
+
+ifeq ($(CIRCUITPY_SAMD),1)
+SRC_C += bindings/samd/Clock.c bindings/samd/__init__.c
+endif
+
+ifeq ($(CIRCUITPY_SDIOIO),1)
+SRC_C += ports/atmel-samd/sd_mmc/sd_mmc.c
+endif
+
+ifeq ($(CIRCUITPY_TOUCHIO),1)
+SRC_C += freetouch/adafruit_ptc.c
 endif
 
 # The smallest SAMD51 packages don't have I2S. Everything else does.
 ifeq ($(CIRCUITPY_AUDIOBUSIO),1)
-SRC_C += peripherals/samd/i2s.c peripherals/samd/$(CHIP_FAMILY)/i2s.c
+SRC_C += peripherals/samd/i2s.c peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/i2s.c
 endif
 
 SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
@@ -289,30 +359,45 @@ SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
                           $(addprefix common-hal/, $(SRC_COMMON_HAL))
 
 SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
-                             $(addprefix shared-module/, $(SRC_SHARED_MODULE))
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE_INTERNAL))
+
+# There may be duplicates between SRC_COMMON_HAL_EXPANDED and SRC_SHARED_MODULE_EXPANDED,
+# because a few modules have files both in common-hal/ and shared-module/.
+# Doing a $(sort ...) removes duplicates as part of sorting.
+SRC_COMMON_HAL_SHARED_MODULE_EXPANDED = $(sort $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED))
 
 SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s
 
 OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_ASF:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_EXPANDED:.c=.o))
-OBJ += $(addprefix $(BUILD)/, $(SRC_SHARED_MODULE_EXPANDED:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 
+SRC_QSTR += $(HEADER_BUILD)/sdiodata.h
+$(HEADER_BUILD)/sdiodata.h: tools/mksdiodata.py | $(HEADER_BUILD)
+	$(Q)$(PYTHON) $< > $@
+
+SRC_QSTR += $(HEADER_BUILD)/candata.h
+$(HEADER_BUILD)/candata.h: tools/mkcandata.py | $(HEADER_BUILD)
+	$(Q)$(PYTHON) $< > $@
+
 SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED)
 # Sources that only hold QSTRs after pre-processing.
-SRC_QSTR_PREPROCESSOR += peripherals/samd/$(CHIP_FAMILY)/clocks.c
+SRC_QSTR_PREPROCESSOR += peripherals/samd/$(PERIPHERALS_CHIP_FAMILY)/clocks.c
 
 all: $(BUILD)/firmware.bin $(BUILD)/firmware.uf2
 
-$(BUILD)/firmware.elf: $(OBJ)
+$(BUILD)/firmware.elf: $(OBJ) $(GENERATED_LD_FILE)
 	$(STEPECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(LDFLAGS) $^ -Wl,--start-group $(LIBS) -Wl,--end-group
-	$(Q)$(SIZE) $@ | $(PYTHON3) $(TOP)/tools/build_memory_info.py $(LD_FILE)
+	$(Q)echo $(OBJ) > $(BUILD)/firmware.objs
+	$(Q)$(CC) -o $@ $(LDFLAGS) @$(BUILD)/firmware.objs -Wl,--start-group $(LIBS) -Wl,--end-group
+	$(Q)$(SIZE) $@ | $(PYTHON) $(TOP)/tools/build_memory_info.py $(GENERATED_LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
 	$(STEPECHO) "Create $@"
@@ -320,7 +405,7 @@ $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
 
 $(BUILD)/firmware.uf2: $(BUILD)/firmware.bin
 	$(STEPECHO) "Create $@"
-	$(Q)$(PYTHON3) $(TOP)/tools/uf2/utils/uf2conv.py -b $(BOOTLOADER_SIZE) -c -o $@ $^
+	$(Q)$(PYTHON) $(TOP)/tools/uf2/utils/uf2conv.py -b $(BOOTLOADER_SIZE) -c -o $@ $^
 
 include $(TOP)/py/mkrules.mk
 

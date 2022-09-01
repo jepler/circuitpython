@@ -30,39 +30,33 @@
 
 #include "py/runtime.h"
 #include "py/objproperty.h"
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 #include "shared-bindings/displayio/OnDiskBitmap.h"
 
-//| .. currentmodule:: displayio
+//| class OnDiskBitmap:
+//|     """Loads values straight from disk. This minimizes memory use but can lead to
+//|     much slower pixel load times. These load times may result in frame tearing where only part of
+//|     the image is visible.
 //|
-//| :class:`OnDiskBitmap` -- Loads pixels straight from disk
-//| ==========================================================================
+//|     It's easiest to use on a board with a built in display such as the `Hallowing M0 Express
+//|     <https://www.adafruit.com/product/3900>`_.
 //|
-//| Loads values straight from disk. This minimizes memory use but can lead to
-//| much slower pixel load times. These load times may result in frame tearing where only part of
-//| the image is visible.
+//|     .. code-block:: Python
 //|
-//| It's easiest to use on a board with a built in display such as the `Hallowing M0 Express
-//| <https://www.adafruit.com/product/3900>`_.
+//|       import board
+//|       import displayio
+//|       import time
+//|       import pulseio
 //|
-//| .. code-block:: Python
+//|       board.DISPLAY.brightness = 0
+//|       splash = displayio.Group()
+//|       board.DISPLAY.show(splash)
 //|
-//|   import board
-//|   import displayio
-//|   import time
-//|   import pulseio
-//|
-//|   board.DISPLAY.auto_brightness = False
-//|   board.DISPLAY.brightness = 0
-//|   splash = displayio.Group()
-//|   board.DISPLAY.show(splash)
-//|
-//|   with open("/sample.bmp", "rb") as f:
-//|       odb = displayio.OnDiskBitmap(f)
-//|       face = displayio.TileGrid(odb, pixel_shader=displayio.ColorConverter(), position=(0,0))
+//|       odb = displayio.OnDiskBitmap('/sample.bmp')
+//|       face = displayio.TileGrid(odb, pixel_shader=odb.pixel_shader)
 //|       splash.append(face)
 //|       # Wait for the image to load.
-//|       board.DISPLAY.wait_for_frame()
+//|       board.DISPLAY.refresh(target_frames_per_second=60)
 //|
 //|       # Fade up the backlight
 //|       for i in range(100):
@@ -71,31 +65,40 @@
 //|
 //|       # Wait forever
 //|       while True:
-//|           pass
+//|           pass"""
 //|
-//| .. class:: OnDiskBitmap(file)
+//|     def __init__(self, file: Union[str,typing.BinaryIO]) -> None:
+//|         """Create an OnDiskBitmap object with the given file.
 //|
-//|   Create an OnDiskBitmap object with the given file.
+//|         :param file file: The name of the bitmap file.  For backwards compatibility, a file opened in binary mode may also be passed.
 //|
-//|   :param file file: The open bitmap file
+//|         Older versions of CircuitPython required a file opened in binary
+//|         mode. CircuitPython 7.0 modified OnDiskBitmap so that it takes a
+//|         filename instead, and opens the file internally.  A future version
+//|         of CircuitPython will remove the ability to pass in an opened file.
+//|         """
+//|         ...
 //|
-STATIC mp_obj_t displayio_ondiskbitmap_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    mp_arg_check_num(n_args, kw_args, 1, 1, false);
+STATIC mp_obj_t displayio_ondiskbitmap_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    mp_arg_check_num(n_args, n_kw, 1, 1, false);
+    mp_obj_t arg = all_args[0];
 
-    if (!MP_OBJ_IS_TYPE(pos_args[0], &mp_type_fileio)) {
+    if (mp_obj_is_str(arg)) {
+        arg = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), arg, MP_ROM_QSTR(MP_QSTR_rb));
+    }
+    if (!mp_obj_is_type(arg, &mp_type_fileio)) {
         mp_raise_TypeError(translate("file must be a file opened in byte mode"));
     }
 
     displayio_ondiskbitmap_t *self = m_new_obj(displayio_ondiskbitmap_t);
     self->base.type = &displayio_ondiskbitmap_type;
-    common_hal_displayio_ondiskbitmap_construct(self, MP_OBJ_TO_PTR(pos_args[0]));
+    common_hal_displayio_ondiskbitmap_construct(self, MP_OBJ_TO_PTR(arg));
 
     return MP_OBJ_FROM_PTR(self);
 }
 
-//|   .. attribute:: width
-//|
-//|      Width of the bitmap. (read only)
+//|     width: int
+//|     """Width of the bitmap. (read only)"""
 //|
 STATIC mp_obj_t displayio_ondiskbitmap_obj_get_width(mp_obj_t self_in) {
     displayio_ondiskbitmap_t *self = MP_OBJ_TO_PTR(self_in);
@@ -105,17 +108,11 @@ STATIC mp_obj_t displayio_ondiskbitmap_obj_get_width(mp_obj_t self_in) {
 
 MP_DEFINE_CONST_FUN_OBJ_1(displayio_ondiskbitmap_get_width_obj, displayio_ondiskbitmap_obj_get_width);
 
-const mp_obj_property_t displayio_ondiskbitmap_width_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_ondiskbitmap_get_width_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+MP_PROPERTY_GETTER(displayio_ondiskbitmap_width_obj,
+    (mp_obj_t)&displayio_ondiskbitmap_get_width_obj);
 
-};
-
-//|   .. attribute:: height
-//|
-//|      Height of the bitmap. (read only)
+//|     height: int
+//|     """Height of the bitmap. (read only)"""
 //|
 STATIC mp_obj_t displayio_ondiskbitmap_obj_get_height(mp_obj_t self_in) {
     displayio_ondiskbitmap_t *self = MP_OBJ_TO_PTR(self_in);
@@ -125,16 +122,32 @@ STATIC mp_obj_t displayio_ondiskbitmap_obj_get_height(mp_obj_t self_in) {
 
 MP_DEFINE_CONST_FUN_OBJ_1(displayio_ondiskbitmap_get_height_obj, displayio_ondiskbitmap_obj_get_height);
 
-const mp_obj_property_t displayio_ondiskbitmap_height_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&displayio_ondiskbitmap_get_height_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+MP_PROPERTY_GETTER(displayio_ondiskbitmap_height_obj,
+    (mp_obj_t)&displayio_ondiskbitmap_get_height_obj);
 
+//|     pixel_shader: Union[ColorConverter, Palette]
+//|     """The image's pixel_shader.  The type depends on the underlying
+//|     bitmap's structure.  The pixel shader can be modified (e.g., to set the
+//|     transparent pixel or, for palette shaded images, to update the palette.)"""
+//|
+STATIC mp_obj_t displayio_ondiskbitmap_obj_get_pixel_shader(mp_obj_t self_in) {
+    displayio_ondiskbitmap_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_displayio_ondiskbitmap_get_pixel_shader(self);
+}
+
+MP_DEFINE_CONST_FUN_OBJ_1(displayio_ondiskbitmap_get_pixel_shader_obj, displayio_ondiskbitmap_obj_get_pixel_shader);
+
+const mp_obj_property_t displayio_ondiskbitmap_pixel_shader_obj = {
+    .base.type = &mp_type_property,
+    .proxy = {(mp_obj_t)&displayio_ondiskbitmap_get_pixel_shader_obj,
+              (mp_obj_t)MP_ROM_NONE,
+              (mp_obj_t)MP_ROM_NONE},
 };
+
 
 STATIC const mp_rom_map_elem_t displayio_ondiskbitmap_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_height), MP_ROM_PTR(&displayio_ondiskbitmap_height_obj) },
+    { MP_ROM_QSTR(MP_QSTR_pixel_shader), MP_ROM_PTR(&displayio_ondiskbitmap_pixel_shader_obj) },
     { MP_ROM_QSTR(MP_QSTR_width), MP_ROM_PTR(&displayio_ondiskbitmap_width_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(displayio_ondiskbitmap_locals_dict, displayio_ondiskbitmap_locals_dict_table);
@@ -143,5 +156,5 @@ const mp_obj_type_t displayio_ondiskbitmap_type = {
     { &mp_type_type },
     .name = MP_QSTR_OnDiskBitmap,
     .make_new = displayio_ondiskbitmap_make_new,
-    .locals_dict = (mp_obj_dict_t*)&displayio_ondiskbitmap_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&displayio_ondiskbitmap_locals_dict,
 };

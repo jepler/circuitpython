@@ -1,12 +1,16 @@
 # test capability for threads to access a shared mutable data structure
 # (without contention because they access different parts of the structure)
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 import _thread
 
+
 def foo(lst, i):
     lst[i] += 1
+
 
 def thread_entry(n, lst, idx):
     for i in range(n):
@@ -14,6 +18,7 @@ def thread_entry(n, lst, idx):
     with lock:
         global n_finished
         n_finished += 1
+
 
 lock = _thread.allocate_lock()
 n_thread = 2

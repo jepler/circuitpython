@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2014 MicroPython & CircuitPython contributors (https://github.com/adafruit/circuitpython/graphs/contributors)
+#
+# SPDX-License-Identifier: MIT
+
 import sys
 import json
 
@@ -6,17 +10,21 @@ current_heap = {}
 allocation_history = []
 root = {}
 
+
 def change_root(trace, size):
     level = root
     for frame in reversed(trace):
         file_location = frame[1]
         if file_location not in level:
-            level[file_location] = {"blocks": 0,
-                                    "file": file_location,
-                                    "function": frame[2],
-                                    "subcalls": {}}
+            level[file_location] = {
+                "blocks": 0,
+                "file": file_location,
+                "function": frame[2],
+                "subcalls": {},
+            }
         level[file_location]["blocks"] += size
         level = level[file_location]["subcalls"]
+
 
 total_actions = 0
 with open(sys.argv[1], "r") as f:
@@ -27,13 +35,13 @@ with open(sys.argv[1], "r") as f:
         action = None
         if line.startswith("Breakpoint 2"):
             break
-        next(f) # throw away breakpoint code line
-        next(f) # first frame
+        next(f)  # throw away breakpoint code line
+        next(f)  # first frame
         block = 0
         size = 0
         trace = []
         for line in f:
-            #print(line.strip())
+            # print(line.strip())
             if line[0] == "#":
                 frame = line.strip().split()
                 if frame[1].startswith("0x"):
@@ -48,7 +56,12 @@ with open(sys.argv[1], "r") as f:
 
         action = "unknown"
         if block not in current_heap:
-            current_heap[block] = {"start_block": block, "size": size, "start_trace": trace, "start_time": total_actions}
+            current_heap[block] = {
+                "start_block": block,
+                "size": size,
+                "start_trace": trace,
+                "start_time": total_actions,
+            }
             action = "alloc"
             change_root(trace, size)
         else:
@@ -58,7 +71,12 @@ with open(sys.argv[1], "r") as f:
             change_root(alloc["start_trace"], -1 * alloc["size"])
             if size > 0:
                 action = "realloc"
-                current_heap[block] = {"start_block": block, "size": size, "start_trace": trace, "start_time": total_actions}
+                current_heap[block] = {
+                    "start_block": block,
+                    "size": size,
+                    "start_trace": trace,
+                    "start_time": total_actions,
+                }
                 change_root(trace, size)
             else:
                 action = "free"
@@ -77,12 +95,18 @@ for alloc in current_heap.values():
     alloc["end_time"] = total_actions
     allocation_history.append(alloc)
 
+
 def print_frame(frame, indent=0):
     for key in sorted(frame):
-        if not frame[key]["blocks"] or key.startswith("../py/malloc.c") or key.startswith("../py/gc.c"):
+        if (
+            not frame[key]["blocks"]
+            or key.startswith("../py/malloc.c")
+            or key.startswith("../py/gc.c")
+        ):
             continue
         print(" " * (indent - 1), key, frame[key]["function"], frame[key]["blocks"], "blocks")
         print_frame(frame[key]["subcalls"], indent + 2)
+
 
 print_frame(root)
 total_blocks = 0

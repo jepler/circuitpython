@@ -31,31 +31,27 @@
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "shared-bindings/random/__init__.h"
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
-//| :mod:`random` --- psuedo-random numbers and choices
-//| ========================================================
+//| """pseudo-random numbers and choices
 //|
-//| .. module:: random
-//|   :synopsis: psuedo-random numbers and choices
-//|   :platform: SAMD21, ESP8266
-//|
-//| The `random` module is a strict subset of the CPython `cpython:random`
-//| module. So, code written in CircuitPython will work in CPython but not
-//| necessarily the other way around.
+//| |see_cpython_module| :mod:`cpython:random`.
 //|
 //| Like its CPython cousin, CircuitPython's random seeds itself on first use
 //| with a true random from os.urandom() when available or the uptime otherwise.
 //| Once seeded, it will be deterministic, which is why its bad for cryptography.
 //|
 //| .. warning:: Numbers from this module are not cryptographically strong! Use
-//|   bytes from `os.urandom` directly for true randomness.
+//|   bytes from `os.urandom` directly for true randomness."""
+//|
+//| from typing import TypeVar
+//| _T = TypeVar('_T')
 //|
 
-//| .. function:: seed(seed)
-//|
-//|   Sets the starting seed of the random  number generation. Further calls to
-//|   `random` will return deterministic results afterwards.
+//| def seed(seed: int) -> None:
+//|     """Sets the starting seed of the random  number generation. Further calls to
+//|     `random` will return deterministic results afterwards."""
+//|     ...
 //|
 STATIC mp_obj_t random_seed(mp_obj_t seed_in) {
     mp_uint_t seed = mp_obj_get_int_truncated(seed_in);
@@ -64,23 +60,27 @@ STATIC mp_obj_t random_seed(mp_obj_t seed_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(random_seed_obj, random_seed);
 
-//| .. function:: getrandbits(k)
-//|
-//|   Returns an integer with *k* random bits.
+//| def getrandbits(k: int) -> int:
+//|     """Returns an integer with *k* random bits."""
+//|     ...
 //|
 STATIC mp_obj_t random_getrandbits(mp_obj_t num_in) {
     int n = mp_obj_get_int(num_in);
     if (n > 32 || n == 0) {
         mp_raise_ValueError(NULL);
     }
-    return mp_obj_new_int_from_uint(shared_modules_random_getrandbits((uint8_t) n));
+    return mp_obj_new_int_from_uint(shared_modules_random_getrandbits((uint8_t)n));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(random_getrandbits_obj, random_getrandbits);
 
-//| .. function:: randrange(stop)
-//|               randrange(start, stop, step=1)
-//|
-//|   Returns a randomly selected integer from ``range(start, stop, step)``.
+//| @overload
+//| def randrange(stop: int) -> int: ...
+//| @overload
+//| def randrange(start: int, stop: int) -> int: ...
+//| @overload
+//| def randrange(start: int, stop: int, step: int) -> int:
+//|     """Returns a randomly selected integer from ``range(start[, stop[, step]])``."""
+//|     ...
 //|
 STATIC mp_obj_t random_randrange(size_t n_args, const mp_obj_t *args) {
     mp_int_t start = 0;
@@ -120,10 +120,10 @@ STATIC mp_obj_t random_randrange(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(random_randrange_obj, 1, 3, random_randrange);
 
-//| .. function:: randint(a, b)
-//|
-//|   Returns a randomly selected integer between a and b inclusive. Equivalent
-//|   to ``randrange(a, b + 1, 1)``
+//| def randint(a: int, b: int) -> int:
+//|     """Returns a randomly selected integer between a and b inclusive. Equivalent
+//|     to ``randrange(a, b + 1, 1)``"""
+//|     ...
 //|
 STATIC mp_obj_t random_randint(mp_obj_t a_in, mp_obj_t b_in) {
     mp_int_t a = mp_obj_get_int(a_in);
@@ -135,10 +135,10 @@ STATIC mp_obj_t random_randint(mp_obj_t a_in, mp_obj_t b_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(random_randint_obj, random_randint);
 
-//| .. function:: choice(seq)
-//|
-//|   Returns a randomly selected element from the given sequence. Raises
-//|   IndexError when the sequence is empty.
+//| def choice(seq: Sequence[_T]) -> _T:
+//|     """Returns a randomly selected element from the given sequence. Raises
+//|     IndexError when the sequence is empty."""
+//|     ...
 //|
 STATIC mp_obj_t random_choice(mp_obj_t seq) {
     mp_int_t len = mp_obj_get_int(mp_obj_len(seq));
@@ -149,19 +149,19 @@ STATIC mp_obj_t random_choice(mp_obj_t seq) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(random_choice_obj, random_choice);
 
-//| .. function:: random()
-//|
-//|   Returns a random float between 0 and 1.0.
+//| def random() -> float:
+//|     """Returns a random float between 0 and 1.0."""
+//|     ...
 //|
 STATIC mp_obj_t random_random(void) {
     return mp_obj_new_float(shared_modules_random_random());
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(random_random_obj, random_random);
 
-//| .. function:: uniform(a, b)
-//|
-//|   Returns a random float between a and b. It may or may not be inclusive
-//|   depending on float rounding.
+//| def uniform(a: float, b: float) -> float:
+//|     """Returns a random float between a and b. It may or may not be inclusive
+//|     depending on float rounding."""
+//|     ...
 //|
 STATIC mp_obj_t random_uniform(mp_obj_t a_in, mp_obj_t b_in) {
     mp_float_t a = mp_obj_get_float(a_in);
@@ -185,5 +185,7 @@ STATIC MP_DEFINE_CONST_DICT(mp_module_random_globals, mp_module_random_globals_t
 
 const mp_obj_module_t random_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_random_globals,
+    .globals = (mp_obj_dict_t *)&mp_module_random_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_random, random_module, CIRCUITPY_RANDOM);

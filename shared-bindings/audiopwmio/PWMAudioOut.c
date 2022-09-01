@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 
-#include "lib/utils/context_manager_helpers.h"
+#include "shared/runtime/context_manager_helpers.h"
 #include "py/binary.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
@@ -34,70 +34,66 @@
 #include "shared-bindings/audiopwmio/PWMAudioOut.h"
 #include "shared-bindings/audiocore/RawSample.h"
 #include "shared-bindings/util.h"
-#include "supervisor/shared/translate.h"
+#include "supervisor/shared/translate/translate.h"
 
-//| .. currentmodule:: audiopwmio
+//| class PWMAudioOut:
+//|     """Output an analog audio signal by varying the PWM duty cycle."""
 //|
-//| :class:`PWMAudioOut` -- Output an analog audio signal
-//| ========================================================
+//|     def __init__(self, left_channel: microcontroller.Pin, *, right_channel: Optional[microcontroller.Pin] = None, quiescent_value: int = 0x8000) -> None:
+//|         """Create a PWMAudioOut object associated with the given pin(s). This allows you to
+//|         play audio signals out on the given pin(s).  In contrast to mod:`audioio`,
+//|         the pin(s) specified are digital pins, and are driven with a device-dependent PWM
+//|         signal.
 //|
-//| AudioOut can be used to output an analog audio signal on a given pin.
+//|         :param ~microcontroller.Pin left_channel: The pin to output the left channel to
+//|         :param ~microcontroller.Pin right_channel: The pin to output the right channel to
+//|         :param int quiescent_value: The output value when no signal is present. Samples should start
+//|             and end with this value to prevent audible popping.
 //|
-//| .. class:: PWMAudioOut(left_channel, *, right_channel=None, quiescent_value=0x8000)
+//|         Simple 8ksps 440 Hz sin wave::
 //|
-//|   Create a PWMAudioOut object associated with the given pin(s). This allows you to
-//|   play audio signals out on the given pin(s).  In contrast to mod:`audioio`,
-//|   the pin(s) specified are digital pins, and are driven with a device-dependent PWM
-//|   signal.
+//|           import audiocore
+//|           import audiopwmio
+//|           import board
+//|           import array
+//|           import time
+//|           import math
 //|
-//|   :param ~microcontroller.Pin left_channel: The pin to output the left channel to
-//|   :param ~microcontroller.Pin right_channel: The pin to output the right channel to
-//|   :param int quiescent_value: The output value when no signal is present. Samples should start
-//|       and end with this value to prevent audible popping.
+//|           # Generate one period of sine wav.
+//|           length = 8000 // 440
+//|           sine_wave = array.array("H", [0] * length)
+//|           for i in range(length):
+//|               sine_wave[i] = int(math.sin(math.pi * 2 * i / length) * (2 ** 15) + 2 ** 15)
 //|
-//|   Simple 8ksps 440 Hz sin wave::
+//|           dac = audiopwmio.PWMAudioOut(board.SPEAKER)
+//|           sine_wave = audiocore.RawSample(sine_wave, sample_rate=8000)
+//|           dac.play(sine_wave, loop=True)
+//|           time.sleep(1)
+//|           dac.stop()
 //|
-//|     import audiocore
-//|     import audiopwmio
-//|     import board
-//|     import array
-//|     import time
-//|     import math
+//|         Playing a wave file from flash::
 //|
-//|     # Generate one period of sine wav.
-//|     length = 8000 // 440
-//|     sine_wave = array.array("H", [0] * length)
-//|     for i in range(length):
-//|         sine_wave[i] = int(math.sin(math.pi * 2 * i / 18) * (2 ** 15) + 2 ** 15)
+//|           import board
+//|           import audiocore
+//|           import audiopwmio
+//|           import digitalio
 //|
-//|     dac = audiopwmio.PWMAudioOut(board.SPEAKER)
-//|     sine_wave = audiocore.RawSample(sine_wave, sample_rate=8000)
-//|     dac.play(sine_wave, loop=True)
-//|     time.sleep(1)
-//|     dac.stop()
+//|           # Required for CircuitPlayground Express
+//|           speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
+//|           speaker_enable.switch_to_output(value=True)
 //|
-//|   Playing a wave file from flash::
+//|           data = open("cplay-5.1-16bit-16khz.wav", "rb")
+//|           wav = audiocore.WaveFile(data)
+//|           a = audiopwmio.PWMAudioOut(board.SPEAKER)
 //|
-//|     import board
-//|     import audiocore
-//|     import audiopwmio
-//|     import digitalio
+//|           print("playing")
+//|           a.play(wav)
+//|           while a.playing:
+//|             pass
+//|           print("stopped")"""
+//|         ...
 //|
-//|     # Required for CircuitPlayground Express
-//|     speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
-//|     speaker_enable.switch_to_output(value=True)
-//|
-//|     data = open("cplay-5.1-16bit-16khz.wav", "rb")
-//|     wav = audiocore.WaveFile(data)
-//|     a = audiopwmio.PWMAudioOut(board.SPEAKER)
-//|
-//|     print("playing")
-//|     a.play(wav)
-//|     while a.playing:
-//|       pass
-//|     print("stopped")
-//|
-STATIC mp_obj_t audiopwmio_pwmaudioout_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+STATIC mp_obj_t audiopwmio_pwmaudioout_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_left_channel, ARG_right_channel, ARG_quiescent_value };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_left_channel, MP_ARG_OBJ | MP_ARG_REQUIRED },
@@ -105,18 +101,10 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_make_new(const mp_obj_type_t *type, size_
         { MP_QSTR_quiescent_value, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x8000} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_obj_t left_channel_obj = args[ARG_left_channel].u_obj;
-    assert_pin(left_channel_obj, false);
-    const mcu_pin_obj_t *left_channel_pin = MP_OBJ_TO_PTR(left_channel_obj);
-
-    mp_obj_t right_channel_obj = args[ARG_right_channel].u_obj;
-    const mcu_pin_obj_t *right_channel_pin = NULL;
-    if (right_channel_obj != mp_const_none) {
-        assert_pin(right_channel_obj, false);
-        right_channel_pin = MP_OBJ_TO_PTR(right_channel_obj);
-    }
+    const mcu_pin_obj_t *left_channel_pin = validate_obj_is_free_pin(args[ARG_left_channel].u_obj);
+    const mcu_pin_obj_t *right_channel_pin = validate_obj_is_free_pin_or_none(args[ARG_right_channel].u_obj);
 
     // create AudioOut object from the given pin
     audiopwmio_pwmaudioout_obj_t *self = m_new_obj(audiopwmio_pwmaudioout_obj_t);
@@ -126,9 +114,9 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_make_new(const mp_obj_type_t *type, size_
     return MP_OBJ_FROM_PTR(self);
 }
 
-//|   .. method:: deinit()
-//|
-//|      Deinitialises the PWMAudioOut and releases any hardware resources for reuse.
+//|     def deinit(self) -> None:
+//|         """Deinitialises the PWMAudioOut and releases any hardware resources for reuse."""
+//|         ...
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_deinit(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -142,17 +130,16 @@ STATIC void check_for_deinit(audiopwmio_pwmaudioout_obj_t *self) {
         raise_deinited_error();
     }
 }
-//|   .. method:: __enter__()
-//|
-//|      No-op used by Context Managers.
+//|     def __enter__(self) -> PWMAudioOut:
+//|         """No-op used by Context Managers."""
+//|         ...
 //|
 //  Provided by context manager helper.
 
-//|   .. method:: __exit__()
-//|
-//|      Automatically deinitializes the hardware when exiting a context. See
-//|      :ref:`lifetime-and-contextmanagers` for more info.
-//|
+//|     def __exit__(self) -> None:
+//|         """Automatically deinitializes the hardware when exiting a context. See
+//|         :ref:`lifetime-and-contextmanagers` for more info."""
+//|         ...
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_audiopwmio_pwmaudioout_deinit(args[0]);
@@ -161,16 +148,15 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj___exit__(size_t n_args, const mp_obj_
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audiopwmio_pwmaudioout___exit___obj, 4, 4, audiopwmio_pwmaudioout_obj___exit__);
 
 
-//|   .. method:: play(sample, *, loop=False)
+//|     def play(self, sample: circuitpython_typing.AudioSample, *, loop: bool = False) -> None:
+//|         """Plays the sample once when loop=False and continuously when loop=True.
+//|         Does not block. Use `playing` to block.
 //|
-//|     Plays the sample once when loop=False and continuously when loop=True.
-//|     Does not block. Use `playing` to block.
+//|         Sample must be an `audiocore.WaveFile`, `audiocore.RawSample`, `audiomixer.Mixer` or `audiomp3.MP3Decoder`.
 //|
-//|     Sample must be an `audiocore.WaveFile`, `audiocore.RawSample`, or `audiocore.Mixer`.
-//|
-//|     The sample itself should consist of 16 bit samples. Microcontrollers with a lower output
-//|     resolution will use the highest order bits to output. For example, the SAMD21 has a 10 bit
-//|     DAC that ignores the lowest 6 bits when playing 16 bit samples.
+//|         The sample itself should consist of 16 bit samples. Microcontrollers with a lower output
+//|         resolution will use the highest order bits to output."""
+//|         ...
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_play(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_sample, ARG_loop };
@@ -190,9 +176,9 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_play(size_t n_args, const mp_obj_t *p
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(audiopwmio_pwmaudioout_play_obj, 1, audiopwmio_pwmaudioout_obj_play);
 
-//|   .. method:: stop()
-//|
-//|     Stops playback and resets to the start of the sample.
+//|     def stop(self) -> None:
+//|         """Stops playback and resets to the start of the sample."""
+//|         ...
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_stop(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -202,9 +188,8 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_stop(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audiopwmio_pwmaudioout_stop_obj, audiopwmio_pwmaudioout_obj_stop);
 
-//|   .. attribute:: playing
-//|
-//|     True when an audio sample is being output even if `paused`. (read-only)
+//|     playing: bool
+//|     """True when an audio sample is being output even if `paused`. (read-only)"""
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_get_playing(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -213,16 +198,12 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_get_playing(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audiopwmio_pwmaudioout_get_playing_obj, audiopwmio_pwmaudioout_obj_get_playing);
 
-const mp_obj_property_t audiopwmio_pwmaudioout_playing_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&audiopwmio_pwmaudioout_get_playing_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
-};
+MP_PROPERTY_GETTER(audiopwmio_pwmaudioout_playing_obj,
+    (mp_obj_t)&audiopwmio_pwmaudioout_get_playing_obj);
 
-//|   .. method:: pause()
-//|
-//|     Stops playback temporarily while remembering the position. Use `resume` to resume playback.
+//|     def pause(self) -> None:
+//|         """Stops playback temporarily while remembering the position. Use `resume` to resume playback."""
+//|         ...
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_pause(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -236,9 +217,9 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_pause(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audiopwmio_pwmaudioout_pause_obj, audiopwmio_pwmaudioout_obj_pause);
 
-//|   .. method:: resume()
-//|
-//|     Resumes sample playback after :py:func:`pause`.
+//|     def resume(self) -> None:
+//|         """Resumes sample playback after :py:func:`pause`."""
+//|         ...
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_resume(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -252,9 +233,8 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_resume(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audiopwmio_pwmaudioout_resume_obj, audiopwmio_pwmaudioout_obj_resume);
 
-//|   .. attribute:: paused
-//|
-//|     True when playback is paused. (read-only)
+//|     paused: bool
+//|     """True when playback is paused. (read-only)"""
 //|
 STATIC mp_obj_t audiopwmio_pwmaudioout_obj_get_paused(mp_obj_t self_in) {
     audiopwmio_pwmaudioout_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -263,12 +243,8 @@ STATIC mp_obj_t audiopwmio_pwmaudioout_obj_get_paused(mp_obj_t self_in) {
 }
 MP_DEFINE_CONST_FUN_OBJ_1(audiopwmio_pwmaudioout_get_paused_obj, audiopwmio_pwmaudioout_obj_get_paused);
 
-const mp_obj_property_t audiopwmio_pwmaudioout_paused_obj = {
-    .base.type = &mp_type_property,
-    .proxy = {(mp_obj_t)&audiopwmio_pwmaudioout_get_paused_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
-};
+MP_PROPERTY_GETTER(audiopwmio_pwmaudioout_paused_obj,
+    (mp_obj_t)&audiopwmio_pwmaudioout_get_paused_obj);
 
 STATIC const mp_rom_map_elem_t audiopwmio_pwmaudioout_locals_dict_table[] = {
     // Methods
@@ -290,5 +266,5 @@ const mp_obj_type_t audiopwmio_pwmaudioout_type = {
     { &mp_type_type },
     .name = MP_QSTR_PWMAudioOut,
     .make_new = audiopwmio_pwmaudioout_make_new,
-    .locals_dict = (mp_obj_dict_t*)&audiopwmio_pwmaudioout_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&audiopwmio_pwmaudioout_locals_dict,
 };

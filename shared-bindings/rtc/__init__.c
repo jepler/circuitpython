@@ -4,7 +4,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2018 Noralf Trønnes
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,22 +31,11 @@
 #include "shared-bindings/rtc/RTC.h"
 #include "shared-bindings/time/__init__.h"
 
-//| :mod:`rtc` --- Real Time Clock
-//| ========================================================
+//| """Real Time Clock
 //|
-//| .. module:: rtc
-//|   :synopsis: Real Time Clock
-//|   :platform: SAMD21
-//|
-//| The `rtc` module provides support for a Real Time Clock.
-//| It also backs the `time.time()` and `time.localtime()` functions using the onboard RTC if present.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     RTC
+//| The `rtc` module provides support for a Real Time Clock. You can access and manage the
+//| RTC using :class:`rtc.RTC`. It also backs the :func:`time.time` and :func:`time.localtime`
+//| functions using the onboard RTC if present."""
 //|
 
 void rtc_reset(void) {
@@ -61,23 +50,22 @@ mp_obj_t rtc_get_time_source_time(void) {
     return struct_time_from_tm(&tm);
 }
 
-//| .. function:: set_time_source(rtc)
+//| def set_time_source(rtc: RTC) -> None:
+//|     """Sets the RTC time source used by :func:`time.localtime`.
+//|     The default is :class:`rtc.RTC`, but it's useful to use this to override the
+//|     time source for testing purposes. For example::
 //|
-//|   Sets the rtc time source used by time.localtime().
-//|   The default is `rtc.RTC()`.
+//|       import rtc
+//|       import time
 //|
-//|   Example usage::
+//|       class RTC(object):
+//|           @property
+//|           def datetime(self):
+//|               return time.struct_time((2018, 3, 17, 21, 1, 47, 0, 0, 0))
 //|
-//|     import rtc
-//|     import time
-//|
-//|     class RTC(object):
-//|         @property
-//|         def datetime(self):
-//|             return time.struct_time((2018, 3, 17, 21, 1, 47, 0, 0, 0))
-//|
-//|     r = RTC()
-//|     rtc.set_time_source(r)
+//|       r = RTC()
+//|       rtc.set_time_source(r)"""
+//|     ...
 //|
 STATIC mp_obj_t rtc_set_time_source(mp_obj_t time_source) {
     MP_STATE_VM(rtc_time_source) = time_source;
@@ -96,5 +84,7 @@ STATIC MP_DEFINE_CONST_DICT(rtc_module_globals, rtc_module_globals_table);
 
 const mp_obj_module_t rtc_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&rtc_module_globals,
+    .globals = (mp_obj_dict_t *)&rtc_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_rtc, rtc_module, CIRCUITPY_RTC);

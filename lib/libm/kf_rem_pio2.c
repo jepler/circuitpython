@@ -17,7 +17,7 @@
  *
  * Developed at SunPro, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  */
@@ -30,7 +30,7 @@
 #ifdef __STDC__
 static const int init_jk[] = {4,7,9}; /* initial value for jk */
 #else
-static int init_jk[] = {4,7,9}; 
+static int init_jk[] = {4,7,9};
 #endif
 
 #ifdef __STDC__
@@ -38,34 +38,34 @@ static const float PIo2[] = {
 #else
 static float PIo2[] = {
 #endif
-  1.5703125000e+00, /* 0x3fc90000 */
-  4.5776367188e-04, /* 0x39f00000 */
-  2.5987625122e-05, /* 0x37da0000 */
-  7.5437128544e-08, /* 0x33a20000 */
-  6.0026650317e-11, /* 0x2e840000 */
-  7.3896444519e-13, /* 0x2b500000 */
-  5.3845816694e-15, /* 0x27c20000 */
-  5.6378512969e-18, /* 0x22d00000 */
-  8.3009228831e-20, /* 0x1fc40000 */
-  3.2756352257e-22, /* 0x1bc60000 */
-  6.3331015649e-25, /* 0x17440000 */
+  1.5703125000e+00f, /* 0x3fc90000 */
+  4.5776367188e-04f, /* 0x39f00000 */
+  2.5987625122e-05f, /* 0x37da0000 */
+  7.5437128544e-08f, /* 0x33a20000 */
+  6.0026650317e-11f, /* 0x2e840000 */
+  7.3896444519e-13f, /* 0x2b500000 */
+  5.3845816694e-15f, /* 0x27c20000 */
+  5.6378512969e-18f, /* 0x22d00000 */
+  8.3009228831e-20f, /* 0x1fc40000 */
+  3.2756352257e-22f, /* 0x1bc60000 */
+  6.3331015649e-25f, /* 0x17440000 */
 };
 
 #ifdef __STDC__
-static const float			
+static const float
 #else
-static float			
+static float
 #endif
-zero   = 0.0,
-one    = 1.0,
-two8   =  2.5600000000e+02, /* 0x43800000 */
-twon8  =  3.9062500000e-03; /* 0x3b800000 */
+zero   = 0.0f,
+one    = 1.0f,
+two8   =  2.5600000000e+02f, /* 0x43800000 */
+twon8  =  3.9062500000e-03f; /* 0x3b800000 */
 
 #ifdef __STDC__
-	int __kernel_rem_pio2f(float *x, float *y, int e0, int nx, int prec, const __int32_t *ipio2) 
+	int __kernel_rem_pio2f(float *x, float *y, int e0, int nx, int prec, const __uint8_t *ipio2)
 #else
-	int __kernel_rem_pio2f(x,y,e0,nx,prec,ipio2) 	
-	float x[], y[]; int e0,nx,prec; __int32_t ipio2[];
+	int __kernel_rem_pio2f(x,y,e0,nx,prec,ipio2)
+	float x[], y[]; int e0,nx,prec; __uint8_t ipio2[];
 #endif
 {
 	__int32_t jz,jx,jv,jp,jk,carry,n,iq[20],i,j,k,m,q0,ih;
@@ -109,7 +109,7 @@ recompute:
 	    i  = (iq[jz-1]>>(8-q0)); n += i;
 	    iq[jz-1] -= i<<(8-q0);
 	    ih = iq[jz-1]>>(7-q0);
-	} 
+	}
 	else if(q0==0) ih = iq[jz-1]>>8;
 	else if(z>=(float)0.5) ih=2;
 
@@ -141,7 +141,7 @@ recompute:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 	if(z==zero) {
-#pragma GCC diagnostic pop           
+#pragma GCC diagnostic pop
 	    j = 0;
 	    for (i=jz-1;i>=jk;i--) j |= iq[i];
 	    if(j==0) { /* need recomputation */
@@ -166,7 +166,7 @@ recompute:
 	    while(iq[jz]==0) { jz--; q0-=8;}
 	} else { /* break z into 8-bit if necessary */
 	    z = scalbnf(z,-(int)q0);
-	    if(z>=two8) { 
+	    if(z>=two8) {
 		fw = (float)((__int32_t)(twon8*z));
 		iq[jz] = (__int32_t)(z-two8*fw);
 		jz += 1; q0 += 8;
@@ -191,29 +191,29 @@ recompute:
 	    case 0:
 		fw = 0.0;
 		for (i=jz;i>=0;i--) fw += fq[i];
-		y[0] = (ih==0)? fw: -fw; 
+		y[0] = (ih==0)? fw: -fw;
 		break;
 	    case 1:
 	    case 2:
 		fw = 0.0;
-		for (i=jz;i>=0;i--) fw += fq[i]; 
-		y[0] = (ih==0)? fw: -fw; 
+		for (i=jz;i>=0;i--) fw += fq[i];
+		y[0] = (ih==0)? fw: -fw;
 		fw = fq[0]-fw;
 		for (i=1;i<=jz;i++) fw += fq[i];
-		y[1] = (ih==0)? fw: -fw; 
+		y[1] = (ih==0)? fw: -fw;
 		break;
 	    case 3:	/* painful */
 		for (i=jz;i>0;i--) {
-		    fw      = fq[i-1]+fq[i]; 
+		    fw      = fq[i-1]+fq[i];
 		    fq[i]  += fq[i-1]-fw;
 		    fq[i-1] = fw;
 		}
 		for (i=jz;i>1;i--) {
-		    fw      = fq[i-1]+fq[i]; 
+		    fw      = fq[i-1]+fq[i];
 		    fq[i]  += fq[i-1]-fw;
 		    fq[i-1] = fw;
 		}
-		for (fw=0.0,i=jz;i>=2;i--) fw += fq[i]; 
+		for (fw=0.0,i=jz;i>=2;i--) fw += fq[i];
 		if(ih==0) {
 		    y[0] =  fq[0]; y[1] =  fq[1]; y[2] =  fw;
 		} else {

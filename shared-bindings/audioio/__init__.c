@@ -33,29 +33,21 @@
 #include "shared-bindings/audioio/__init__.h"
 #include "shared-bindings/audioio/AudioOut.h"
 
-//| :mod:`audioio` --- Support for audio input and output
-//| ======================================================
-//|
-//| .. module:: audioio
-//|   :synopsis: Support for audio input and output
-//|   :platform: SAMD21
+//| """Support for audio output
 //|
 //| The `audioio` module contains classes to provide access to audio IO.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     AudioOut
 //|
 //| All classes change hardware state and should be deinitialized when they
 //| are no longer needed if the program continues after use. To do so, either
 //| call :py:meth:`!deinit` or use a context manager. See
 //| :ref:`lifetime-and-contextmanagers` for more info.
 //|
-//| Since CircuitPython 5, `Mixer`, `RawSample` and `WaveFile` are moved
-//| to :mod:`audiocore`.
+//| Since CircuitPython 5, `RawSample` and `WaveFile` are moved
+//| to :mod:`audiocore`, and `Mixer` is moved to :mod:`audiomixer`.
+//|
+//| For compatibility with CircuitPython 4.x, some builds allow the items in
+//| `audiocore` to be imported from `audioio`.  This will be removed for all
+//| boards in a future build of CircuitPython."""
 //|
 
 STATIC const mp_rom_map_elem_t audioio_module_globals_table[] = {
@@ -67,5 +59,7 @@ STATIC MP_DEFINE_CONST_DICT(audioio_module_globals, audioio_module_globals_table
 
 const mp_obj_module_t audioio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&audioio_module_globals,
+    .globals = (mp_obj_dict_t *)&audioio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_audioio, audioio_module, CIRCUITPY_AUDIOIO);

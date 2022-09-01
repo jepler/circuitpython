@@ -28,23 +28,29 @@
 
 #include <stdint.h>
 
-//| .. currentmodule:: fontio
+//| class Glyph:
+//|     """Storage of glyph info"""
 //|
-//| :class:`Glyph` -- Storage of glyph info
-//| ==========================================================================
+//|     def __init__(self,
+//|                  bitmap: displayio.Bitmap,
+//|                  tile_index: int,
+//|                  width: int,
+//|                  height: int,
+//|                  dx: int,
+//|                  dy: int,
+//|                  shift_x: int,
+//|                  shift_y: int) -> None:
+//|         """Named tuple used to capture a single glyph and its attributes.
 //|
-//| .. class:: Glyph(bitmap, tile_index, width, height, dx, dy, shift_x, shift_y)
-//|
-//|   Named tuple used to capture a single glyph and its attributes.
-//|
-//|   :param displayio.Bitmap bitmap: the bitmap including the glyph
-//|   :param int tile_index: the tile index within the bitmap
-//|   :param int width: the width of the glyph's bitmap
-//|   :param int height: the height of the glyph's bitmap
-//|   :param int dx: x adjustment to the bitmap's position
-//|   :param int dy: y adjustment to the bitmap's position
-//|   :param int shift_x: the x difference to the next glyph
-//|   :param int shift_y: the y difference to the next glyph
+//|         :param bitmap: the bitmap including the glyph
+//|         :param tile_index: the tile index within the bitmap
+//|         :param width: the width of the glyph's bitmap
+//|         :param height: the height of the glyph's bitmap
+//|         :param dx: x adjustment to the bitmap's position
+//|         :param dy: y adjustment to the bitmap's position
+//|         :param shift_x: the x difference to the next glyph
+//|         :param shift_y: the y difference to the next glyph"""
+//|         ...
 //|
 const mp_obj_namedtuple_type_t fontio_glyph_type = {
     .base = {
@@ -52,14 +58,17 @@ const mp_obj_namedtuple_type_t fontio_glyph_type = {
             .type = &mp_type_type
         },
         .name = MP_QSTR_Glyph,
+        .flags = MP_TYPE_FLAG_EXTENDED,
         .print = namedtuple_print,
         .make_new = namedtuple_make_new,
-        .unary_op = mp_obj_tuple_unary_op,
-        .binary_op = mp_obj_tuple_binary_op,
-        .attr = namedtuple_attr,
-        .subscr = mp_obj_tuple_subscr,
-        .getiter = mp_obj_tuple_getiter,
         .parent = &mp_type_tuple,
+        .attr = namedtuple_attr,
+        MP_TYPE_EXTENDED_FIELDS(
+            .unary_op = mp_obj_tuple_unary_op,
+            .binary_op = mp_obj_tuple_binary_op,
+            .subscr = mp_obj_tuple_subscr,
+            .getiter = mp_obj_tuple_getiter,
+            ),
     },
     .n_fields = 8,
     .fields = {

@@ -31,32 +31,15 @@
 
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/audiocore/__init__.h"
-#include "shared-bindings/audiocore/Mixer.h"
 #include "shared-bindings/audiocore/RawSample.h"
 #include "shared-bindings/audiocore/WaveFile.h"
+// #include "shared-bindings/audiomixer/Mixer.h"
 
-//| :mod:`audiocore` --- Support for audio samples and mixer
-//| ========================================================
-//|
-//| .. module:: audiocore
-//|   :synopsis: Support for audio samples and mixer
-//|   :platform: SAMD21
-//|
-//| The `audiocore` module contains core classes for audio IO
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     Mixer
-//|     RawSample
-//|     WaveFile
+//| """Support for audio samples"""
 //|
 
 STATIC const mp_rom_map_elem_t audiocore_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_audiocore) },
-    { MP_ROM_QSTR(MP_QSTR_Mixer), MP_ROM_PTR(&audioio_mixer_type) },
     { MP_ROM_QSTR(MP_QSTR_RawSample), MP_ROM_PTR(&audioio_rawsample_type) },
     { MP_ROM_QSTR(MP_QSTR_WaveFile), MP_ROM_PTR(&audioio_wavefile_type) },
 };
@@ -65,5 +48,7 @@ STATIC MP_DEFINE_CONST_DICT(audiocore_module_globals, audiocore_module_globals_t
 
 const mp_obj_module_t audiocore_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&audiocore_module_globals,
+    .globals = (mp_obj_dict_t *)&audiocore_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_audiocore, audiocore_module, CIRCUITPY_AUDIOCORE);

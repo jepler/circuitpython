@@ -1,4 +1,3 @@
-LD_FILE = boards/samd51x20-bootloader-external-flash.ld
 USB_VID = 0x239A
 USB_PID = 0x8036
 USB_PRODUCT = "PyPortal"
@@ -8,9 +7,13 @@ CHIP_VARIANT = SAMD51J20A
 CHIP_FAMILY = samd51
 
 QSPI_FLASH_FILESYSTEM = 1
-EXTERNAL_FLASH_DEVICE_COUNT = 2
-EXTERNAL_FLASH_DEVICES = "W25Q64JV_IQ, GD25Q64C"
+EXTERNAL_FLASH_DEVICES = "W25Q64JVxQ, GD25Q64C"
 LONGINT_IMPL = MPZ
 
-# No touch on SAMD51 yet
-CIRCUITPY_TOUCHIO = 0
+# Include these Python libraries in firmware.
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_PortalBase
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Requests
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_ESP32SPI
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_NeoPixel
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Display_Text
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_FakeRequests

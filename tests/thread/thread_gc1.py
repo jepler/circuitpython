@@ -1,9 +1,12 @@
 # test that we can run the garbage collector within threads
 #
-# MIT license; Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+# SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George on behalf of Pycom Ltd
+#
+# SPDX-License-Identifier: MIT
 
 import gc
 import _thread
+
 
 def thread_entry(n):
     # allocate a bytearray and fill it
@@ -20,6 +23,7 @@ def thread_entry(n):
         print(list(data) == list(range(256)))
         global n_finished
         n_finished += 1
+
 
 lock = _thread.allocate_lock()
 n_thread = 4

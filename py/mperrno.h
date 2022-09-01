@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2016 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,7 @@
 #define MP_EHOSTUNREACH     (113) // No route to host
 #define MP_EALREADY         (114) // Operation already in progress
 #define MP_EINPROGRESS      (115) // Operation now in progress
+#define MP_ECANCELED        (125) // Operation canceled
 
 #else
 
@@ -137,10 +138,11 @@
 #define MP_EHOSTUNREACH     EHOSTUNREACH
 #define MP_EALREADY         EALREADY
 #define MP_EINPROGRESS      EINPROGRESS
+#define MP_ECANCELED        ECANCELED
 
 #endif
 
-const char* mp_errno_to_str(mp_obj_t errno_val);
+qstr mp_errno_to_str(mp_obj_t errno_val);
 const char *mp_common_errno_to_str(mp_obj_t errno_val, char *buf, size_t len);
 
 #endif // MICROPY_INCLUDED_PY_MPERRNO_H

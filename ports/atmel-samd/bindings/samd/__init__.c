@@ -30,33 +30,20 @@
 
 #include "bindings/samd/Clock.h"
 
-//| :mod:`samd` --- SAMD implementation settings
-//| =================================================
-//|
-//| .. module:: samd
-//|   :synopsis: SAMD implementation settings
-//|   :platform: SAMD21
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     Clock
-//|
+//| """SAMD implementation settings"""
 
-//| :mod:`samd.clock` --- samd clock names
+//| """:mod:`samd.clock` --- samd clock names
 //| --------------------------------------------------------
 //|
 //| .. module:: samd.clock
 //|   :synopsis: samd clock names
 //|   :platform: SAMD21
 //|
-//| References to clocks as named by the microcontroller
+//| References to clocks as named by the microcontroller"""
 //|
 const mp_obj_module_t samd_clock_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&samd_clock_globals,
+    .globals = (mp_obj_dict_t *)&samd_clock_globals,
 };
 
 STATIC const mp_rom_map_elem_t samd_module_globals_table[] = {
@@ -68,5 +55,7 @@ STATIC MP_DEFINE_CONST_DICT(samd_module_globals, samd_module_globals_table);
 
 const mp_obj_module_t samd_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&samd_module_globals,
+    .globals = (mp_obj_dict_t *)&samd_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_samd, samd_module, CIRCUITPY_SAMD);

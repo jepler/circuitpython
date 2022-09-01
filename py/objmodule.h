@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013-2019 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,18 +29,10 @@
 #include "py/obj.h"
 
 extern const mp_map_t mp_builtin_module_map;
-extern const mp_map_t mp_builtin_module_weak_links_map;
 
-mp_obj_t mp_module_get(qstr module_name);
-void mp_module_register(qstr qstr, mp_obj_t module);
-
-#if MICROPY_MODULE_BUILTIN_INIT
-void mp_module_call_init(qstr module_name, mp_obj_t module_obj);
-#else
-static inline void mp_module_call_init(qstr module_name, mp_obj_t module_obj) {
-    (void)module_name;
-    (void)module_obj;
-}
+mp_obj_t mp_module_get_loaded_or_builtin(qstr module_name);
+#if MICROPY_MODULE_WEAK_LINKS
+mp_obj_t mp_module_get_builtin(qstr module_name);
 #endif
 
 #endif // MICROPY_INCLUDED_PY_OBJMODULE_H

@@ -32,13 +32,13 @@
 
 typedef struct {
     nrfx_spim_t spim;
-    uint8_t max_frequency_MHz;
-    uint8_t max_xfer_size;
+    uint32_t max_frequency;
+    uint32_t max_xfer_size;
 } spim_peripheral_t;
 
 typedef struct {
     mp_obj_base_t base;
-    spim_peripheral_t* spim_peripheral;
+    const spim_peripheral_t *spim_peripheral;
     bool has_lock;
     uint8_t clock_pin_number;
     uint8_t MOSI_pin_number;

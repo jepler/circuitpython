@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,8 @@
  * THE SOFTWARE.
  */
 
+// *FORMAT-OFF*
+
 #include "py/mpconfig.h"
 
 // All the qstr definitions in this file are available as constants.
@@ -37,8 +39,13 @@ Q()
 Q(*)
 Q(_)
 Q(/)
+#if MICROPY_PY_BUILTINS_STR_OP_MODULO
 Q(%#o)
 Q(%#x)
+#else
+Q({:#o})
+Q({:#x})
+#endif
 Q({:#b})
 Q( )
 Q(\n)
@@ -52,6 +59,10 @@ Q(<genexpr>)
 Q(<string>)
 Q(<stdin>)
 Q(utf-8)
+
+#if MICROPY_MODULE_FROZEN
+Q(.frozen)
+#endif
 
 #if MICROPY_ENABLE_PYSTACK
 Q(pystack exhausted)

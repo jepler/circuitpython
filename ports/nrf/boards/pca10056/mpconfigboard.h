@@ -5,6 +5,7 @@
  *
  * Copyright (c) 2016 Glenn Ruben Bakke
  *
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -28,9 +29,6 @@
 
 #define MICROPY_HW_BOARD_NAME       "PCA10056 nRF52840-DK"
 #define MICROPY_HW_MCU_NAME         "nRF52840"
-#define MICROPY_PY_SYS_PLATFORM     "nRF52840-DK"
-
-#define CIRCUITPY_AUTORELOAD_DELAY_MS 500
 
 #define MICROPY_HW_LED_STATUS          (&pin_P0_13)
 

@@ -33,22 +33,15 @@
 #include "shared-bindings/fontio/BuiltinFont.h"
 #include "shared-bindings/fontio/Glyph.h"
 
-//| :mod:`fontio` --- Core font related data structures
-//| =========================================================================
+//| """Core font related data structures
 //|
-//| .. module:: fontio
-//|   :synopsis: Core font related data structures
-//|   :platform: SAMD21, SAMD51, nRF52
+//| .. note:: This module is intended only for low-level usage.  For working with
+//|     fonts in CircuitPython see the `adafruit_bitmap_font library
+//|     <https://github.com/adafruit/Adafruit_CircuitPython_Bitmap_Font>`_.
+//|     For information on creating custom fonts for use in CircuitPython, see
+//|     `this Learn guide <https://learn.adafruit.com/custom-fonts-for-pyportal-circuitpython-display>`_
 //|
-//| The `fontio` module contains classes to store font related information.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     BuiltinFont
-//|     Glyph
+//| """
 //|
 
 STATIC const mp_rom_map_elem_t fontio_module_globals_table[] = {
@@ -61,5 +54,7 @@ STATIC MP_DEFINE_CONST_DICT(fontio_module_globals, fontio_module_globals_table);
 
 const mp_obj_module_t fontio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&fontio_module_globals,
+    .globals = (mp_obj_dict_t *)&fontio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_fontio, fontio_module, CIRCUITPY_DISPLAYIO && CIRCUITPY_TERMINALIO);

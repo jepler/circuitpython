@@ -24,28 +24,23 @@
  * THE SOFTWARE.
  */
 
+#include "py/runtime.h"
+
 #include "shared-bindings/microcontroller/Pin.h"
+#include "supervisor/shared/translate/translate.h"
 
 #include "atmel_start_pins.h"
 #include "hal/include/hal_gpio.h"
 
 #include "samd/pins.h"
-#include "supervisor/shared/rgb_led_status.h"
 
-#ifdef MICROPY_HW_NEOPIXEL
-bool neopixel_in_use;
-#endif
-#ifdef MICROPY_HW_APA102_MOSI
-bool apa102_sck_in_use;
-bool apa102_mosi_in_use;
-#endif
 #ifdef SPEAKER_ENABLE_PIN
 bool speaker_enable_in_use;
 #endif
 
 #define PORT_COUNT (PORT_BITS / 32 + 1)
 
-#ifdef SAMD51
+#ifdef SAM_D5X_E5X
 #define SWD_MUX GPIO_PIN_FUNCTION_H
 #endif
 #ifdef SAMD21
@@ -58,7 +53,9 @@ void reset_all_pins(void) {
     uint32_t pin_mask[PORT_COUNT] = PORT_OUT_IMPLEMENTED;
 
     // Do not full reset USB lines.
+    #if CIRCUITPY_USB
     pin_mask[0] &= ~(PORT_PA24 | PORT_PA25);
+    #endif
 
     // Do not reset SWD when a debugger is present.
     if (DSU->STATUSB.bit.DBGPRES == 1) {
@@ -69,31 +66,23 @@ void reset_all_pins(void) {
         pin_mask[i] &= ~never_reset_pins[i];
     }
 
-    gpio_set_port_direction(GPIO_PORTA, pin_mask[0] & ~MICROPY_PORT_A, GPIO_DIRECTION_OFF);
-    gpio_set_port_direction(GPIO_PORTB, pin_mask[1] & ~MICROPY_PORT_B, GPIO_DIRECTION_OFF);
+    gpio_set_port_direction(GPIO_PORTA, pin_mask[0], GPIO_DIRECTION_OFF);
+    gpio_set_port_direction(GPIO_PORTB, pin_mask[1], GPIO_DIRECTION_OFF);
     #if PORT_BITS > 64
-    gpio_set_port_direction(GPIO_PORTC, pin_mask[2] & ~MICROPY_PORT_C, GPIO_DIRECTION_OFF);
+    gpio_set_port_direction(GPIO_PORTC, pin_mask[2], GPIO_DIRECTION_OFF);
     #endif
     #if PORT_BITS > 96
-    gpio_set_port_direction(GPIO_PORTD, pin_mask[3] & ~MICROPY_PORT_D, GPIO_DIRECTION_OFF);
+    gpio_set_port_direction(GPIO_PORTD, pin_mask[3], GPIO_DIRECTION_OFF);
     #endif
 
     // Configure SWD. SWDIO will be automatically switched on PA31 when a signal is input on
     // SWCLK.
-    #ifdef SAMD51
+    #ifdef SAM_D5X_E5X
     gpio_set_pin_function(PIN_PA30, MUX_PA30H_CM4_SWCLK);
     #endif
     #ifdef SAMD21
     gpio_set_pin_function(PIN_PA30, GPIO_PIN_FUNCTION_G);
     gpio_set_pin_function(PIN_PA31, GPIO_PIN_FUNCTION_G);
-    #endif
-
-    #ifdef MICROPY_HW_NEOPIXEL
-    neopixel_in_use = false;
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    apa102_sck_in_use = false;
-    apa102_mosi_in_use = false;
     #endif
 
     // After configuring SWD because it may be shared.
@@ -106,37 +95,22 @@ void reset_all_pins(void) {
 }
 
 void never_reset_pin_number(uint8_t pin_number) {
-    never_reset_pins[GPIO_PORT(pin_number)] |= 1 << GPIO_PIN(pin_number);
-}
-
-void reset_pin_number(uint8_t pin_number) {
-    never_reset_pins[GPIO_PORT(pin_number)] &= ~(1 << GPIO_PIN(pin_number));
-
     if (pin_number >= PORT_BITS) {
         return;
     }
 
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin_number == MICROPY_HW_NEOPIXEL->number) {
-        neopixel_in_use = false;
-        rgb_led_status_init();
+    never_reset_pins[GPIO_PORT(pin_number)] |= 1 << GPIO_PIN(pin_number);
+}
+
+void reset_pin_number(uint8_t pin_number) {
+    if (pin_number >= PORT_BITS) {
         return;
     }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin_number == MICROPY_HW_APA102_MOSI->number ||
-        pin_number == MICROPY_HW_APA102_SCK->number) {
-        apa102_mosi_in_use = apa102_mosi_in_use && pin_number != MICROPY_HW_APA102_MOSI->number;
-        apa102_sck_in_use = apa102_sck_in_use && pin_number != MICROPY_HW_APA102_SCK->number;
-        if (!apa102_sck_in_use && !apa102_mosi_in_use) {
-            rgb_led_status_init();
-        }
-        return;
-    }
-    #endif
+
+    never_reset_pins[GPIO_PORT(pin_number)] &= ~(1 << GPIO_PIN(pin_number));
 
     if (pin_number == PIN_PA30
-        #ifdef SAMD51
+        #ifdef SAM_D5X_E5X
         ) {
         #endif
         #ifdef SAMD21
@@ -158,21 +132,18 @@ void reset_pin_number(uint8_t pin_number) {
     #endif
 }
 
-void claim_pin(const mcu_pin_obj_t* pin) {
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin == MICROPY_HW_NEOPIXEL) {
-        neopixel_in_use = true;
-    }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin == MICROPY_HW_APA102_MOSI) {
-        apa102_mosi_in_use = true;
-    }
-    if (pin == MICROPY_HW_APA102_SCK) {
-        apa102_sck_in_use = true;
-    }
-    #endif
+void common_hal_never_reset_pin(const mcu_pin_obj_t* pin) {
+    never_reset_pin_number(pin->number);
+}
 
+void common_hal_reset_pin(const mcu_pin_obj_t* pin) {
+    if (pin == NULL) {
+        return;
+    }
+    reset_pin_number(pin->number);
+}
+
+void claim_pin(const mcu_pin_obj_t* pin) {
     #ifdef SPEAKER_ENABLE_PIN
     if (pin == SPEAKER_ENABLE_PIN) {
         speaker_enable_in_use = true;
@@ -191,7 +162,7 @@ bool pin_number_is_free(uint8_t pin_number) {
             return false;
         }
         if (pin_number == PIN_PA30
-            #ifdef SAMD51
+            #ifdef SAM_D5X_E5X
             ) {
             #endif
             #ifdef SAMD21
@@ -206,24 +177,6 @@ bool pin_number_is_free(uint8_t pin_number) {
 }
 
 bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin) {
-    #ifdef MICROPY_HW_NEOPIXEL
-    if (pin == MICROPY_HW_NEOPIXEL) {
-        // Special case for Metro M0 where the NeoPixel is also SWCLK
-        if (MICROPY_HW_NEOPIXEL == &pin_PA30 && DSU->STATUSB.bit.DBGPRES == 1) {
-            return false;
-        }
-        return !neopixel_in_use;
-    }
-    #endif
-    #ifdef MICROPY_HW_APA102_MOSI
-    if (pin == MICROPY_HW_APA102_MOSI) {
-        return !apa102_mosi_in_use;
-    }
-    if (pin == MICROPY_HW_APA102_SCK) {
-        return !apa102_sck_in_use;
-    }
-    #endif
-
     #ifdef SPEAKER_ENABLE_PIN
     if (pin == SPEAKER_ENABLE_PIN) {
         return !speaker_enable_in_use;
@@ -231,4 +184,32 @@ bool common_hal_mcu_pin_is_free(const mcu_pin_obj_t* pin) {
     #endif
 
     return pin_number_is_free(pin->number);
+}
+
+uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t* pin) {
+    return pin->number;
+}
+
+void common_hal_mcu_pin_claim(const mcu_pin_obj_t* pin) {
+    return claim_pin(pin);
+}
+
+void common_hal_mcu_pin_reset_number(uint8_t pin_no) {
+    reset_pin_number(pin_no);
+}
+
+mcu_pin_function_t *mcu_find_pin_function(mcu_pin_function_t *table, const mcu_pin_obj_t *pin, int instance, uint16_t name) {
+    if (!pin) {
+        return NULL;
+    }
+
+    for(; table->obj; table++) {
+        if (instance != -1 && instance != table->instance) {
+            continue;
+        }
+        if (pin == table->obj) {
+            return table;
+        }
+    }
+    mp_raise_ValueError_varg(translate("%q pin invalid"), name);
 }

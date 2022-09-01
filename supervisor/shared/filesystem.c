@@ -69,45 +69,80 @@ static void make_empty_file(FATFS *fatfs, const char *path) {
     f_close(&fp);
 }
 
+
+static void make_sample_code_file(FATFS *fatfs) {
+    #if CIRCUITPY_FULL_BUILD
+    FIL fs;
+    UINT char_written = 0;
+    const byte buffer[] = "print(\"Hello World!\")\n";
+    // Create or modify existing code.py file
+    f_open(fatfs, &fs, "/code.py", FA_WRITE | FA_CREATE_ALWAYS);
+    f_write(&fs, buffer, sizeof(buffer) - 1, &char_written);
+    f_close(&fs);
+    #else
+    make_empty_file(fatfs, "/code.py");
+    #endif
+}
+
 // we don't make this function static because it needs a lot of stack and we
 // want it to be executed without using stack within main() function
-void filesystem_init(bool create_allowed, bool force_create) {
+bool filesystem_init(bool create_allowed, bool force_create) {
     // init the vfs object
     fs_user_mount_t *vfs_fat = &_internal_vfs;
-    vfs_fat->flags = 0;
+    vfs_fat->blockdev.flags = 0;
     supervisor_flash_init_vfs(vfs_fat);
+
+    mp_vfs_mount_t *vfs = &_mp_vfs;
+    vfs->len = 0;
 
     // try to mount the flash
     FRESULT res = f_mount(&vfs_fat->fatfs);
-
     if ((res == FR_NO_FILESYSTEM && create_allowed) || force_create) {
         // No filesystem so create a fresh one, or reformat has been requested.
-        uint8_t working_buf[_MAX_SS];
-        res = f_mkfs(&vfs_fat->fatfs, FM_FAT, 0, working_buf, sizeof(working_buf));
+        uint8_t working_buf[FF_MAX_SS];
+        BYTE formats = FM_FAT;
+        #if FF_FS_EXFAT
+        formats |= FM_EXFAT | FM_FAT32;
+        #endif
+        res = f_mkfs(&vfs_fat->fatfs, formats, 0, working_buf, sizeof(working_buf));
+        if (res != FR_OK) {
+            return false;
+        }
         // Flush the new file system to make sure it's repaired immediately.
         supervisor_flash_flush();
-        if (res != FR_OK) {
-            return;
-        }
 
         // set label
-        f_setlabel(&vfs_fat->fatfs, "CIRCUITPY");
+        #ifdef CIRCUITPY_DRIVE_LABEL
+        res = f_setlabel(&vfs_fat->fatfs, CIRCUITPY_DRIVE_LABEL);
+        #else
+        res = f_setlabel(&vfs_fat->fatfs, "CIRCUITPY");
+        #endif
+        if (res != FR_OK) {
+            return false;
+        }
 
         // inhibit file indexing on MacOS
-        f_mkdir(&vfs_fat->fatfs, "/.fseventsd");
+        res = f_mkdir(&vfs_fat->fatfs, "/.fseventsd");
+        if (res != FR_OK) {
+            return false;
+        }
         make_empty_file(&vfs_fat->fatfs, "/.metadata_never_index");
         make_empty_file(&vfs_fat->fatfs, "/.Trashes");
         make_empty_file(&vfs_fat->fatfs, "/.fseventsd/no_log");
+        // make a sample code.py file
+        make_sample_code_file(&vfs_fat->fatfs);
 
         // create empty lib directory
-        f_mkdir(&vfs_fat->fatfs, "/lib");
+        res = f_mkdir(&vfs_fat->fatfs, "/lib");
+        if (res != FR_OK) {
+            return false;
+        }
 
         // and ensure everything is flushed
         supervisor_flash_flush();
     } else if (res != FR_OK) {
-        return;
+        return false;
     }
-    mp_vfs_mount_t *vfs = &_mp_vfs;
     vfs->str = "/";
     vfs->len = 1;
     vfs->obj = MP_OBJ_FROM_PTR(vfs_fat);
@@ -117,6 +152,8 @@ void filesystem_init(bool create_allowed, bool force_create) {
     // The current directory is used as the boot up directory.
     // It is set to the internal flash filesystem by default.
     MP_STATE_PORT(vfs_cur) = vfs;
+
+    return true;
 }
 
 void filesystem_flush(void) {
@@ -135,20 +172,20 @@ void filesystem_set_internal_writable_by_usb(bool writable) {
 
 void filesystem_set_writable_by_usb(fs_user_mount_t *vfs, bool usb_writable) {
     if (usb_writable) {
-        vfs->flags |= FSUSER_USB_WRITABLE;
+        vfs->blockdev.flags |= MP_BLOCKDEV_FLAG_USB_WRITABLE;
     } else {
-        vfs->flags &= ~FSUSER_USB_WRITABLE;
+        vfs->blockdev.flags &= ~MP_BLOCKDEV_FLAG_USB_WRITABLE;
     }
 }
 
 bool filesystem_is_writable_by_python(fs_user_mount_t *vfs) {
-    return (vfs->flags & FSUSER_CONCURRENT_WRITE_PROTECTED) == 0 ||
-           (vfs->flags & FSUSER_USB_WRITABLE) == 0;
+    return (vfs->blockdev.flags & MP_BLOCKDEV_FLAG_CONCURRENT_WRITE_PROTECTED) == 0 ||
+           (vfs->blockdev.flags & MP_BLOCKDEV_FLAG_USB_WRITABLE) == 0;
 }
 
 bool filesystem_is_writable_by_usb(fs_user_mount_t *vfs) {
-    return (vfs->flags & FSUSER_CONCURRENT_WRITE_PROTECTED) == 0 ||
-           (vfs->flags & FSUSER_USB_WRITABLE) != 0;
+    return (vfs->blockdev.flags & MP_BLOCKDEV_FLAG_CONCURRENT_WRITE_PROTECTED) == 0 ||
+           (vfs->blockdev.flags & MP_BLOCKDEV_FLAG_USB_WRITABLE) != 0;
 }
 
 void filesystem_set_internal_concurrent_write_protection(bool concurrent_write_protection) {
@@ -157,12 +194,19 @@ void filesystem_set_internal_concurrent_write_protection(bool concurrent_write_p
 
 void filesystem_set_concurrent_write_protection(fs_user_mount_t *vfs, bool concurrent_write_protection) {
     if (concurrent_write_protection) {
-        vfs->flags |= FSUSER_CONCURRENT_WRITE_PROTECTED;
+        vfs->blockdev.flags |= MP_BLOCKDEV_FLAG_CONCURRENT_WRITE_PROTECTED;
     } else {
-        vfs->flags &= ~FSUSER_CONCURRENT_WRITE_PROTECTED;
+        vfs->blockdev.flags &= ~MP_BLOCKDEV_FLAG_CONCURRENT_WRITE_PROTECTED;
     }
 }
 
 bool filesystem_present(void) {
-    return true;
+    return _mp_vfs.len > 0;
+}
+
+FATFS *filesystem_circuitpy(void) {
+    if (!filesystem_present()) {
+        return NULL;
+    }
+    return &_internal_vfs.fatfs;
 }

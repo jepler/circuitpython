@@ -33,7 +33,9 @@
 
 typedef struct {
     mp_obj_base_t base;
-    const mcu_pin_obj_t * pin;
+    const mcu_pin_obj_t *pin;
 } analogio_analogin_obj_t;
+
+void analogin_init(void);
 
 #endif // MICROPY_INCLUDED_NRF_COMMON_HAL_ANALOGIO_ANALOGIN_H

@@ -33,23 +33,8 @@
 #include "shared-bindings/frequencyio/__init__.h"
 #include "shared-bindings/frequencyio/FrequencyIn.h"
 
-//| :mod:`frequencyio` --- Support for frequency based protocols
-//| =============================================================
+//| """Support for frequency based protocols
 //|
-//| .. module:: frequencyio
-//|   :synopsis: Support for frequency based protocols
-//|   :platform: SAMD51
-//|
-//| The `frequencyio` module contains classes to provide access to basic frequency IO.
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     FrequencyIn
-//|
-
 //| .. warning:: This module is not available in SAMD21 builds. See the
 //|   :ref:`module-support-matrix` for more info.
 //|
@@ -61,11 +46,11 @@
 //|
 //| For example::
 //|
-//|   import frequencyio
 //|   import time
-//|   from board import *
+//|   import frequencyio
+//|   import board
 //|
-//|   frequency = frequencyio.FrequencyIn(D13)
+//|   frequency = frequencyio.FrequencyIn(board.D11)
 //|   frequency.capture_period = 15
 //|   time.sleep(0.1)
 //|
@@ -73,7 +58,7 @@
 //| :py:data:`~frequencyio.FrequencyIn.capture_period`, and then sleep 0.1 seconds.
 //| CircuitPython will automatically turn off FrequencyIn capture when it resets all
 //| hardware after program completion. Use ``deinit()`` or a ``with`` statement
-//| to do it yourself.
+//| to do it yourself."""
 //|
 
 STATIC const mp_rom_map_elem_t frequencyio_module_globals_table[] = {
@@ -85,5 +70,7 @@ STATIC MP_DEFINE_CONST_DICT(frequencyio_module_globals, frequencyio_module_globa
 
 const mp_obj_module_t frequencyio_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&frequencyio_module_globals,
+    .globals = (mp_obj_dict_t *)&frequencyio_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_frequencyio, frequencyio_module, CIRCUITPY_FREQUENCYIO);

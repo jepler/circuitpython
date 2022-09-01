@@ -1,0 +1,28 @@
+
+No Trace:
+Exception: test
+
+Default Trace:
+Traceback (most recent call last):
+  File "circuitpython/traceback_test.py", line 13, in <module>
+  File "circuitpython/traceback_test.py", line 9, in fun
+Exception: test
+
+Limit=1 Trace:
+Traceback (most recent call last):
+  File "circuitpython/traceback_test.py", line 13, in <module>
+Exception: test
+
+Limit=0 Trace:
+Exception: test
+
+Limit=-1 Trace:
+Traceback (most recent call last):
+  File "circuitpython/traceback_test.py", line 9, in fun
+Exception: test
+
+NonNative Trace:
+Traceback (most recent call last):
+  File "circuitpython/traceback_test.py", line 32, in <module>
+NonNativeException: test
+

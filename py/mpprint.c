@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013-2015 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013-2015 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -207,7 +207,7 @@ int mp_print_mp_int(const mp_print_t *print, mp_obj_t x, int base, int base_char
     // If needed this function could be generalised to handle other values.
     assert(base == 2 || base == 8 || base == 10 || base == 16);
 
-    if (!MP_OBJ_IS_INT(x)) {
+    if (!mp_obj_is_int(x)) {
         // This will convert booleans to int, or raise an error for
         // non-integer types.
         x = MP_OBJ_NEW_SMALL_INT(mp_obj_get_int(x));
@@ -269,14 +269,14 @@ int mp_print_mp_int(const mp_print_t *print, mp_obj_t x, int base, int base_char
         // We add the pad in this function, so since the pad goes after
         // the sign & prefix, we format without a prefix
         str = mp_obj_int_formatted(&buf, &buf_size, &fmt_size,
-                                   x, base, NULL, base_char, comma);
+            x, base, NULL, base_char, comma);
         if (*str == '-') {
             sign = *str++;
             fmt_size--;
         }
     } else {
         str = mp_obj_int_formatted(&buf, &buf_size, &fmt_size,
-                                   x, base, prefix, base_char, comma);
+            x, base, prefix, base_char, comma);
     }
 
     int spaces_before = 0;
@@ -347,8 +347,7 @@ int mp_print_float(const mp_print_t *print, mp_float_t f, char fmt, int flags, c
 
     if (flags & PF_FLAG_SHOW_SIGN) {
         sign = '+';
-    }
-    else
+    } else
     if (flags & PF_FLAG_SPACE_SIGN) {
         sign = ' ';
     }
@@ -376,6 +375,13 @@ int mp_print_float(const mp_print_t *print, mp_float_t f, char fmt, int flags, c
     return chrs;
 }
 #endif
+
+static int print_str_common(const mp_print_t *print, const char *str, int prec, size_t len, int flags, int fill, int width) {
+    if (prec >= 0 && (size_t)prec < len) {
+        len = prec;
+    }
+    return mp_print_strn(print, str, len, flags, fill, width);
+}
 
 int mp_printf(const mp_print_t *print, const char *fmt, ...) {
     va_list ap;
@@ -411,14 +417,20 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
         int flags = 0;
         char fill = ' ';
         while (*fmt != '\0') {
-            if (*fmt == '-') flags |= PF_FLAG_LEFT_ADJUST;
-            else if (*fmt == '+') flags |= PF_FLAG_SHOW_SIGN;
-            else if (*fmt == ' ') flags |= PF_FLAG_SPACE_SIGN;
-            else if (*fmt == '!') flags |= PF_FLAG_NO_TRAILZ;
-            else if (*fmt == '0') {
+            if (*fmt == '-') {
+                flags |= PF_FLAG_LEFT_ADJUST;
+            } else if (*fmt == '+') {
+                flags |= PF_FLAG_SHOW_SIGN;
+            } else if (*fmt == ' ') {
+                flags |= PF_FLAG_SPACE_SIGN;
+            } else if (*fmt == '!') {
+                flags |= PF_FLAG_NO_TRAILZ;
+            } else if (*fmt == '0') {
                 flags |= PF_FLAG_PAD_AFTER_SIGN;
                 fill = '0';
-            } else break;
+            } else {
+                break;
+            }
             ++fmt;
         }
 
@@ -470,91 +482,102 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
                     chrs += mp_print_strn(print, "false", 5, flags, fill, width);
                 }
                 break;
-            case 'c':
-            {
+            case 'c': {
                 char str = va_arg(args, int);
                 chrs += mp_print_strn(print, &str, 1, flags, fill, width);
                 break;
             }
-            case 'q':
-            {
+            case 'q': {
                 qstr qst = va_arg(args, qstr);
                 size_t len;
-                const char *str = (const char*)qstr_data(qst, &len);
-                if (prec < 0) {
-                    prec = len;
-                }
-                chrs += mp_print_strn(print, str, prec, flags, fill, width);
+                const char *str = (const char *)qstr_data(qst, &len);
+                chrs += print_str_common(print, str, prec, len, flags, fill, width);
                 break;
             }
-            case 's':
-            {
-                const char *str = va_arg(args, const char*);
+            case 'S': {
+                compressed_string_t *arg = va_arg(args, compressed_string_t *);
+                size_t len_with_nul = decompress_length(arg);
+                size_t len = len_with_nul - 1;
+                char str[len_with_nul];
+                decompress(arg, str);
+                chrs += print_str_common(print, str, prec, len, flags, fill, width);
+                break;
+            }
+            case 's': {
+                const char *str = va_arg(args, const char *);
                 #ifndef NDEBUG
                 // With debugging enabled, catch printing of null string pointers
-                if (prec != 0 && str == NULL) {
-                    chrs += mp_print_strn(print, "(null)", 6, flags, fill, width);
-                    break;
+                if (str == NULL) {
+                    str = "(null)";
                 }
                 #endif
-                if (prec < 0) {
-                    prec = strlen(str);
+                size_t len = strlen(str);
+                if (prec >= 0 && (size_t)prec < len) {
+                    len = prec;
                 }
-                chrs += mp_print_strn(print, str, prec, flags, fill, width);
+                chrs += mp_print_strn(print, str, len, flags, fill, width);
+                break;
+            }
+            case 'd': {
+                mp_int_t val;
+                if (long_arg) {
+                    val = va_arg(args, long int);
+                } else {
+                    val = va_arg(args, int);
+                }
+                chrs += mp_print_int(print, val, 1, 10, 'a', flags, fill, width);
                 break;
             }
             case 'u':
-                chrs += mp_print_int(print, va_arg(args, unsigned int), 0, 10, 'a', flags, fill, width);
-                break;
-            case 'd':
-                chrs += mp_print_int(print, va_arg(args, int), 1, 10, 'a', flags, fill, width);
-                break;
             case 'x':
             case 'X': {
-                char fmt_c = *fmt - 'X' + 'A';
+                int base = 16 - ((*fmt + 1) & 6); // maps char u/x/X to base 10/16/16
+                char fmt_c = (*fmt & 0xf0) - 'P' + 'A'; // maps char u/x/X to char a/a/A
                 mp_uint_t val;
                 if (long_arg) {
                     val = va_arg(args, unsigned long int);
                 } else {
                     val = va_arg(args, unsigned int);
                 }
-                chrs += mp_print_int(print, val, 0, 16, fmt_c, flags, fill, width);
+                chrs += mp_print_int(print, val, 0, base, fmt_c, flags, fill, width);
                 break;
             }
             case 'p':
             case 'P': // don't bother to handle upcase for 'P'
                 // Use unsigned long int to work on both ILP32 and LP64 systems
-                chrs += mp_print_int(print, va_arg(args, unsigned long int), 0, 16, 'a', flags, fill, width);
+                #if SUPPORT_INT_BASE_PREFIX
+                chrs += mp_print_int(print, va_arg(args, unsigned long int), 0, 16, 'a', flags | PF_FLAG_SHOW_PREFIX, fill, width);
+                #else
+                print->print_strn(print->data, "0x", 2);
+                chrs += mp_print_int(print, va_arg(args, unsigned long int), 0, 16, 'a', flags, fill, width) + 2;
+                #endif
                 break;
-#if MICROPY_PY_BUILTINS_FLOAT
+            #if MICROPY_PY_BUILTINS_FLOAT
             case 'e':
             case 'E':
             case 'f':
             case 'F':
             case 'g':
-            case 'G':
-            {
-#if ((MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT) || (MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE))
-                mp_float_t f = va_arg(args, double);
+            case 'G': {
+                #if ((MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT) || (MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE))
+                mp_float_t f = (mp_float_t)va_arg(args, double);
                 chrs += mp_print_float(print, f, *fmt, flags, fill, width, prec);
-#else
-#error Unknown MICROPY FLOAT IMPL
-#endif
+                #else
+                #error Unknown MICROPY FLOAT IMPL
+                #endif
                 break;
             }
-#endif
-            // Because 'l' is eaten above, another 'l' means %ll.  We need to support
-            // this length specifier for OBJ_REPR_D (64-bit NaN boxing).
-            // TODO Either enable this unconditionally, or provide a specific config var.
+            #endif
+                // Because 'l' is eaten above, another 'l' means %ll.  We need to support
+                // this length specifier for OBJ_REPR_D (64-bit NaN boxing).
+                // TODO Either enable this unconditionally, or provide a specific config var.
             #if (MICROPY_OBJ_REPR == MICROPY_OBJ_REPR_D) || defined(_WIN64)
             case 'l': {
                 unsigned long long int arg_value = va_arg(args, unsigned long long int);
                 ++fmt;
-                if (*fmt == 'u' || *fmt == 'd') {
-                    chrs += mp_print_int(print, arg_value, *fmt == 'd', 10, 'a', flags, fill, width);
-                    break;
-                }
-                assert(!"unsupported fmt char");
+                assert(*fmt == 'u' || *fmt == 'd' || !"unsupported fmt char");
+                chrs += mp_print_int(print, arg_value, *fmt == 'd', 10, 'a', flags, fill, width);
+                break;
             }
             #endif
             default:
@@ -567,4 +590,20 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
         ++fmt;
     }
     return chrs;
+}
+
+int mp_cprintf(const mp_print_t *print, const compressed_string_t *compressed_fmt, ...) {
+    va_list ap;
+    va_start(ap, compressed_fmt);
+    int ret = mp_vcprintf(print, compressed_fmt, ap);
+    va_end(ap);
+    return ret;
+}
+
+int mp_vcprintf(const mp_print_t *print, const compressed_string_t *compressed_fmt, va_list args) {
+    char fmt[decompress_length(compressed_fmt)];
+    // TODO: Optimise this to format-while-decompressing (and not require the temp stack space).
+    decompress(compressed_fmt, fmt);
+
+    return mp_vprintf(print, fmt, args);
 }

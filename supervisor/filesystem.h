@@ -35,7 +35,7 @@ extern volatile bool filesystem_flush_requested;
 
 void filesystem_background(void);
 void filesystem_tick(void);
-void filesystem_init(bool create_allowed, bool force_create);
+bool filesystem_init(bool create_allowed, bool force_create);
 void filesystem_flush(void);
 bool filesystem_present(void);
 void filesystem_set_internal_writable_by_usb(bool usb_writable);
@@ -44,5 +44,7 @@ void filesystem_set_writable_by_usb(fs_user_mount_t *vfs, bool usb_writable);
 void filesystem_set_concurrent_write_protection(fs_user_mount_t *vfs, bool concurrent_write_protection);
 bool filesystem_is_writable_by_python(fs_user_mount_t *vfs);
 bool filesystem_is_writable_by_usb(fs_user_mount_t *vfs);
+
+FATFS *filesystem_circuitpy(void);
 
 #endif  // MICROPY_INCLUDED_SUPERVISOR_FILESYSTEM_H

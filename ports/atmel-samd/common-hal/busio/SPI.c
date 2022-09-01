@@ -25,72 +25,32 @@
  */
 
 #include "shared-bindings/busio/SPI.h"
+#include "shared-bindings/microcontroller/Pin.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
 
 #include "hpl_sercom_config.h"
 #include "peripheral_clk_config.h"
 
-#include "boards/board.h"
-#include "common-hal/microcontroller/Pin.h"
+#include "supervisor/board.h"
+#include "supervisor/shared/translate/translate.h"
+#include "common-hal/busio/__init__.h"
+
 #include "hal/include/hal_gpio.h"
 #include "hal/include/hal_spi_m_sync.h"
 #include "hal/include/hpl_spi_m_sync.h"
-#include "supervisor/shared/rgb_led_status.h"
 
 #include "samd/dma.h"
 #include "samd/sercom.h"
 
-bool never_reset_sercoms[SERCOM_INST_NUM];
-
-void never_reset_sercom(Sercom* sercom) {
-    // Reset all SERCOMs except the ones being used by on-board devices.
-    Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
-    for (int i = 0; i < SERCOM_INST_NUM; i++) {
-        if (sercom_instances[i] == sercom) {
-            never_reset_sercoms[i] = true;
-            break;
-        }
-    }
-}
-
-void allow_reset_sercom(Sercom* sercom) {
-    // Reset all SERCOMs except the ones being used by on-board devices.
-    Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
-    for (int i = 0; i < SERCOM_INST_NUM; i++) {
-        if (sercom_instances[i] == sercom) {
-            never_reset_sercoms[i] = false;
-            break;
-        }
-    }
-}
-
-void reset_sercoms(void) {
-    // Reset all SERCOMs except the ones being used by on-board devices.
-    Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
-    for (int i = 0; i < SERCOM_INST_NUM; i++) {
-        if (never_reset_sercoms[i]) {
-            continue;
-        }
-    #ifdef MICROPY_HW_APA102_SERCOM
-        if (sercom_instances[i] == MICROPY_HW_APA102_SERCOM) {
-            continue;
-        }
-    #endif
-        // SWRST is same for all modes of SERCOMs.
-        sercom_instances[i]->SPI.CTRLA.bit.SWRST = 1;
-    }
-}
-
-
 void common_hal_busio_spi_construct(busio_spi_obj_t *self,
-        const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
-        const mcu_pin_obj_t * miso) {
-    Sercom* sercom = NULL;
+    const mcu_pin_obj_t *clock, const mcu_pin_obj_t *mosi,
+    const mcu_pin_obj_t *miso, bool half_duplex) {
+    Sercom *sercom = NULL;
     uint8_t sercom_index;
     uint32_t clock_pinmux = 0;
-    bool mosi_none = mosi == mp_const_none || mosi == NULL;
-    bool miso_none = miso == mp_const_none || miso == NULL;
+    bool mosi_none = mosi == NULL;
+    bool miso_none = miso == NULL;
     uint32_t mosi_pinmux = 0;
     uint32_t miso_pinmux = 0;
     uint8_t clock_pad = 0;
@@ -98,8 +58,15 @@ void common_hal_busio_spi_construct(busio_spi_obj_t *self,
     uint8_t miso_pad = 0;
     uint8_t dopo = 255;
 
-    // Special case for SAMR boards.
-    #ifdef PIN_PC19
+    if (half_duplex) {
+        mp_raise_NotImplementedError(translate("Half duplex SPI is not implemented"));
+    }
+
+    // Ensure the object starts in its deinit state.
+    self->clock_pin = NO_PIN;
+
+    // Special case for SAMR21 boards. (feather_radiofruit_zigbee)
+    #if defined(PIN_PC19F_SERCOM4_PAD0)
     if (miso == &pin_PC19) {
         if (mosi == &pin_PB30 && clock == &pin_PC18) {
             sercom = SERCOM4;
@@ -113,78 +80,66 @@ void common_hal_busio_spi_construct(busio_spi_obj_t *self,
             dopo = samd_peripherals_get_spi_dopo(clock_pad, mosi_pad);
         }
         // Error, leave SERCOM unset to throw an exception later.
-    } else {
+    } else
     #endif
-    for (int i = 0; i < NUM_SERCOMS_PER_PIN; i++) {
-        sercom_index = clock->sercom[i].index; // 2 for SERCOM2, etc.
-        if (sercom_index >= SERCOM_INST_NUM) {
-            continue;
-        }
-        Sercom* potential_sercom = sercom_insts[sercom_index];
-        if (
-        #if defined(MICROPY_HW_APA102_SCK) && defined(MICROPY_HW_APA102_MOSI) && !defined(CIRCUITPY_BITBANG_APA102)
-            (potential_sercom->SPI.CTRLA.bit.ENABLE != 0 &&
-             potential_sercom != status_apa102.spi_desc.dev.prvt &&
-             !apa102_sck_in_use)) {
-        #else
-            potential_sercom->SPI.CTRLA.bit.ENABLE != 0) {
-        #endif
-            continue;
-        }
-        clock_pinmux = PINMUX(clock->number, (i == 0) ? MUX_C : MUX_D);
-        clock_pad = clock->sercom[i].pad;
-        if (!samd_peripherals_valid_spi_clock_pad(clock_pad)) {
-            continue;
-        }
-        for (int j = 0; j < NUM_SERCOMS_PER_PIN; j++) {
-            if (!mosi_none) {
-                if (sercom_index == mosi->sercom[j].index) {
-                    mosi_pinmux = PINMUX(mosi->number, (j == 0) ? MUX_C : MUX_D);
-                    mosi_pad = mosi->sercom[j].pad;
-                    dopo = samd_peripherals_get_spi_dopo(clock_pad, mosi_pad);
-                    if (dopo > 0x3) {
-                        continue;  // pad combination not possible
-                    }
-                    if (miso_none) {
-                        sercom = potential_sercom;
-                        break;
-                    }
-                } else {
-                    continue;
-                }
+    {
+        for (int i = 0; i < NUM_SERCOMS_PER_PIN; i++) {
+            sercom_index = clock->sercom[i].index; // 2 for SERCOM2, etc.
+            if (sercom_index >= SERCOM_INST_NUM) {
+                continue;
             }
-            if (!miso_none) {
-                for (int k = 0; k < NUM_SERCOMS_PER_PIN; k++) {
-                    if (sercom_index == miso->sercom[k].index) {
-                        miso_pinmux = PINMUX(miso->number, (k == 0) ? MUX_C : MUX_D);
-                        miso_pad = miso->sercom[k].pad;
-                        sercom = potential_sercom;
-                        break;
+            Sercom *potential_sercom = sercom_insts[sercom_index];
+            if (potential_sercom->SPI.CTRLA.bit.ENABLE != 0) {
+                continue;
+            }
+            clock_pinmux = PINMUX(clock->number, (i == 0) ? MUX_C : MUX_D);
+            clock_pad = clock->sercom[i].pad;
+            if (!samd_peripherals_valid_spi_clock_pad(clock_pad)) {
+                continue;
+            }
+            for (int j = 0; j < NUM_SERCOMS_PER_PIN; j++) {
+                if (!mosi_none) {
+                    if (sercom_index == mosi->sercom[j].index) {
+                        mosi_pinmux = PINMUX(mosi->number, (j == 0) ? MUX_C : MUX_D);
+                        mosi_pad = mosi->sercom[j].pad;
+                        dopo = samd_peripherals_get_spi_dopo(clock_pad, mosi_pad);
+                        if (dopo > 0x3) {
+                            continue;  // pad combination not possible
+                        }
+                        if (miso_none) {
+                            sercom = potential_sercom;
+                            break;
+                        }
+                    } else {
+                        continue;
                     }
+                }
+                if (!miso_none) {
+                    for (int k = 0; k < NUM_SERCOMS_PER_PIN; k++) {
+                        if (sercom_index == miso->sercom[k].index) {
+                            miso_pinmux = PINMUX(miso->number, (k == 0) ? MUX_C : MUX_D);
+                            miso_pad = miso->sercom[k].pad;
+                            sercom = potential_sercom;
+                            break;
+                        }
+                    }
+                }
+                if (sercom != NULL) {
+                    break;
                 }
             }
             if (sercom != NULL) {
                 break;
             }
         }
-        if (sercom != NULL) {
-            break;
-        }
     }
-    #ifdef PIN_PC19
-    }
-    #endif
     if (sercom == NULL) {
-        mp_raise_ValueError(translate("Invalid pins"));
+        raise_ValueError_invalid_pins();
     }
 
     // Set up SPI clocks on SERCOM.
     samd_peripherals_sercom_clock_init(sercom, sercom_index);
 
-    #if defined(MICROPY_HW_APA102_SCK) && defined(MICROPY_HW_APA102_MOSI) && !defined(CIRCUITPY_BITBANG_APA102)
-    // if we're re-using the dotstar sercom, make sure it is disabled or the init will fail out
-    hri_sercomspi_clear_CTRLA_ENABLE_bit(sercom);
-    #endif
     if (spi_m_sync_init(&self->spi_desc, sercom) != ERR_NONE) {
         mp_raise_OSError(MP_EIO);
     }
@@ -259,10 +214,10 @@ void common_hal_busio_spi_deinit(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
-        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+    uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
     uint8_t baud_reg_value = samd_peripherals_spi_baudrate_to_baud_reg_value(baudrate);
 
-    void * hw = self->spi_desc.dev.prvt;
+    void *hw = self->spi_desc.dev.prvt;
     // If the settings are already what we want then don't reset them.
     if (hri_sercomspi_get_CTRLA_CPHA_bit(hw) == phase &&
         hri_sercomspi_get_CTRLA_CPOL_bit(hw) == polarity &&
@@ -290,10 +245,10 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
 bool common_hal_busio_spi_try_lock(busio_spi_obj_t *self) {
     bool grabbed_lock = false;
     CRITICAL_SECTION_ENTER()
-        if (!self->has_lock) {
-            grabbed_lock = true;
-            self->has_lock = true;
-        }
+    if (!self->has_lock) {
+        grabbed_lock = true;
+        self->has_lock = true;
+    }
     CRITICAL_SECTION_LEAVE();
     return grabbed_lock;
 }
@@ -307,7 +262,7 @@ void common_hal_busio_spi_unlock(busio_spi_obj_t *self) {
 }
 
 bool common_hal_busio_spi_write(busio_spi_obj_t *self,
-        const uint8_t *data, size_t len) {
+    const uint8_t *data, size_t len) {
     if (len == 0) {
         return true;
     }
@@ -323,7 +278,7 @@ bool common_hal_busio_spi_write(busio_spi_obj_t *self,
 }
 
 bool common_hal_busio_spi_read(busio_spi_obj_t *self,
-        uint8_t *data, size_t len, uint8_t write_value) {
+    uint8_t *data, size_t len, uint8_t write_value) {
     if (len == 0) {
         return true;
     }
@@ -341,7 +296,7 @@ bool common_hal_busio_spi_read(busio_spi_obj_t *self,
     return status >= 0; // Status is number of chars read or an error code < 0.
 }
 
-bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, uint8_t *data_out, uint8_t *data_in, size_t len) {
+bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len) {
     if (len == 0) {
         return true;
     }
@@ -350,7 +305,7 @@ bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, uint8_t *data_out, uin
         status = sercom_dma_transfer(self->spi_desc.dev.prvt, data_out, data_in, len);
     } else {
         struct spi_xfer xfer;
-        xfer.txbuf = data_out;
+        xfer.txbuf = (uint8_t *)data_out;
         xfer.rxbuf = data_in;
         xfer.size = len;
         status = spi_m_sync_transfer(&self->spi_desc, &xfer);
@@ -358,16 +313,16 @@ bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, uint8_t *data_out, uin
     return status >= 0; // Status is number of chars read or an error code < 0.
 }
 
-uint32_t common_hal_busio_spi_get_frequency(busio_spi_obj_t* self) {
+uint32_t common_hal_busio_spi_get_frequency(busio_spi_obj_t *self) {
     return samd_peripherals_spi_baud_reg_value_to_baudrate(hri_sercomspi_read_BAUD_reg(self->spi_desc.dev.prvt));
 }
 
-uint8_t common_hal_busio_spi_get_phase(busio_spi_obj_t* self) {
-    void * hw = self->spi_desc.dev.prvt;
+uint8_t common_hal_busio_spi_get_phase(busio_spi_obj_t *self) {
+    void *hw = self->spi_desc.dev.prvt;
     return hri_sercomspi_get_CTRLA_CPHA_bit(hw);
 }
 
-uint8_t common_hal_busio_spi_get_polarity(busio_spi_obj_t* self) {
-    void * hw = self->spi_desc.dev.prvt;
+uint8_t common_hal_busio_spi_get_polarity(busio_spi_obj_t *self) {
+    void *hw = self->spi_desc.dev.prvt;
     return hri_sercomspi_get_CTRLA_CPOL_bit(hw);
 }

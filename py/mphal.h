@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2015 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2015 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,17 @@
 #ifndef MICROPY_INCLUDED_PY_MPHAL_H
 #define MICROPY_INCLUDED_PY_MPHAL_H
 
+#include <stdint.h>
 #include "py/mpconfig.h"
 
 #ifdef MICROPY_MPHALPORT_H
 #include MICROPY_MPHALPORT_H
 #else
 #include <mphalport.h>
+#endif
+
+#ifndef mp_hal_stdio_poll
+uintptr_t mp_hal_stdio_poll(uintptr_t poll_flags);
 #endif
 
 #ifndef mp_hal_stdin_rx_chr
@@ -68,6 +73,11 @@ mp_uint_t mp_hal_ticks_us(void);
 
 #ifndef mp_hal_ticks_cpu
 mp_uint_t mp_hal_ticks_cpu(void);
+#endif
+
+#ifndef mp_hal_time_ns
+// Nanoseconds since the Epoch.
+uint64_t mp_hal_time_ns(void);
 #endif
 
 // If port HAL didn't define its own pin API, use generic

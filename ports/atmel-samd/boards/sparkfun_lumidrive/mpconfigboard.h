@@ -9,21 +9,13 @@
 #define SPI_FLASH_SCK_PIN    &pin_PA09
 #define SPI_FLASH_CS_PIN     &pin_PA13
 
-#define MICROPY_PORT_A    ( 0 )
-#define MICROPY_PORT_B    ( 0 )
-#define MICROPY_PORT_C    ( 0 )
-
-#define CIRCUITPY_INTERNAL_NVM_SIZE 256
-
-#define BOARD_FLASH_SIZE (0x00040000 - 0x2000 - CIRCUITPY_INTERNAL_NVM_SIZE)
-
 #define BOARD_HAS_CRYSTAL 1
 
-//I2C
+// I2C
 #define DEFAULT_I2C_BUS_SCL (&pin_PA23)
 #define DEFAULT_I2C_BUS_SDA (&pin_PA22)
 
-//SPI
+// SPI
 #define DEFAULT_SPI_BUS_SCK (&pin_PA19)
 #define DEFAULT_SPI_BUS_MOSI (&pin_PA18)
 #define DEFAULT_SPI_BUS_MISO (&pin_PA21)
@@ -39,9 +31,6 @@
 #define IGNORE_PIN_PA12     1
 #define IGNORE_PIN_PA15     1
 #define IGNORE_PIN_PA16     1
-#define IGNORE_PIN_PA21     1
-#define IGNORE_PIN_PA22     1
-#define IGNORE_PIN_PA23     1
 #define IGNORE_PIN_PA27     1
 #define IGNORE_PIN_PA28     1
 

@@ -28,92 +28,91 @@
 #include "py/runtime.h"
 
 #include "shared-bindings/board/__init__.h"
+#if CIRCUITPY_BOARD_I2C
+#include "shared-bindings/busio/I2C.h"
+#endif
+#if CIRCUITPY_BOARD_SPI
+#include "shared-bindings/busio/SPI.h"
+#endif
+#if CIRCUITPY_BOARD_UART
+#include "shared-bindings/busio/UART.h"
+#endif
 
-//| :mod:`board` --- Board specific pin names
-//| ========================================================
-//|
-//| .. module:: board
-//|   :synopsis: Board specific pin names
+//| """Board specific pin names
 //|
 //| Common container for board base pin names. These will vary from board to
 //| board so don't expect portability when using this module.
 //|
+//| Another common use of this module is to use serial communciation buses with
+//| the default pins and settings.  For more information about serial communcication
+//| in CircuitPython, see the :mod:`busio`.
+//|
+//| For more information regarding the typical usage of :py:mod:`board`, refer to the `CircuitPython
+//| Essentials Learn guide
+//| <https://learn.adafruit.com/circuitpython-essentials/circuitpython-pins-and-modules>`_
+//|
 //| .. warning:: The board module varies by board. The APIs documented here may or may not be
-//|              available on a specific board.
+//|              available on a specific board."""
 
-//| .. function:: I2C()
-//|
-//|   Returns the `busio.I2C` object for the board designated SDA and SCL pins. It is a singleton.
-//|
+//| board_id: str
+//| """Board ID string. The unique identifier for the board model in
+//| circuitpython, as well as on circuitpython.org.
+//| Example: "hallowing_m0_express"."""
 
-#if BOARD_I2C
-mp_obj_t board_i2c(void) {
-    mp_obj_t singleton = common_hal_board_get_i2c();
-    if (singleton != NULL) {
-        return singleton;
-    }
-    assert_pin_free(DEFAULT_I2C_BUS_SDA);
-    assert_pin_free(DEFAULT_I2C_BUS_SCL);
-    return common_hal_board_create_i2c();
+//| def I2C() -> busio.I2C:
+//|     """Returns the `busio.I2C` object for the board's designated I2C bus(es).
+//|     The object created is a singleton, and uses the default parameter values for `busio.I2C`."""
+//|     ...
+//|
+#if CIRCUITPY_BOARD_I2C
+STATIC mp_obj_t board_i2c_0(void) {
+    return common_hal_board_create_i2c(0);
 }
 #else
-mp_obj_t board_i2c(void) {
+STATIC mp_obj_t board_i2c_0(void) {
     mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_I2C);
-    return NULL;
+    return MP_ROM_NONE;
 }
 #endif
-MP_DEFINE_CONST_FUN_OBJ_0(board_i2c_obj, board_i2c);
+MP_DEFINE_CONST_FUN_OBJ_0(board_i2c_obj, board_i2c_0);
 
-
-//| .. function:: SPI()
+//| def SPI() -> busio.SPI:
+//|     """Returns the `busio.SPI` object for the board's designated SPI bus(es).
+//|     The object created is a singleton, and uses the default parameter values for `busio.SPI`."""
+//|     ...
 //|
-//|   Returns the `busio.SPI` object for the board designated SCK, MOSI and MISO pins. It is a
-//|   singleton.
-//|
-#if BOARD_SPI
-mp_obj_t board_spi(void) {
-    mp_obj_t singleton = common_hal_board_get_spi();
-    if (singleton != NULL) {
-        return singleton;
-    }
-    assert_pin_free(DEFAULT_SPI_BUS_SCK);
-    assert_pin_free(DEFAULT_SPI_BUS_MOSI);
-    assert_pin_free(DEFAULT_SPI_BUS_MISO);
-    return common_hal_board_create_spi();
+#if CIRCUITPY_BOARD_SPI
+STATIC mp_obj_t board_spi_0(void) {
+    return common_hal_board_create_spi(0);
 }
 #else
-mp_obj_t board_spi(void) {
+STATIC mp_obj_t board_spi_0(void) {
     mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_SPI);
-    return NULL;
+    return MP_ROM_NONE;
 }
 #endif
-MP_DEFINE_CONST_FUN_OBJ_0(board_spi_obj, board_spi);
+MP_DEFINE_CONST_FUN_OBJ_0(board_spi_obj, board_spi_0);
 
-//| .. function:: UART()
+//| def UART() -> busio.UART:
+//|     """Returns the `busio.UART` object for the board's designated UART bus(es).
+//|     The object created is a singleton, and uses the default parameter values for `busio.UART`."""
+//|     ...
 //|
-//|   Returns the `busio.UART` object for the board designated TX and RX pins. It is a singleton.
-//|
-#if BOARD_UART
-mp_obj_t board_uart(void) {
-    mp_obj_t singleton = common_hal_board_get_uart();
-    if (singleton != NULL) {
-        return singleton;
-    }
-
-    assert_pin_free(DEFAULT_UART_BUS_RX);
-    assert_pin_free(DEFAULT_UART_BUS_TX);
-
-    return common_hal_board_create_uart();
+#if CIRCUITPY_BOARD_UART
+STATIC mp_obj_t board_uart_0(void) {
+    return common_hal_board_create_uart(0);
 }
 #else
-mp_obj_t board_uart(void) {
-    mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_SPI);
-    return NULL;
+STATIC mp_obj_t board_uart_0(void) {
+    mp_raise_NotImplementedError_varg(translate("No default %q bus"), MP_QSTR_UART);
+    return MP_ROM_NONE;
 }
 #endif
-MP_DEFINE_CONST_FUN_OBJ_0(board_uart_obj, board_uart);
+MP_DEFINE_CONST_FUN_OBJ_0(board_uart_obj, board_uart_0);
 
 const mp_obj_module_t board_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&board_module_globals,
+    .globals = (mp_obj_dict_t *)&board_module_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_board, board_module, CIRCUITPY_BOARD);
