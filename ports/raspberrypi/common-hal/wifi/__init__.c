@@ -55,6 +55,7 @@ void common_hal_wifi_init(bool user_initiated) {
     }
     wifi_inited = true;
     wifi_user_initiated = user_initiated;
+    common_hal_wifi_radio_obj.base.type = &wifi_radio_type;
 
     if (!wifi_ever_inited) {
     }
