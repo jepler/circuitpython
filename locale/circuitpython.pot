@@ -4279,6 +4279,10 @@ msgstr ""
 msgid "wifi is not enabled"
 msgstr ""
 
+#: ports/raspberrypi/common-hal/wifi/Monitor.c
+msgid "wifi.Monitor not available"
+msgstr ""
+
 #: shared-bindings/_bleio/Adapter.c
 msgid "window must be <= interval"
 msgstr ""

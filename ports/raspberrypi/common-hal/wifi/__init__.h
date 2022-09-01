@@ -25,3 +25,5 @@
  */
 
 #pragma once
+
+void wifi_reset(void);

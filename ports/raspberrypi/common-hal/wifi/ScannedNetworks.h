@@ -31,11 +31,11 @@
 #include <stdint.h>
 
 #include "py/obj.h"
+#include "cyw43.h"
 
 typedef struct {
     mp_obj_base_t base;
     uint8_t current_channel_index;
-    EventGroupHandle_t radio_event_group;
 
     // Results from the last channel scan
     cyw43_ev_scan_result_t *results;

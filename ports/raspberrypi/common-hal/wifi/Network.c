@@ -45,45 +45,30 @@ mp_obj_t common_hal_wifi_network_get_rssi(wifi_network_obj_t *self) {
 }
 
 mp_obj_t common_hal_wifi_network_get_channel(wifi_network_obj_t *self) {
-    return mp_obj_new_int(self->record.primary);
+    return mp_obj_new_int(self->record.channel);
 }
 
 mp_obj_t common_hal_wifi_network_get_country(wifi_network_obj_t *self) {
-    const char *cstr = (const char *)self->record.country.cc;
-    // 2 instead of strlen(cstr) as this gives us only the country-code
-    return mp_obj_new_str(cstr, 2);
+    return (mp_obj_t)MP_QSTR_;
 }
 
 mp_obj_t common_hal_wifi_network_get_authmode(wifi_network_obj_t *self) {
     uint8_t authmode_mask = 0;
-    switch (self->record.authmode) {
-        case WIFI_AUTH_OPEN:
-            authmode_mask = (1 << AUTHMODE_OPEN);
-            break;
-        case WIFI_AUTH_WEP:
-            authmode_mask = (1 << AUTHMODE_WEP);
-            break;
-        case WIFI_AUTH_WPA_PSK:
-            authmode_mask = (1 << AUTHMODE_WPA) | (1 << AUTHMODE_PSK);
-            break;
-        case WIFI_AUTH_WPA2_PSK:
-            authmode_mask = (1 << AUTHMODE_WPA2) | (1 << AUTHMODE_PSK);
-            break;
-        case WIFI_AUTH_WPA_WPA2_PSK:
-            authmode_mask = (1 << AUTHMODE_WPA) | (1 << AUTHMODE_WPA2) | (1 << AUTHMODE_PSK);
-            break;
-        case WIFI_AUTH_WPA2_ENTERPRISE:
-            authmode_mask = (1 << AUTHMODE_WPA2) | (1 << AUTHMODE_ENTERPRISE);
-            break;
-        case WIFI_AUTH_WPA3_PSK:
-            authmode_mask = (1 << AUTHMODE_WPA3) | (1 << AUTHMODE_PSK);
-            break;
-        case WIFI_AUTH_WPA2_WPA3_PSK:
-            authmode_mask = (1 << AUTHMODE_WPA2) | (1 << AUTHMODE_WPA3) | (1 << AUTHMODE_PSK);
-            break;
-        default:
-            break;
+    if (self->record.auth_mode == 0) {
+        authmode_mask = (1 << AUTHMODE_OPEN);
     }
+    if (self->record.auth_mode & 1) {
+        authmode_mask |= (1 << AUTHMODE_PSK);
+    }
+    ;
+    if (self->record.auth_mode & 2) {
+        authmode_mask |= (1 << AUTHMODE_WPA);
+    }
+    ;
+    if (self->record.auth_mode & 4) {
+        authmode_mask |= (1 << AUTHMODE_WPA2);
+    }
+    ;
     mp_obj_t authmode_list = mp_obj_new_list(0, NULL);
     if (authmode_mask != 0) {
         for (uint8_t i = 0; i < 8; i++) {
