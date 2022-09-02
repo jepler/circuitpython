@@ -303,7 +303,7 @@ msgstr ""
 msgid "'%s' object doesn't support item deletion"
 msgstr ""
 
-#: py/runtime.c
+#: ports/raspberrypi/common-hal/wifi/Radio.c py/runtime.c
 msgid "'%s' object has no attribute '%q'"
 msgstr ""
 
@@ -4143,12 +4143,8 @@ msgstr ""
 msgid "type is not an acceptable base type"
 msgstr ""
 
-#: ports/raspberrypi/common-hal/wifi/Radio.c py/runtime.c
+#: py/objgenerator.c py/runtime.c
 msgid "type object '%q' has no attribute '%q'"
-msgstr ""
-
-#: py/objgenerator.c
-msgid "type object 'generator' has no attribute '__await__'"
 msgstr ""
 
 #: py/objtype.c
