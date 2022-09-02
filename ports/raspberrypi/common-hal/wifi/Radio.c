@@ -52,7 +52,7 @@
 #define NETIF_AP (&cyw43_state.netif[CYW43_ITF_AP])
 
 NORETURN static void ro_attribute(int attr) {
-    mp_raise_msg_varg(&mp_type_AttributeError, MP_ERROR_TEXT("type object '%q' has no attribute '%q'"), MP_QSTR_Radio, attr);
+    mp_raise_msg_varg(&mp_type_AttributeError, MP_ERROR_TEXT("'%s' object has no attribute '%q'"), "Radio", attr);
 }
 
 bool common_hal_wifi_radio_get_enabled(wifi_radio_obj_t *self) {
@@ -66,11 +66,14 @@ void common_hal_wifi_radio_set_enabled(wifi_radio_obj_t *self, bool enabled) {
 }
 
 mp_obj_t common_hal_wifi_radio_get_hostname(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!NETIF_STA->hostname) {
+        return mp_const_none;
+    }
+    return mp_obj_new_str(NETIF_STA->hostname, strlen(NETIF_STA->hostname));
 }
 
 void common_hal_wifi_radio_set_hostname(wifi_radio_obj_t *self, const char *hostname) {
-
+    ro_attribute(MP_QSTR_hostname);
 }
 
 mp_obj_t common_hal_wifi_radio_get_mac_address(wifi_radio_obj_t *self) {
@@ -78,6 +81,7 @@ mp_obj_t common_hal_wifi_radio_get_mac_address(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_set_mac_address(wifi_radio_obj_t *self, const uint8_t *mac) {
+    ro_attribute(MP_QSTR_mac_address);
 }
 
 mp_float_t common_hal_wifi_radio_get_tx_power(wifi_radio_obj_t *self) {
@@ -125,6 +129,7 @@ void common_hal_wifi_radio_stop_station(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_start_ap(wifi_radio_obj_t *self, uint8_t *ssid, size_t ssid_len, uint8_t *password, size_t password_len, uint8_t channel, uint8_t authmode, uint8_t max_connections) {
+    mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_wifi_radio_stop_ap(wifi_radio_obj_t *self) {
@@ -158,28 +163,35 @@ wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t
 }
 
 mp_obj_t common_hal_wifi_radio_get_ap_info(wifi_radio_obj_t *self) {
-    // TODO: how to retrieve AP info?
-    return mp_const_none;
+    mp_raise_NotImplementedError(NULL);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_gateway(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_STA)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_STA->gw.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_gateway_ap(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_AP)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_AP->gw.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_subnet(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_STA)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_STA->netmask.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_subnet_ap(wifi_radio_obj_t *self) {
-    return mp_const_none;
-}
-
-uint32_t wifi_radio_get_ipv4_address(wifi_radio_obj_t *self) {
-    return 0;
+    if (!netif_is_up(NETIF_AP)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_AP->netmask.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_address(wifi_radio_obj_t *self) {
@@ -197,26 +209,30 @@ mp_obj_t common_hal_wifi_radio_get_ipv4_address_ap(wifi_radio_obj_t *self) {
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_dns(wifi_radio_obj_t *self) {
-    if (!netif_is_up(NETIF_AP)) {
+    uint32_t addr = dns_getserver(0)->addr;
+    if (!netif_is_up(NETIF_AP) || addr == 0) {
         return mp_const_none;
     }
-    return common_hal_ipaddress_new_ipv4address(dns_getserver(0)->addr);
+    return common_hal_ipaddress_new_ipv4address(addr);
 }
 
 void common_hal_wifi_radio_set_ipv4_dns(wifi_radio_obj_t *self, mp_obj_t ipv4_dns_addr) {
+    mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_wifi_radio_start_dhcp_client(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_stop_dhcp_client(wifi_radio_obj_t *self) {
+    mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_wifi_radio_set_ipv4_address(wifi_radio_obj_t *self, mp_obj_t ipv4, mp_obj_t netmask, mp_obj_t gateway, mp_obj_t ipv4_dns) {
+    mp_raise_NotImplementedError(NULL);
 }
 
 mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address, mp_float_t timeout) {
-    return 0;
+    mp_raise_NotImplementedError(NULL);
 }
 
 void common_hal_wifi_radio_gc_collect(wifi_radio_obj_t *self) {
