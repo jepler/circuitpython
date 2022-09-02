@@ -27,6 +27,7 @@
 #include "shared-bindings/wifi/Radio.h"
 #include "shared-bindings/wifi/Network.h"
 
+#include <math.h>
 #include <string.h>
 
 #include "common-hal/wifi/__init__.h"
@@ -43,7 +44,12 @@
 #include "components/mdns/include/mdns.h"
 #endif
 
+#include "lwip/dns.h"
+
 #define MAC_ADDRESS_LENGTH 6
+
+#define NETIF_STA (&cyw43_state.netif[CYW43_ITF_STA])
+#define NETIF_AP (&cyw43_state.netif[CYW43_ITF_AP])
 
 NORETURN static void ro_attribute(int attr) {
     mp_raise_msg_varg(&mp_type_AttributeError, MP_ERROR_TEXT("type object '%q' has no attribute '%q'"), MP_QSTR_Radio, attr);
@@ -88,6 +94,7 @@ mp_obj_t common_hal_wifi_radio_get_mac_address_ap(wifi_radio_obj_t *self) {
 }
 
 void common_hal_wifi_radio_set_mac_address_ap(wifi_radio_obj_t *self, const uint8_t *mac) {
+    ro_attribute(MP_QSTR_mac_address_ap);
 }
 
 mp_obj_t common_hal_wifi_radio_start_scanning_networks(wifi_radio_obj_t *self) {
@@ -124,10 +131,34 @@ void common_hal_wifi_radio_stop_ap(wifi_radio_obj_t *self) {
 }
 
 wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t *ssid, size_t ssid_len, uint8_t *password, size_t password_len, uint8_t channel, mp_float_t timeout, uint8_t *bssid, size_t bssid_len) {
-    return 0;
+    if (!common_hal_wifi_radio_get_enabled(self)) {
+        mp_raise_RuntimeError(translate("wifi is not enabled"));
+    }
+    unsigned timeout_ms = timeout <= 0 ? 4000 : (unsigned)MAX(0, MICROPY_FLOAT_C_FUN(ceil)(timeout * 1000));
+    // TODO use connect_async so we can service bg tasks & check for ctrl-c during
+    // connect
+    int result = cyw43_arch_wifi_connect_timeout_ms((const char *)ssid, (const char *)password, CYW43_AUTH_WPA2_AES_PSK, timeout_ms);
+    switch (result) {
+        case 0:
+            return WIFI_RADIO_ERROR_NONE;
+        // case CYW43_LINK_DOWN:
+        // case CYW43_LINK_JOIN:
+        // case CYW43_LINK_NOIP:
+        // case CYW43_LINK_UP:
+        case CYW43_LINK_FAIL:
+            return WIFI_RADIO_ERROR_CONNECTION_FAIL;
+        case CYW43_LINK_NONET:
+            return WIFI_RADIO_ERROR_NO_AP_FOUND;
+        case CYW43_LINK_BADAUTH:
+            return WIFI_RADIO_ERROR_AUTH_FAIL;
+
+        default:
+            return WIFI_RADIO_ERROR_UNSPECIFIED;
+    }
 }
 
 mp_obj_t common_hal_wifi_radio_get_ap_info(wifi_radio_obj_t *self) {
+    // TODO: how to retrieve AP info?
     return mp_const_none;
 }
 
@@ -152,15 +183,24 @@ uint32_t wifi_radio_get_ipv4_address(wifi_radio_obj_t *self) {
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_address(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_STA)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_STA->ip_addr.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_address_ap(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_AP)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(NETIF_AP->ip_addr.addr);
 }
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_dns(wifi_radio_obj_t *self) {
-    return mp_const_none;
+    if (!netif_is_up(NETIF_AP)) {
+        return mp_const_none;
+    }
+    return common_hal_ipaddress_new_ipv4address(dns_getserver(0)->addr);
 }
 
 void common_hal_wifi_radio_set_ipv4_dns(wifi_radio_obj_t *self, mp_obj_t ipv4_dns_addr) {
