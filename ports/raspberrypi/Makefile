@@ -123,7 +123,6 @@ OBJ_CYW43 := $(BUILD)/cyw43_resource.o
 ###     )
 ###
 else
-$(error y u no y fi)
 INC_CYW43 :=
 CFLAGS_CYW43 :=
 SRC_SDK_CYW43 :=
