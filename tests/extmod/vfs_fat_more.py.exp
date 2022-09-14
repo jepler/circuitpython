@@ -23,6 +23,8 @@ mkdir OSError True
 []
 []
 ['sys', 'dir']
+OSError
+['sys', 'test5.txt', 'dir3']
 /
 ['sys']
 []

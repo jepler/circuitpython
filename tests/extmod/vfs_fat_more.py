@@ -105,6 +105,15 @@ uos.rmdir("dir2")
 uos.remove("test5.txt")
 print(uos.listdir())
 
+# test moving a directory inside itself
+uos.mkdir("dir3")
+try:
+    uos.rename("dir3", "dir3/dir3")
+    print("impossible: moved directory inside itself")
+except OSError:
+    print("OSError")
+print(uos.listdir())
+
 uos.umount("/")
 print(uos.getcwd())
 print(uos.listdir())
