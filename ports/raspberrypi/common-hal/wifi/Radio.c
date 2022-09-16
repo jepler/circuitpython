@@ -139,7 +139,7 @@ wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t
     if (!common_hal_wifi_radio_get_enabled(self)) {
         mp_raise_RuntimeError(translate("wifi is not enabled"));
     }
-    unsigned timeout_ms = timeout <= 0 ? 4000 : (unsigned)MAX(0, MICROPY_FLOAT_C_FUN(ceil)(timeout * 1000));
+    unsigned timeout_ms = timeout <= 0 ? 8000 : (unsigned)MAX(0, MICROPY_FLOAT_C_FUN(ceil)(timeout * 1000));
     // TODO use connect_async so we can service bg tasks & check for ctrl-c during
     // connect
     int result = cyw43_arch_wifi_connect_timeout_ms((const char *)ssid, (const char *)password, CYW43_AUTH_WPA2_AES_PSK, timeout_ms);
@@ -232,6 +232,9 @@ void common_hal_wifi_radio_set_ipv4_address(wifi_radio_obj_t *self, mp_obj_t ipv
 }
 
 mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address, mp_float_t timeout) {
+    ip_addr_t ping_addr;
+    ipaddress_ipaddress_to_lwip(ip_address, &ping_addr);
+    size_t timeout_ms = (size_t)MICROPY_FLOAT_FUN(ceil)(timeout * 1000);
     mp_raise_NotImplementedError(NULL);
 }
 

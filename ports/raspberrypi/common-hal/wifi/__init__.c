@@ -38,7 +38,7 @@
 wifi_radio_obj_t common_hal_wifi_radio_obj;
 
 #include "supervisor/port.h"
-#include "supervisor/shared/title_bar.h"
+#include "supervisor/shared/status_bar.h"
 #include "supervisor/workflow.h"
 
 static bool wifi_inited;
@@ -110,4 +110,15 @@ void raise_cyw_error(int err) {
             mp_raise_OSError_msg_varg(translate("Unkown error code %d"), err);
     }
     mp_raise_OSError(mp_errno);
+}
+
+void ipaddress_ipaddress_to_lwip(mp_obj_t ip_address, ip_addr_t *lwip_ip_address) {
+    if (!mp_obj_is_type(ip_address, &ipaddress_ipv4address_type)) {
+        mp_raise_ValueError(translate("Only IPv4 addresses supported"));
+    }
+    mp_obj_t packed = common_hal_ipaddress_ipv4address_get_packed(ip_address);
+    size_t len;
+    const char *bytes = mp_obj_str_get_data(packed, &len);
+
+    IP_ADDR4(lwip_ip_address, bytes[0], bytes[1], bytes[2], bytes[3]);
 }

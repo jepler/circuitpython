@@ -133,6 +133,7 @@ endif
 
 INC += \
 	-I. \
+	-Ilwip_inc \
         -I../.. \
         -I../lib/mp-readline \
         -I../shared/timeutils \
@@ -284,6 +285,7 @@ SRC_C += \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c \
 	mphalport.c \
+	lwip_ping.c \
 	$(SRC_CYW43) \
 	$(SRC_LWIP) \
 
