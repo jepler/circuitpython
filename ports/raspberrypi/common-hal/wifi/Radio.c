@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include "supervisor/port.h"
 #include "shared-bindings/wifi/Radio.h"
 #include "shared-bindings/wifi/Network.h"
 
@@ -45,6 +46,13 @@
 #endif
 
 #include "lwip/dns.h"
+#include "lwip/icmp.h"
+#include "lwip/raw.h"
+#include "lwip_src/ping.h"
+
+#ifndef PING_ID
+#define PING_ID        0xAFAF
+#endif
 
 #define MAC_ADDRESS_LENGTH 6
 
@@ -231,11 +239,59 @@ void common_hal_wifi_radio_set_ipv4_address(wifi_radio_obj_t *self, mp_obj_t ipv
     mp_raise_NotImplementedError(NULL);
 }
 
+volatile bool ping_received;
+
+static u8_t
+ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const ip_addr_t *addr) {
+    struct icmp_echo_hdr *iecho;
+    LWIP_ASSERT("p != NULL", p != NULL);
+
+    if ((p->tot_len >= (PBUF_IP_HLEN + sizeof(struct icmp_echo_hdr))) &&
+        pbuf_remove_header(p, PBUF_IP_HLEN) == 0) {
+        iecho = (struct icmp_echo_hdr *)p->payload;
+
+        if ((iecho->id == PING_ID) && (iecho->seqno == lwip_htons(ping_seq_num))) {
+            LWIP_DEBUGF(PING_DEBUG, ("ping: recv "));
+            ip_addr_debug_print(PING_DEBUG, addr);
+            LWIP_DEBUGF(PING_DEBUG, (" %"U32_F " ms\n", (sys_now() - ping_time)));
+
+            /* do some ping result processing */
+            ping_received = true;
+            pbuf_free(p);
+            return 1; /* eat the packet */
+        }
+        /* not eaten, restore original packet */
+        pbuf_add_header(p, PBUF_IP_HLEN);
+    }
+    return 0; /* don't eat the packet */
+}
+
 mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address, mp_float_t timeout) {
     ip_addr_t ping_addr;
     ipaddress_ipaddress_to_lwip(ip_address, &ping_addr);
-    size_t timeout_ms = (size_t)MICROPY_FLOAT_FUN(ceil)(timeout * 1000);
-    mp_raise_NotImplementedError(NULL);
+    struct raw_pcb *ping_pcb = raw_new(IP_PROTO_ICMP);
+    raw_recv(ping_pcb, ping_recv, NULL);
+    raw_bind(ping_pcb, IP_ADDR_ANY);
+
+    ping_received = false;
+    ping_send(ping_pcb, &ping_addr);
+    size_t timeout_ms = (size_t)MICROPY_FLOAT_C_FUN(ceil)(timeout * 1000);
+    uint64_t start = port_get_raw_ticks(NULL);
+    uint64_t deadline = start + timeout_ms;
+    while (port_get_raw_ticks(NULL) < deadline && !ping_received) {
+        cyw43_poll();
+        RUN_BACKGROUND_TASKS;
+        if (mp_hal_is_interrupted()) {
+            break;
+        }
+    }
+    mp_int_t result = -1;
+    if (ping_received) {
+        uint64_t now = port_get_raw_ticks(NULL);
+        result = now - start;
+    }
+    raw_remove(ping_pcb);
+    return result;
 }
 
 void common_hal_wifi_radio_gc_collect(wifi_radio_obj_t *self) {

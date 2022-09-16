@@ -82,6 +82,7 @@ SRC_LWIP := \
 	$(wildcard sdk/lib/lwip/src/core/*.c) \
 	$(wildcard sdk/lib/lwip/src/core/ipv4/*.c) \
 	sdk/lib/lwip/src/netif/ethernet.c \
+	$(wildcard lwip_src/*.c) \
 
 SRC_CYW43 := $(wildcard bindings/cyw43/*.c)
 
@@ -285,7 +286,6 @@ SRC_C += \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c \
 	lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c \
 	mphalport.c \
-	lwip_ping.c \
 	$(SRC_CYW43) \
 	$(SRC_LWIP) \
 

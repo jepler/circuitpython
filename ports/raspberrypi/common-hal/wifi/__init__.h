@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "py/obj.h"
 #include "py/mpconfig.h"
 #include "lwip/ip_addr.h"
 
