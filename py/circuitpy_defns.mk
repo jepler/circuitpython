@@ -236,6 +236,9 @@ endif
 ifeq ($(CIRCUITPY_NEOPIXEL_WRITE),1)
 SRC_PATTERNS += neopixel_write/%
 endif
+ifeq ($(AULITECH_NEUTONML),1)
+SRC_PATTERNS += neutonml/%
+endif
 ifeq ($(CIRCUITPY_NVM),1)
 SRC_PATTERNS += nvm/%
 endif
@@ -595,6 +598,8 @@ SRC_SHARED_MODULE_ALL = \
 	memorymonitor/AllocationAlarm.c \
 	memorymonitor/AllocationSize.c \
 	network/__init__.c \
+	neutonml/__init__.c \
+	neutonml/Neuton.c \
 	msgpack/__init__.c \
 	onewireio/__init__.c \
 	onewireio/OneWire.c \
