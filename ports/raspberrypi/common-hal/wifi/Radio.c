@@ -269,9 +269,17 @@ ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const ip_addr_t *addr)
 mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address, mp_float_t timeout) {
     ip_addr_t ping_addr;
     ipaddress_ipaddress_to_lwip(ip_address, &ping_addr);
-    struct raw_pcb *ping_pcb = raw_new(IP_PROTO_ICMP);
+
+    struct raw_pcb *ping_pcb;
+    MICROPY_PY_LWIP_ENTER();
+    ping_pcb = raw_new(IP_PROTO_ICMP);
+    if (!ping_pcb) {
+        MICROPY_PY_LWIP_EXIT();
+        return -1;
+    }
     raw_recv(ping_pcb, ping_recv, NULL);
     raw_bind(ping_pcb, IP_ADDR_ANY);
+    MICROPY_PY_LWIP_EXIT();
 
     ping_received = false;
     ping_send(ping_pcb, &ping_addr);
@@ -279,7 +287,6 @@ mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address,
     uint64_t start = port_get_raw_ticks(NULL);
     uint64_t deadline = start + timeout_ms;
     while (port_get_raw_ticks(NULL) < deadline && !ping_received) {
-        cyw43_poll();
         RUN_BACKGROUND_TASKS;
         if (mp_hal_is_interrupted()) {
             break;
@@ -290,7 +297,11 @@ mp_int_t common_hal_wifi_radio_ping(wifi_radio_obj_t *self, mp_obj_t ip_address,
         uint64_t now = port_get_raw_ticks(NULL);
         result = now - start;
     }
+
+    MICROPY_PY_LWIP_ENTER();
     raw_remove(ping_pcb);
+    MICROPY_PY_LWIP_EXIT();
+
     return result;
 }
 
