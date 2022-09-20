@@ -218,7 +218,7 @@ mp_obj_t common_hal_wifi_radio_get_ipv4_address_ap(wifi_radio_obj_t *self) {
 
 mp_obj_t common_hal_wifi_radio_get_ipv4_dns(wifi_radio_obj_t *self) {
     uint32_t addr = dns_getserver(0)->addr;
-    if (!netif_is_up(NETIF_AP) || addr == 0) {
+    if (!netif_is_up(NETIF_STA) || addr == 0) {
         return mp_const_none;
     }
     return common_hal_ipaddress_new_ipv4address(addr);
