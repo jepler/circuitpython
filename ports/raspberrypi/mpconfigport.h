@@ -51,10 +51,9 @@
 
 #if CIRCUITPY_CYW43
 #include "pico/cyw43_arch.h"
-#undef _L // interferes with ulab, indirectly defined in ctype.h, is ulab bug to use identifier _L
-#define MICROPY_PY_LWIP_ENTER   cyw43_arch_lwip_begin
+#define MICROPY_PY_LWIP_ENTER   cyw43_arch_lwip_begin();
 #define MICROPY_PY_LWIP_REENTER MICROPY_PY_LWIP_ENTER
-#define MICROPY_PY_LWIP_EXIT    cyw43_arch_lwip_end
+#define MICROPY_PY_LWIP_EXIT    cyw43_arch_lwip_end();
 #endif
 
 #endif  // __INCLUDED_MPCONFIGPORT_H
