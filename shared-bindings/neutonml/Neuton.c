@@ -19,10 +19,17 @@
 //|   Create an object.
 
 STATIC mp_obj_t neutonml_neuton_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *pos_args) {
-    mp_arg_check_num(n_args, n_kw, 0, 0, true);
+
+    mp_int_t interval = 0;
+    mp_int_t pin = 0;
+    if (n_args > 0) {
+        interval = mp_obj_get_int(pos_args[1]);
+        pin = mp_obj_get_int(pos_args[0]);
+    }
+    // mp_arg_check_num(n_args, n_kw, 0, 0, true);
     neutonml_neuton_obj_t *self = m_new_obj(neutonml_neuton_obj_t);
     self->base.type = &neutonml_neuton_type;
-    shared_module_neutonml_neuton_construct(self);
+    shared_module_neutonml_neuton_construct(self, pin, interval);
     return MP_OBJ_FROM_PTR(self);
 }
 

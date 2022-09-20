@@ -8,7 +8,7 @@
 
 STATIC const mp_rom_map_elem_t neutonml_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_neutonml)},
-    {MP_ROM_QSTR(MP_QSTR_neutonml), MP_ROM_PTR(&neutonml_neuton_type)},
+    {MP_ROM_QSTR(MP_QSTR_Neuton), MP_ROM_PTR(&neutonml_neuton_type)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(neutonml_module_globals, neutonml_module_globals_table);
