@@ -55,10 +55,14 @@ STATIC void check_result(digitalinout_result_t result) {
             mp_raise_ValueError_varg(translate("%q in use"), MP_QSTR_Pin);
         case DIGITALINOUT_INPUT_ONLY:
             mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_direction);
+        #if CIRCUITPY_DIGITALIO_HAVE_INVALID_PULL
         case DIGITALINOUT_INVALID_PULL:
             mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_pull);
+        #endif
+        #if CIRCUITPY_DIGITALIO_HAVE_INVALID_DRIVE_MODE
         case DIGITALINOUT_INVALID_DRIVE_MODE:
             mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_drive_mode);
+        #endif
     }
 }
 
