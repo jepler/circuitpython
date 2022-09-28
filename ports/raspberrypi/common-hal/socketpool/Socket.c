@@ -30,6 +30,7 @@
 
 #include "shared-bindings/socketpool/Socket.h"
 
+#include "py/gc.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
 #include "py/runtime.h"
@@ -596,7 +597,7 @@ STATIC mp_uint_t lwip_tcp_receive(socketpool_socket_obj_t *socket, byte *buf, mp
 }
 
 
-STATIC mp_obj_t open_socket_objs[MAX_SOCKETS];
+STATIC socketpool_socket_obj_t *open_socket_objs[MAX_SOCKETS];
 STATIC bool user_socket[MAX_SOCKETS];
 
 void socket_user_reset(void) {
@@ -612,38 +613,54 @@ void socket_user_reset(void) {
 // The writes below send an event to the socket select task so that it redoes the
 // select with the new open socket set.
 
-STATIC bool register_open_socket(mp_obj_t obj) {
+STATIC bool register_open_socket(socketpool_socket_obj_t *obj) {
     for (size_t i = 0; i < MP_ARRAY_SIZE(open_socket_objs); i++) {
         if (!open_socket_objs[i]) {
             open_socket_objs[i] = obj;
+            DEBUG_printf("register_open_socket(%p) -> %d\n", obj, i);
             user_socket[i] = false;
             return true;
         }
     }
+    DEBUG_printf("register_open_socket(%p) fails due to full table\n", obj);
     return false;
 }
 
-STATIC void unregister_open_socket(mp_obj_t obj) {
+STATIC void unregister_open_socket(socketpool_socket_obj_t *obj) {
     for (size_t i = 0; i < MP_ARRAY_SIZE(open_socket_objs); i++) {
         if (open_socket_objs[i] == obj) {
+            DEBUG_printf("unregister_open_socket(%p) clears %d\n", obj, i);
             open_socket_objs[i] = NULL;
             user_socket[i] = false;
+            return;
         }
     }
+    DEBUG_printf("unregister_open_socket(%p) fails due to missing entry\n", obj);
 }
 
-STATIC void mark_user_socket(mp_obj_t obj) {
+STATIC void mark_user_socket(socketpool_socket_obj_t *obj) {
     for (size_t i = 0; i < MP_ARRAY_SIZE(open_socket_objs); i++) {
         if (open_socket_objs[i] == obj) {
+            DEBUG_printf("mark_user_socket(%p) -> %d\n", obj, i);
             user_socket[i] = true;
             return;
         }
     }
+    DEBUG_printf("mark_user_socket(%p) fails due to missing entry\n", obj);
 }
 
 bool socketpool_socket(socketpool_socketpool_obj_t *self,
     socketpool_socketpool_addressfamily_t family, socketpool_socketpool_sock_t type,
     socketpool_socket_obj_t *socket) {
+
+    if (!register_open_socket(socket)) {
+        DEBUG_printf("collecting garbage to open socket\n");
+        gc_collect();
+        if (!register_open_socket(socket)) {
+            return false;
+        }
+    }
+
     socket->timeout = -1;
     socket->recv_offset = 0;
     socket->domain = SOCKETPOOL_AF_INET;
@@ -708,7 +725,8 @@ socketpool_socket_obj_t *common_hal_socketpool_socket(socketpool_socketpool_obj_
         mp_raise_NotImplementedError(translate("Only IPv4 sockets supported"));
     }
 
-    socketpool_socket_obj_t *socket = m_new_obj_with_finaliser(socketpool_socket_obj_t);
+    // we must allocate sockets long-lived because we depend on their object-identity
+    socketpool_socket_obj_t *socket = m_new_ll_obj_with_finaliser(socketpool_socket_obj_t);
     socket->base.type = &socketpool_socket_type;
 
     if (!socketpool_socket(self, family, type, socket)) {
@@ -740,6 +758,7 @@ STATIC err_t _lwip_tcp_close_poll(void *arg, struct tcp_pcb *pcb) {
 }
 
 void socketpool_socket_close(socketpool_socket_obj_t *socket) {
+    unregister_open_socket(socket);
     MICROPY_PY_LWIP_ENTER
     if (socket->pcb.tcp == NULL) { // already closed
         MICROPY_PY_LWIP_EXIT
