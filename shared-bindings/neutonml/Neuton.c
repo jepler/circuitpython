@@ -58,18 +58,15 @@ STATIC mp_obj_t neutonml_neuton_obj_get_inputs_count(mp_obj_t self_in) {
     return mp_obj_new_int(shared_module_neutonml_neuton_model_inputs_count(self_in));
 }
 MP_DEFINE_CONST_FUN_OBJ_1(neutonml_neuton_get_inputs_count_obj, neutonml_neuton_obj_get_inputs_count);
-MP_PROPERTY_GETTER(neutonml_neuton_inputs_count_obj, (mp_obj_t)&neutonml_neuton_get_inputs_count_obj);
 
 STATIC mp_obj_t neutonml_neuton_obj_set_inputs(mp_obj_t self_in, mp_obj_t inputs) {
-    /*
+
     size_t len;
     int status = 0;
-    float **items;
-    // FIX  mp_obj_get_array(inputs, &len, (mp_obj_t **)items);
-    //      status = shared_module_neutonml_neuton_model_set_inputs(self_in, *items);
+    mp_obj_t *items;
+    mp_obj_get_array(inputs, &len, &items);
+    status = shared_module_neutonml_neuton_model_set_inputs(self_in, (input_t *)&items);
     return mp_obj_new_int((mp_int_t)status);
-    */
-    return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_2(neutonml_neuton_set_inputs_obj, neutonml_neuton_obj_set_inputs);
 
@@ -80,9 +77,6 @@ STATIC mp_obj_t neutonml_neuton_obj_get_inputs_ptr(mp_obj_t self_in) {
     return MP_OBJ_FROM_PTR(inputs);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(neutonml_neuton_get_inputs_ptr_obj, neutonml_neuton_obj_get_inputs_ptr);
-MP_PROPERTY_GETSET(neutonml_neuton_inputs_obj,
-    (mp_obj_t)&neutonml_neuton_get_inputs_ptr_obj,
-    (mp_obj_t)&neutonml_neuton_set_inputs_obj);
 
 STATIC mp_obj_t neutonml_neuton_obj_set_ready_flag(mp_obj_t self_in, mp_obj_t dummy) {
     shared_module_neutonml_neuton_model_set_ready_flag(self_in);
@@ -122,22 +116,21 @@ MP_PROPERTY_GETTER(neutonml_neuton_outputs_count_obj, (mp_obj_t)&neutonml_neuton
 
 STATIC mp_obj_t
 neutonml_neuton_obj_run_inference(mp_obj_t self_in, mp_obj_t index, mp_obj_t outputs) { /*
-     uint16_t result;
+uint16_t result;
 
-     STATIC const mp_rom_map_elem_t inference_locals_dict_table[] = {
-         {MP_ROM_QSTR(MP_QSTR_result), mp_obj_new_int (result))},
-         {MP_ROM_QSTR(MP_QSTR_reset_reason), MP_ROM_PTR(&mcu_processor_reset_reason_obj)},
-         {MP_ROM_QSTR(MP_QSTR_temperature), MP_ROM_PTR(&mcu_processor_temperature_obj)},
-         {MP_ROM_QSTR(MP_QSTR_uid), MP_ROM_PTR(&mcu_processor_uid_obj)},
-         {MP_ROM_QSTR(MP_QSTR_voltage), MP_ROM_PTR(&mcu_processor_voltage_obj)},
-     };
+STATIC const mp_rom_map_elem_t inference_locals_dict_table[] = {
+{MP_ROM_QSTR(MP_QSTR_result), mp_obj_new_int (result))},
+{MP_ROM_QSTR(MP_QSTR_reset_reason), MP_ROM_PTR(&mcu_processor_reset_reason_obj)},
+{MP_ROM_QSTR(MP_QSTR_temperature), MP_ROM_PTR(&mcu_processor_temperature_obj)},
+{MP_ROM_QSTR(MP_QSTR_uid), MP_ROM_PTR(&mcu_processor_uid_obj)},
+{MP_ROM_QSTR(MP_QSTR_voltage), MP_ROM_PTR(&mcu_processor_voltage_obj)},
+};
 
-     result = shared_module_neutonml_neuton_model_run_inference(self_in, &idx, out);
-     */
+result = shared_module_neutonml_neuton_model_run_inference(self_in, &idx, out);
+*/
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_3(neutonml_neuton_run_inference_obj, neutonml_neuton_obj_run_inference);
-MP_PROPERTY_GETTER(neutonml_neuton_inference_obj, (mp_obj_t)&neutonml_neuton_run_inference_obj);
 
 STATIC mp_obj_t neutonml_neuton_obj_get_task_type(mp_obj_t self_in) {
     return mp_obj_new_int(shared_module_neutonml_neuton_model_task_type(self_in));
@@ -204,12 +197,12 @@ STATIC const mp_rom_map_elem_t neutonml_neuton_locals_dict_table[] = {
     {MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&neutonml_neuton_deinit_obj)},
     {MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&default___enter___obj)},
     {MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&neutonml_neuton___exit___obj)},
-    {MP_ROM_QSTR(MP_QSTR_inputs_count), MP_ROM_PTR(&neutonml_neuton_inputs_count_obj)},
-    {MP_ROM_QSTR(MP_QSTR_inputs), MP_ROM_PTR(&neutonml_neuton_inputs_obj)},
-    {MP_ROM_QSTR(MP_QSTR_ready_flag), MP_ROM_PTR(&neutonml_neuton_ready_flag_obj)},
+    {MP_ROM_QSTR(MP_QSTR_get_inputs_count), MP_ROM_PTR(&neutonml_neuton_get_inputs_count_obj)},
+    {MP_ROM_QSTR(MP_QSTR_set_inputs), MP_ROM_PTR(&neutonml_neuton_set_inputs_obj)},
+    {MP_ROM_QSTR(MP_QSTR_set_ready_flag), MP_ROM_PTR(&neutonml_neuton_set_ready_flag_obj)},
     {MP_ROM_QSTR(MP_QSTR_reset_inputs), MP_ROM_PTR(&neutonml_neuton_reset_inputs_obj)},
     {MP_ROM_QSTR(MP_QSTR_outputs_count), MP_ROM_PTR(&neutonml_neuton_outputs_count_obj)},
-    {MP_ROM_QSTR(MP_QSTR_inference), MP_ROM_PTR(&neutonml_neuton_inference_obj)},
+    {MP_ROM_QSTR(MP_QSTR_inference), MP_ROM_PTR(&neutonml_neuton_run_inference_obj)},
     {MP_ROM_QSTR(MP_QSTR_task_type), MP_ROM_PTR(&neutonml_neuton_task_type_obj)},
     {MP_ROM_QSTR(MP_QSTR_quantization_level), MP_ROM_PTR(&neutonml_neuton_quantization_level_obj)},
     {MP_ROM_QSTR(MP_QSTR_float_calculations), MP_ROM_PTR(&neutonml_neuton_float_calculations_obj)},
