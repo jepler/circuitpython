@@ -696,7 +696,7 @@ ifeq ($(AULITECH_NEUTONML),1)
 SRC_MOD += $(addprefix lib/neuton/neuton/, \
 	neuton.c \
 )
-$(BUILD)/lib/neuton/neuton/neuton.o: CFLAGS += -include "py/misc.h" -D'MPDEC_ALLOCATOR(x)=m_malloc(x,0)' -D'MPDEC_FREE(x)=m_free(x)' -Wno-strict-prototypes
+$(BUILD)/lib/neuton/neuton/neuton.o: CFLAGS += -include "py/misc.h" -D'MPDEC_ALLOCATOR(x)=m_malloc(x,0)' -D'MPDEC_FREE(x)=m_free(x)' -Wno-strict-prototypes -Wno-missing-prototypes
 endif
 
 ifeq ($(CIRCUITPY_RGBMATRIX),1)
