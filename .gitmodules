@@ -310,3 +310,6 @@
 [submodule "ports/espressif/esp32-camera"]
 	path = ports/espressif/esp32-camera
 	url = https://github.com/adafruit/esp32-camera/
+[submodule "lib/neuton"]
+	path = lib/neuton
+	url = https://github.com/aulitech/Neuton.git

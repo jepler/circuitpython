@@ -33,9 +33,7 @@ BASE_CFLAGS = \
 	-Wdouble-promotion \
 	-Wimplicit-fallthrough=2 \
 	-Wno-endif-labels \
-	-Wstrict-prototypes \
 	-Werror-implicit-function-declaration \
-	-Wfloat-equal \
 	-Wundef \
 	-Wshadow \
 	-Wwrite-strings \
@@ -53,6 +51,17 @@ BASE_CFLAGS = \
 	-DCIRCUITPY_SAFE_RESTART_WORD=0xDEADBEEF \
 	-DCIRCUITPY_BOARD_ID="\"$(BOARD)\"" \
 	--param max-inline-insns-single=500
+
+ifeq ($(AULITECH_NEUTONML),1)
+BASE_CFLAGS += \
+	-Wno-strict-prototypes \
+	-Wno-missing-prototypes \
+	-Wno-float-equal
+else
+	-Wstrict-prototypes \
+	-Wmissing-prototypes \
+	-Wfloat-equal
+endif
 
 #        Use these flags to debug build times and header includes.
 #        -ftime-report
@@ -235,6 +244,9 @@ SRC_PATTERNS += msgpack/%
 endif
 ifeq ($(CIRCUITPY_NEOPIXEL_WRITE),1)
 SRC_PATTERNS += neopixel_write/%
+endif
+ifeq ($(AULITECH_NEUTONML),1)
+SRC_PATTERNS += neutonml/%
 endif
 ifeq ($(CIRCUITPY_NVM),1)
 SRC_PATTERNS += nvm/%
@@ -595,6 +607,8 @@ SRC_SHARED_MODULE_ALL = \
 	memorymonitor/AllocationAlarm.c \
 	memorymonitor/AllocationSize.c \
 	network/__init__.c \
+	neutonml/__init__.c \
+	neutonml/Neuton.c \
 	msgpack/__init__.c \
 	onewireio/__init__.c \
 	onewireio/OneWire.c \
@@ -677,6 +691,14 @@ SRC_MOD += $(addprefix lib/mp3/src/, \
 )
 $(BUILD)/lib/mp3/src/buffers.o: CFLAGS += -include "py/misc.h" -D'MPDEC_ALLOCATOR(x)=m_malloc(x,0)' -D'MPDEC_FREE(x)=m_free(x)'
 endif
+
+ifeq ($(AULITECH_NEUTONML),1)
+SRC_MOD += $(addprefix lib/neuton/neuton/, \
+	neuton.c \
+)
+$(BUILD)/lib/neuton/neuton/neuton.o: CFLAGS += -include "py/misc.h" -D'MPDEC_ALLOCATOR(x)=m_malloc(x,0)' -D'MPDEC_FREE(x)=m_free(x)' -Wno-strict-prototypes
+endif
+
 ifeq ($(CIRCUITPY_RGBMATRIX),1)
 SRC_MOD += $(addprefix lib/protomatter/src/, \
 	core.c \
