@@ -3,7 +3,7 @@
 
 #include "py/obj.h"
 #include "shared-bindings/neutonml/Neuton.h"
-#include "lib/neuton/neuton/neuton.h"
+#include "neuton.h"
 
 extern void shared_module_neutonml_neuton_construct(neutonml_neuton_obj_t *self);
 extern void shared_module_neutonml_neuton_deinit(neutonml_neuton_obj_t *self);
