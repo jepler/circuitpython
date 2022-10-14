@@ -255,6 +255,14 @@ typedef long mp_off_t;
 #define MICROPY_FATFS_CASE_CONVERSION (CIRCUITPY_FULL_BUILD)
 #endif
 
+#ifndef MICROPY_FATFS_FS_NOFSINFO
+#if CIRCUITPY_FULL_BUILD
+#define MICROPY_FATFS_FS_NOFSINFO (0)
+#else
+#define MICROPY_FATFS_FS_NOFSINFO (3)
+#endif
+#endif
+
 // LONGINT_IMPL_xxx are defined in the Makefile.
 //
 #ifdef LONGINT_IMPL_NONE

@@ -296,7 +296,11 @@
 /  disk_ioctl() function. */
 
 
-#define FF_FS_NOFSINFO  0
+#ifdef MICROPY_FATFS_FS_NOFSINFO
+#define FF_FS_NOFSINFO   (MICROPY_FATFS_FS_NOFSINFO)
+#else
+#define FF_FS_NOFSINFO  3
+#endif
 /* If you need to know correct free space on the FAT32 volume, set bit 0 of this
 /  option, and f_getfree() function at first time after volume mount will force
 /  a full FAT scan. Bit 1 controls the use of last allocated cluster number.
