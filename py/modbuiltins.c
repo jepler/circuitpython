@@ -377,8 +377,7 @@ STATIC mp_obj_t mp_builtin_ord(mp_obj_t o_in) {
     #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
     mp_raise_TypeError(MP_ERROR_TEXT("ord expects a character"));
     #else
-    mp_raise_TypeError_varg(
-        MP_ERROR_TEXT("ord() expected a character, but string of length %d found"), (int)len);
+    mp_raise_ValueError_varg(translate("%q length must be %d"), MP_QSTR_ord, 1);
     #endif
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_ord_obj, mp_builtin_ord);
