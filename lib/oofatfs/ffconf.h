@@ -142,6 +142,28 @@
 */
 
 
+#ifdef MICROPY_FATFS_CASE_CONVERSION
+#define FF_EXTENDED_CASE_CONVERSION (MICROPY_FATFS_CASE_CONVERSION)
+#else
+#define FF_EXTENDED_CASE_CONVERSION 1
+#endif
+/* The case conversion table is a large amount of data. The amount of data
+ * can optionally be reduced, at the price of not being fully compatible
+ * with case insensitivity with unusual characters.
+ *
+ * The abbreviated table includes all characters in Windows Glyph List 4
+ * https://en.wikipedia.org/wiki/Windows_Glyph_List_4
+ *
+ * The repertoire, defined by Microsoft, encompasses all the characters found
+ * in Microsoft's code pages 1252 (Windows Western), 1250 (Windows Central
+ * European), 1251 (Windows Cyrillic), 1253 (Windows Greek), 1254 (Windows
+ * Turkish), and 1257 (Windows Baltic), as well as characters from MS-DOS
+ * codepage 437. It also includes all code points under 0x1000 except for
+ * the IPA extensions.
+ *
+ * This gives wide coverage of common languages while excluding as much case
+ * conversion data as practical.
+ */
 #ifdef MICROPY_FATFS_ENABLE_LFN
 #define FF_USE_LFN  (MICROPY_FATFS_ENABLE_LFN)
 #else
