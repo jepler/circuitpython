@@ -160,7 +160,7 @@ STATIC mp_obj_t mp_builtin_chr(mp_obj_t o_in) {
         str[3] = (c & 0x3F) | 0x80;
         len = 4;
     } else {
-        mp_raise_ValueError(MP_ERROR_TEXT("chr() arg not in range(0x110000)"));
+        mp_raise_ValueError_varg(translate("%q must be <= %d"), MP_QSTR_chr, 0x10ffff);
     }
     return mp_obj_new_str_via_qstr((char *)str, len);
     #else
