@@ -70,7 +70,11 @@ MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_next_obj);
 #endif
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_oct_obj);
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_ord_obj);
+#if MICROPY_PY_BUILTINS_POW3
 MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_pow_obj);
+#else
+MP_DECLARE_CONST_FUN_OBJ_2(mp_builtin_pow_obj);
+#endif
 MP_DECLARE_CONST_FUN_OBJ_KW(mp_builtin_print_obj);
 MP_DECLARE_CONST_FUN_OBJ_1(mp_builtin_repr_obj);
 MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_round_obj);
