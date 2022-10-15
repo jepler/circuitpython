@@ -117,7 +117,7 @@ endif
 CFLAGS += $(OPTIMIZATION_FLAGS)
 
 # Add -ftree-vrp optimization and checking to all builds. It's not enabled for -Os by default.
-CFLAGS += -ftree-vrp
+CFLAGS += -fno-guess-branch-probability
 
 $(echo PERIPHERALS_CHIP_FAMILY=$(PERIPHERALS_CHIP_FAMILY))
 #Debugging/Optimization
