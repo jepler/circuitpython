@@ -23,7 +23,7 @@ class S(io.IOBase):
     def write(self, buf):
         if type(buf) == bytearray:
             # uPy passes a bytearray, CPython passes a str
-            buf = str(buf, "ascii")
+            buf = str(buf, "utf-8")
         self.buf += buf
         return len(buf)
 

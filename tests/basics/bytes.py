@@ -18,9 +18,9 @@ print(repr(a))
 print(a[0], a[2])
 print(a[-1])
 print(str(a, "utf-8"))
-print(str(a, "utf-8", "ignore"))
+print(str(a, "utf-8", "strict"))
 try:
-    str(a, "utf-8", "ignore", "toomuch")
+    str(a, "utf-8", "strict", "toomuch")
 except TypeError:
     print("TypeError")
 
@@ -29,17 +29,6 @@ for i in a:
     s += i
 print(s)
 
-
-print(bytes("abc", "utf-8"))
-print(bytes("abc", "utf-8", "replace"))
-try:
-    bytes("abc")
-except TypeError:
-    print("TypeError")
-try:
-    bytes("abc", "utf-8", "replace", "toomuch")
-except TypeError:
-    print("TypeError")
 
 print(bytes(3))
 
@@ -62,3 +51,17 @@ try:
     bytes(-1)
 except ValueError:
     print('ValueError')
+
+# Test that invalid encoding names are caught
+try:
+    str(a, "cabbage", "strict")
+except Exception:
+    print("Exception")
+
+# Test that invalid error values are caught. On Python3 requires that an
+# encoding error is actually encountered; on CP, it errors prompty at the
+# time of the call
+try:
+    str("\x80", "utf-8", "banana")
+except Exception:
+    print("Exception")

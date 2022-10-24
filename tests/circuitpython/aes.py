@@ -7,7 +7,7 @@ inp = b"CircuitPython!!!"  # Note: 16-bytes long
 outp = bytearray(len(inp))
 cipher = aesio.AES(key, aesio.MODE_ECB)
 cipher.encrypt_into(inp, outp)
-print(str(hexlify(outp), ""))
+print(str(hexlify(outp), "utf-8"))
 
 cipher = aesio.AES(key, aesio.MODE_ECB)
 cipher.decrypt_into(outp, outp)

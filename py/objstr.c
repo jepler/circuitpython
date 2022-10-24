@@ -44,6 +44,31 @@ STATIC mp_obj_t str_modulo_format(mp_obj_t pattern, size_t n_args, const mp_obj_
 STATIC mp_obj_t mp_obj_new_bytes_iterator(mp_obj_t str, mp_obj_iter_buf_t *iter_buf);
 STATIC NORETURN void bad_implicit_conversion(mp_obj_t self_in);
 
+STATIC void check_encode_decode_args(int n_args, const mp_obj_t *args) {
+    #if MICROPY_CPYTHON_COMPAT
+    static const uint16_t utf8_aliases[] = {
+        MP_QSTR_, // For compatibility with older CircuitPython
+        MP_QSTR_utf8,
+        MP_QSTR_utf_hyphen_8,
+        MP_QSTR_utf_underscore_8,
+    };
+    if (n_args > 3) {
+        mp_raise_TypeError(MP_ERROR_TEXT("extra positional arguments given"));
+    }
+    if (n_args == 3 && !(mp_obj_equal(args[2], MP_OBJ_NEW_QSTR(MP_QSTR_strict)))) {
+        mp_raise_ValueError_varg(MP_ERROR_TEXT("Invalid %q"), MP_QSTR_errors);
+    }
+    if (n_args > 1) {
+        for (size_t i = 0; i < MP_ARRAY_SIZE(utf8_aliases); i++) {
+            if (mp_obj_equal(args[1], MP_OBJ_NEW_QSTR(utf8_aliases[i]))) {
+                return;
+            }
+        }
+        mp_raise_ValueError_varg(MP_ERROR_TEXT("Invalid %q"), MP_QSTR_encoding);
+    }
+    #endif
+}
+
 const char nibble_to_hex_upper[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
                                       'A', 'B', 'C', 'D', 'E', 'F'};
 
@@ -157,7 +182,7 @@ mp_obj_t mp_obj_str_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
         }
 
         default: // 2 or 3 args
-            // TODO: validate 2nd/3rd args
+            check_encode_decode_args(n_args, args);
             if (mp_obj_is_type(args[0], &mp_type_bytes)) {
                 GET_STR_DATA_LEN(args[0], str_data, str_len);
                 GET_STR_HASH(args[0], str_hash);
@@ -213,9 +238,8 @@ STATIC mp_obj_t bytes_make_new(const mp_obj_type_t *type_in, size_t n_args, size
     }
 
     if (mp_obj_is_str(args[0])) {
-        if (n_args < 2 || n_args > 3) {
-            goto wrong_args;
-        }
+        check_encode_decode_args(n_args, args);
+
         GET_STR_DATA_LEN(args[0], str_data, str_len);
         GET_STR_HASH(args[0], str_hash);
         if (str_hash == 0) {
