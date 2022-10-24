@@ -26,6 +26,7 @@
 
 #include "shared-bindings/coproc/__init__.h"
 
+#include "py/mphal.h"
 #include "py/runtime.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -36,8 +37,51 @@
 #include "esp32s3/ulp_riscv.h"
 #endif
 
-// To-do idf v5.0: remove following include
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "soc/rtc_cntl_reg.h"
+
+static void ulp_riscv_timer_stop(void) {
+    mp_printf(&mp_plat_print, "Stopping timer\n");
+    mp_hal_delay_ms(100);
+    CLEAR_PERI_REG_MASK(RTC_CNTL_ULP_CP_TIMER_REG, RTC_CNTL_ULP_CP_SLP_TIMER_EN);
+    mp_hal_delay_ms(100);
+}
+
+__attribute__((unused))
+static void ulp_riscv_timer_resume(void) {
+    SET_PERI_REG_MASK(RTC_CNTL_ULP_CP_TIMER_REG, RTC_CNTL_ULP_CP_SLP_TIMER_EN);
+}
+
+static void ulp_riscv_halt(void) {
+    ulp_riscv_timer_stop();
+
+    #if defined(CONFIG_IDF_TARGET_ESP32S2)
+    /* suspends the ulp operation*/
+    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_DONE);
+
+    /* Resets the processor */
+    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_SHUT_RESET_EN);
+
+    #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+    // Through experimentation I discovered that this sequence of register
+    // operations seems to reliably halt the CPU, tested on S3 only.
+
+    /* Halts the processor clock */
+    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_CLK_FO);
+
+    /* Resets the processor */
+    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_SHUT_RESET_EN);
+
+    /* suspends the ulp operation*/
+    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_DONE);
+
+    #endif
+    return;
+
+}
+#else
+#warning Make sure upstream implementation of ulp_riscv_halt works!
+#endif
 
 void common_hal_coproc_run(coproc_coproc_obj_t *self) {
     if (GET_PERI_REG_MASK(RTC_CNTL_ULP_CP_TIMER_REG, RTC_CNTL_ULP_CP_SLP_TIMER_EN)) {
@@ -52,19 +96,13 @@ void common_hal_coproc_run(coproc_coproc_obj_t *self) {
 }
 
 void common_hal_coproc_halt(coproc_coproc_obj_t *self) {
+    mp_printf(&mp_plat_print, "Copying memory\n");
+    mp_hal_delay_ms(100);
     self->buf = (uint8_t *)m_malloc(self->buf_len, false);
     memcpy(self->buf, (uint8_t *)RTC_SLOW_MEM, self->buf_len);
 
-    // To-do idf v5.0: use following functions
-    // ulp_riscv_timer_stop();
-    // ulp_riscv_halt();
-
-    // stop the ulp timer
-    CLEAR_PERI_REG_MASK(RTC_CNTL_ULP_CP_TIMER_REG, RTC_CNTL_ULP_CP_SLP_TIMER_EN);
-    // suspends the ulp operation
-    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_DONE);
-    // resets the processor
-    SET_PERI_REG_MASK(RTC_CNTL_COCPU_CTRL_REG, RTC_CNTL_COCPU_SHUT_RESET_EN);
+    // ulp_riscv_timer_stop(); is implicitly called by riscv_halt
+    ulp_riscv_halt();
 }
 
 mp_obj_t common_hal_coproc_memory(coproc_coproc_obj_t *self) {
