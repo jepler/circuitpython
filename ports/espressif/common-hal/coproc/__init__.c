@@ -29,6 +29,8 @@
 #include "py/mphal.h"
 #include "py/runtime.h"
 
+#include "esp_idf_version.h"
+
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
 #include "esp32s2/ulp.h"
 #include "esp32s2/ulp_riscv.h"
