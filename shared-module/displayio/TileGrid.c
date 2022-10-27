@@ -463,6 +463,17 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
         y_shift = temp_shift;
     }
 
+    uint32_t (*get_pixel_func)(void *self, int16_t x, int16_t y);
+    if (mp_obj_is_type(self->bitmap, &displayio_bitmap_type)) {
+        get_pixel_func = common_hal_displayio_bitmap_get_pixel;
+    } else if (mp_obj_is_type(self->bitmap, &displayio_shape_type)) {
+        get_pixel_func = common_hal_displayio_shape_get_pixel;
+    } else if (mp_obj_is_type(self->bitmap, &displayio_ondiskbitmap_type)) {
+        get_pixel_func = common_hal_displayio_ondiskbitmap_get_pixel;
+    } else {
+        return false;
+    }
+
     uint8_t pixels_per_byte = 8 / colorspace->depth;
 
     displayio_input_pixel_t input_pixel;
@@ -495,13 +506,7 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
 
             // We always want to read bitmap pixels by row first and then transpose into the destination
             // buffer because most bitmaps are row associated.
-            if (mp_obj_is_type(self->bitmap, &displayio_bitmap_type)) {
-                input_pixel.pixel = common_hal_displayio_bitmap_get_pixel(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
-            } else if (mp_obj_is_type(self->bitmap, &displayio_shape_type)) {
-                input_pixel.pixel = common_hal_displayio_shape_get_pixel(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
-            } else if (mp_obj_is_type(self->bitmap, &displayio_ondiskbitmap_type)) {
-                input_pixel.pixel = common_hal_displayio_ondiskbitmap_get_pixel(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
-            }
+            input_pixel.pixel = get_pixel_func(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
 
             output_pixel.opaque = true;
             if (self->pixel_shader == mp_const_none) {

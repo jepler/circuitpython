@@ -92,7 +92,8 @@ uint32_t common_hal_displayio_bitmap_get_bits_per_value(displayio_bitmap_t *self
     return self->bits_per_value;
 }
 
-uint32_t common_hal_displayio_bitmap_get_pixel(displayio_bitmap_t *self, int16_t x, int16_t y) {
+uint32_t common_hal_displayio_bitmap_get_pixel(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
     if (x >= self->width || x < 0 || y >= self->height || y < 0) {
         return 0;
     }

@@ -145,8 +145,9 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
 }
 
 
-uint32_t common_hal_displayio_ondiskbitmap_get_pixel(displayio_ondiskbitmap_t *self,
+uint32_t common_hal_displayio_ondiskbitmap_get_pixel(void *self_in,
     int16_t x, int16_t y) {
+    displayio_ondiskbitmap_t *self = self_in;
     if (x < 0 || x >= self->width || y < 0 || y >= self->height) {
         return 0;
     }
