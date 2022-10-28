@@ -482,6 +482,9 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     for (input_pixel.y = start_y; input_pixel.y < end_y; ++input_pixel.y) {
         int16_t row_start = start + (input_pixel.y - start_y + y_shift) * y_stride; // in pixels
         int16_t local_y = input_pixel.y / self->absolute_transform->scale;
+        uint16_t tile_location_start = ((local_y / self->tile_height + self->top_left_y) % self->height_in_tiles) * self->width_in_tiles;
+        input_pixel.tile_y = (input_pixel.tile / self->bitmap_width_in_tiles) * self->tile_height + local_y % self->tile_height;
+
         for (input_pixel.x = start_x; input_pixel.x < end_x; ++input_pixel.x) {
             // Compute the destination pixel in the buffer and mask based on the transformations.
             int16_t offset = row_start + (input_pixel.x - start_x + x_shift) * x_stride; // in pixels
@@ -496,10 +499,9 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
                 continue;
             }
             int16_t local_x = input_pixel.x / self->absolute_transform->scale;
-            uint16_t tile_location = ((local_y / self->tile_height + self->top_left_y) % self->height_in_tiles) * self->width_in_tiles + (local_x / self->tile_width + self->top_left_x) % self->width_in_tiles;
+            uint16_t tile_location = tile_location_start + (local_x / self->tile_width + self->top_left_x) % self->width_in_tiles;
             input_pixel.tile = tiles[tile_location];
             input_pixel.tile_x = (input_pixel.tile % self->bitmap_width_in_tiles) * self->tile_width + local_x % self->tile_width;
-            input_pixel.tile_y = (input_pixel.tile / self->bitmap_width_in_tiles) * self->tile_height + local_y % self->tile_height;
 
             output_pixel.pixel = 0;
             input_pixel.pixel = 0;
