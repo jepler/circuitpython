@@ -557,6 +557,8 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     const int x_subgrid_start = x_pixel_start % tile_width;
     const int x_grid_start = x_pixel_start / tile_width;
 
+    const mp_obj_type_t *pixel_shader_type = mp_obj_get_type(self->pixel_shader);
+
     int old_tile = 0, tile_row = 0, tile_col = 0;
     for (input_pixel.y = start_y; input_pixel.y < end_y; ++input_pixel.y) {
         int16_t row_start = start + (input_pixel.y - start_y + y_shift) * y_stride; // in pixels
@@ -617,12 +619,12 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
                 input_pixel.pixel = get_pixel_func(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
 
                 output_pixel.opaque = true;
-                if (self->pixel_shader == mp_const_none) {
-                    output_pixel.pixel = input_pixel.pixel;
-                } else if (mp_obj_is_type(self->pixel_shader, &displayio_palette_type)) {
+                if (pixel_shader_type == &displayio_palette_type) {
                     output_pixel.opaque = displayio_palette_get_color(self->pixel_shader, colorspace, input_pixel.pixel, &output_pixel.pixel);
-                } else if (mp_obj_is_type(self->pixel_shader, &displayio_colorconverter_type)) {
+                } else if (pixel_shader_type == &displayio_colorconverter_type) {
                     displayio_colorconverter_convert(self->pixel_shader, colorspace, &input_pixel, &output_pixel);
+                } else {
+                    output_pixel.pixel = input_pixel.pixel;
                 }
                 pixel_changed = false;
             }
