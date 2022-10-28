@@ -503,6 +503,8 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
         // int x_grid = x_grid_start;
         int tile_location = tile_location_start;
 
+        bool pixel_changed = true;
+
         for (input_pixel.x = start_x; input_pixel.x < end_x; ++input_pixel.x) {
             // Compute the destination pixel in the buffer and mask based on the transformations.
             int16_t offset = row_start + (input_pixel.x - start_x + x_shift) * x_stride; // in pixels
@@ -517,6 +519,7 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
                 x_subpixel = 0;
                 x_pixel++;
                 x_subgrid++;
+                pixel_changed = true;
                 if (x_subgrid == tile_width) {
                     x_subgrid = 0;
                     tile_location++;
@@ -528,29 +531,32 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
                 continue;
             }
 
-            input_pixel.tile = tiles[tile_location];
-            if (input_pixel.tile != old_tile) {
-                tile_row = input_pixel.tile / width_in_tiles;
-                tile_col = input_pixel.tile % width_in_tiles;
-                old_tile = input_pixel.tile;
-            }
-            input_pixel.tile_y = tile_row * tile_height + y_subgrid;
-            input_pixel.tile_x = tile_col * tile_width + x_subgrid;
+            if (pixel_changed) {
+                input_pixel.tile = tiles[tile_location];
+                if (input_pixel.tile != old_tile) {
+                    tile_row = input_pixel.tile / width_in_tiles;
+                    tile_col = input_pixel.tile % width_in_tiles;
+                    old_tile = input_pixel.tile;
+                }
+                input_pixel.tile_y = tile_row * tile_height + y_subgrid;
+                input_pixel.tile_x = tile_col * tile_width + x_subgrid;
 
-            output_pixel.pixel = 0;
-            input_pixel.pixel = 0;
+                output_pixel.pixel = 0;
+                input_pixel.pixel = 0;
 
-            // We always want to read bitmap pixels by row first and then transpose into the destination
-            // buffer because most bitmaps are row associated.
-            input_pixel.pixel = get_pixel_func(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
+                // We always want to read bitmap pixels by row first and then transpose into the destination
+                // buffer because most bitmaps are row associated.
+                input_pixel.pixel = get_pixel_func(self->bitmap, input_pixel.tile_x, input_pixel.tile_y);
 
-            output_pixel.opaque = true;
-            if (self->pixel_shader == mp_const_none) {
-                output_pixel.pixel = input_pixel.pixel;
-            } else if (mp_obj_is_type(self->pixel_shader, &displayio_palette_type)) {
-                output_pixel.opaque = displayio_palette_get_color(self->pixel_shader, colorspace, input_pixel.pixel, &output_pixel.pixel);
-            } else if (mp_obj_is_type(self->pixel_shader, &displayio_colorconverter_type)) {
-                displayio_colorconverter_convert(self->pixel_shader, colorspace, &input_pixel, &output_pixel);
+                output_pixel.opaque = true;
+                if (self->pixel_shader == mp_const_none) {
+                    output_pixel.pixel = input_pixel.pixel;
+                } else if (mp_obj_is_type(self->pixel_shader, &displayio_palette_type)) {
+                    output_pixel.opaque = displayio_palette_get_color(self->pixel_shader, colorspace, input_pixel.pixel, &output_pixel.pixel);
+                } else if (mp_obj_is_type(self->pixel_shader, &displayio_colorconverter_type)) {
+                    displayio_colorconverter_convert(self->pixel_shader, colorspace, &input_pixel, &output_pixel);
+                }
+                pixel_changed = false;
             }
             if (!output_pixel.opaque) {
                 // A pixel is transparent so we haven't fully covered the area ourselves.
