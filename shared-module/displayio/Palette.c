@@ -72,9 +72,14 @@ uint32_t common_hal_displayio_palette_get_color(displayio_palette_t *self, uint3
 bool displayio_palette_get_color(displayio_palette_t *self, const _displayio_colorspace_t *colorspace, uint32_t palette_index, uint32_t *color) {
     if (palette_index > self->color_count || self->colors[palette_index].transparent) {
         return false; // returns transparent
-    }
-
-    if (colorspace->tricolor) {
+    } else if (colorspace->depth == 16) {
+        uint16_t packed = self->colors[palette_index].rgb565;
+        if (colorspace->reverse_bytes_in_word) {
+            // swap bytes
+            packed = __builtin_bswap16(packed);
+        }
+        *color = packed;
+    } else if (colorspace->tricolor) {
         uint8_t luma = self->colors[palette_index].luma;
         *color = luma >> (8 - colorspace->depth);
         // Chroma 0 means the color is a gray and has no hue so never color based on it.
@@ -89,13 +94,6 @@ bool displayio_palette_get_color(displayio_palette_t *self, const _displayio_col
     } else if (colorspace->grayscale) {
         size_t bitmask = (1 << colorspace->depth) - 1;
         *color = (self->colors[palette_index].luma >> colorspace->grayscale_bit) & bitmask;
-    } else if (colorspace->depth == 16) {
-        uint16_t packed = self->colors[palette_index].rgb565;
-        if (colorspace->reverse_bytes_in_word) {
-            // swap bytes
-            packed = __builtin_bswap16(packed);
-        }
-        *color = packed;
     } else if (colorspace->depth == 32) {
         *color = self->colors[palette_index].rgb888;
     } else {
