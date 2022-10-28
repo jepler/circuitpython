@@ -489,6 +489,7 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     const int x_subgrid_start = x_pixel_start % tile_width;
     const int x_grid_start = x_pixel_start / tile_width;
 
+    int old_tile = 0, tile_row = 0, tile_col = 0;
     for (input_pixel.y = start_y; input_pixel.y < end_y; ++input_pixel.y) {
         int16_t row_start = start + (input_pixel.y - start_y + y_shift) * y_stride; // in pixels
         int16_t local_y = input_pixel.y / self->absolute_transform->scale;
@@ -528,8 +529,11 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
             }
 
             input_pixel.tile = tiles[tile_location];
-            const int tile_row = input_pixel.tile / width_in_tiles;
-            const int tile_col = input_pixel.tile % width_in_tiles;
+            if (input_pixel.tile != old_tile) {
+                tile_row = input_pixel.tile / width_in_tiles;
+                tile_col = input_pixel.tile % width_in_tiles;
+                old_tile = input_pixel.tile;
+            }
             input_pixel.tile_y = tile_row * tile_height + y_subgrid;
             input_pixel.tile_x = tile_col * tile_width + x_subgrid;
 
