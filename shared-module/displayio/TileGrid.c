@@ -376,6 +376,51 @@ void common_hal_displayio_tilegrid_set_top_left(displayio_tilegrid_t *self, uint
     self->full_change = true;
 }
 
+#define BITS_PER_WORD (sizeof(uint32_t) * 8)
+
+static uint32_t bitmap_get_pixel1(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint32_t word = self->data[row_start + x / 32];
+    return (word >> (BITS_PER_WORD - ((x & 0x1f) + 1))) & 1;
+}
+
+static uint32_t bitmap_get_pixel2(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint32_t word = self->data[row_start + x / 16];
+    return (word >> (BITS_PER_WORD - ((x & 0xf) + 1) * 2)) & 3;
+}
+
+static uint32_t bitmap_get_pixel4(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint32_t word = self->data[row_start + x / 8];
+    return (word >> (BITS_PER_WORD - ((x & 0x7) + 1) * 4)) & 7;
+}
+
+static uint32_t bitmap_get_pixel8(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint8_t *row = (uint8_t *)(self->data + row_start);
+    return row[x];
+}
+
+static uint32_t bitmap_get_pixel16(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint16_t *row = (uint16_t *)(self->data + row_start);
+    return row[x];
+}
+
+static uint32_t bitmap_get_pixel32(void *self_in, int16_t x, int16_t y) {
+    displayio_bitmap_t *self = self_in;
+    int32_t row_start = y * self->stride;
+    uint32_t *row = self->data + row_start;
+    return row[x];
+}
+
+
 bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     const _displayio_colorspace_t *colorspace, const displayio_area_t *area,
     uint32_t *mask, uint32_t *buffer) {
@@ -465,7 +510,29 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
 
     uint32_t (*get_pixel_func)(void *self, int16_t x, int16_t y);
     if (mp_obj_is_type(self->bitmap, &displayio_bitmap_type)) {
-        get_pixel_func = common_hal_displayio_bitmap_get_pixel;
+        displayio_bitmap_t *bitmap = MP_OBJ_TO_PTR(self->bitmap);
+        switch (bitmap->bits_per_value) {
+            case 1:
+                get_pixel_func = bitmap_get_pixel1;
+                break;
+            case 2:
+                get_pixel_func = bitmap_get_pixel2;
+                break;
+            case 4:
+                get_pixel_func = bitmap_get_pixel4;
+                break;
+            case 8:
+                get_pixel_func = bitmap_get_pixel8;
+                break;
+            case 16:
+                get_pixel_func = bitmap_get_pixel16;
+                break;
+            case 32:
+                get_pixel_func = bitmap_get_pixel32;
+                break;
+            default:
+                get_pixel_func = common_hal_displayio_bitmap_get_pixel;
+        }
     } else if (mp_obj_is_type(self->bitmap, &displayio_shape_type)) {
         get_pixel_func = common_hal_displayio_shape_get_pixel;
     } else if (mp_obj_is_type(self->bitmap, &displayio_ondiskbitmap_type)) {
