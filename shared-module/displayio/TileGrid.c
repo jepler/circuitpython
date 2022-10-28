@@ -421,6 +421,7 @@ static uint32_t bitmap_get_pixel32(void *self_in, int16_t x, int16_t y) {
 }
 
 
+__attribute__((optimize("O3")))
 bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     const _displayio_colorspace_t *colorspace, const displayio_area_t *area,
     uint32_t *mask, uint32_t *buffer) {
