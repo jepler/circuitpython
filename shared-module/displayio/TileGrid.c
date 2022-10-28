@@ -479,11 +479,28 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
     displayio_input_pixel_t input_pixel;
     displayio_output_pixel_t output_pixel;
 
+    const int scale = self->absolute_transform->scale;
+    const int tile_width = self->tile_width;
+    const int tile_height = self->tile_height;
+    const int width_in_tiles = self->bitmap_width_in_tiles;
+
+    const int x_subpixel_start = (start_x - 1) % scale;
+    const int x_pixel_start = (start_x - 1) / scale;
+    const int x_subgrid_start = x_pixel_start % tile_width;
+    const int x_grid_start = x_pixel_start / tile_width;
+
     for (input_pixel.y = start_y; input_pixel.y < end_y; ++input_pixel.y) {
         int16_t row_start = start + (input_pixel.y - start_y + y_shift) * y_stride; // in pixels
         int16_t local_y = input_pixel.y / self->absolute_transform->scale;
-        uint16_t tile_location_start = ((local_y / self->tile_height + self->top_left_y) % self->height_in_tiles) * self->width_in_tiles;
-        input_pixel.tile_y = (input_pixel.tile / self->bitmap_width_in_tiles) * self->tile_height + local_y % self->tile_height;
+        uint16_t tile_location_start = ((local_y / self->tile_height + self->top_left_y) % self->height_in_tiles) * self->width_in_tiles + x_grid_start;
+
+        int y_subgrid = local_y % tile_height;
+
+        int x_subpixel = x_subpixel_start;
+        int x_pixel = x_pixel_start;
+        int x_subgrid = x_subgrid_start;
+        // int x_grid = x_grid_start;
+        int tile_location = tile_location_start;
 
         for (input_pixel.x = start_x; input_pixel.x < end_x; ++input_pixel.x) {
             // Compute the destination pixel in the buffer and mask based on the transformations.
@@ -494,14 +511,27 @@ bool displayio_tilegrid_fill_area(displayio_tilegrid_t *self,
             //     asm("bkpt");
             // }
 
+            x_subpixel += 1;
+            if (x_subpixel == scale) {
+                x_subpixel = 0;
+                x_pixel++;
+                x_subgrid++;
+                if (x_subgrid == tile_width) {
+                    x_subgrid = 0;
+                    tile_location++;
+                }
+            }
+
             // Check the mask first to see if the pixel has already been set.
             if ((mask[offset / 32] & (1 << (offset % 32))) != 0) {
                 continue;
             }
-            int16_t local_x = input_pixel.x / self->absolute_transform->scale;
-            uint16_t tile_location = tile_location_start + (local_x / self->tile_width + self->top_left_x) % self->width_in_tiles;
+
             input_pixel.tile = tiles[tile_location];
-            input_pixel.tile_x = (input_pixel.tile % self->bitmap_width_in_tiles) * self->tile_width + local_x % self->tile_width;
+            const int tile_row = input_pixel.tile / width_in_tiles;
+            const int tile_col = input_pixel.tile % width_in_tiles;
+            input_pixel.tile_y = tile_row * tile_height + y_subgrid;
+            input_pixel.tile_x = tile_col * tile_width + x_subgrid;
 
             output_pixel.pixel = 0;
             input_pixel.pixel = 0;
