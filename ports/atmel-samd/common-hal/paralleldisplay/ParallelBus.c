@@ -132,10 +132,10 @@ bool common_hal_paralleldisplay_parallelbus_begin_transaction(mp_obj_t obj) {
     return true;
 }
 
-void common_hal_paralleldisplay_parallelbus_send(mp_obj_t obj, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
+void common_hal_paralleldisplay_parallelbus_send(mp_obj_t obj, display_write_mode_t mode,
+    const uint8_t *data, uint32_t data_length) {
     paralleldisplay_parallelbus_obj_t *self = MP_OBJ_TO_PTR(obj);
-    common_hal_digitalio_digitalinout_set_value(&self->command, byte_type == DISPLAY_DATA);
+    common_hal_digitalio_digitalinout_set_value(&self->command, (mode & MASK_DISPLAY) == DISPLAY_DATA);
     uint32_t *clear_write = (uint32_t *)&self->write_group->OUTCLR.reg;
     uint32_t *set_write = (uint32_t *)&self->write_group->OUTSET.reg;
     uint32_t mask = self->write_mask;

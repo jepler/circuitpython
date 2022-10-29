@@ -92,10 +92,10 @@ void common_hal_displayio_display_construct(displayio_display_obj_t *self,
             uint8_t full_command[data_size + 1];
             full_command[0] = cmd[0];
             memcpy(full_command + 1, data, data_size);
-            self->core.send(self->core.bus, DISPLAY_COMMAND, CHIP_SELECT_TOGGLE_EVERY_BYTE, full_command, data_size + 1);
+            self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, full_command, data_size + 1);
         } else {
-            self->core.send(self->core.bus, DISPLAY_COMMAND, CHIP_SELECT_TOGGLE_EVERY_BYTE, cmd, 1);
-            self->core.send(self->core.bus, DISPLAY_DATA, CHIP_SELECT_UNTOUCHED, data, data_size);
+            self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, cmd, 1);
+            self->core.send(self->core.bus, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED, data, data_size);
         }
         displayio_display_core_end_transaction(&self->core);
         uint16_t delay_length_ms = 10;
@@ -184,12 +184,12 @@ bool common_hal_displayio_display_set_brightness(displayio_display_obj_t *self, 
         if (ok) {
             if (self->data_as_commands) {
                 uint8_t set_brightness[2] = {self->brightness_command, (uint8_t)(0xff * brightness)};
-                self->core.send(self->core.bus, DISPLAY_COMMAND, CHIP_SELECT_TOGGLE_EVERY_BYTE, set_brightness, 2);
+                self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, set_brightness, 2);
             } else {
                 uint8_t command = self->brightness_command;
                 uint8_t hex_brightness = 0xff * brightness;
-                self->core.send(self->core.bus, DISPLAY_COMMAND, CHIP_SELECT_TOGGLE_EVERY_BYTE, &command, 1);
-                self->core.send(self->core.bus, DISPLAY_DATA, CHIP_SELECT_UNTOUCHED, &hex_brightness, 1);
+                self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, &command, 1);
+                self->core.send(self->core.bus, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED, &hex_brightness, 1);
             }
             displayio_display_core_end_transaction(&self->core);
         }
@@ -221,9 +221,9 @@ STATIC const displayio_area_t *_get_refresh_areas(displayio_display_obj_t *self)
 
 STATIC void _send_pixels(displayio_display_obj_t *self, uint8_t *pixels, uint32_t length) {
     if (!self->data_as_commands) {
-        self->core.send(self->core.bus, DISPLAY_COMMAND, CHIP_SELECT_TOGGLE_EVERY_BYTE, &self->write_ram_command, 1);
+        self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, &self->write_ram_command, 1);
     }
-    self->core.send(self->core.bus, DISPLAY_DATA, CHIP_SELECT_UNTOUCHED, pixels, length);
+    self->core.send(self->core.bus, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED, pixels, length);
 }
 
 STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t *area) {

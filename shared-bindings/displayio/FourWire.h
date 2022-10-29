@@ -48,8 +48,8 @@ bool common_hal_displayio_fourwire_bus_free(mp_obj_t self);
 
 bool common_hal_displayio_fourwire_begin_transaction(mp_obj_t self);
 
-void common_hal_displayio_fourwire_send(mp_obj_t self, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length);
+void common_hal_displayio_fourwire_send(mp_obj_t self, display_write_mode_t mode,
+    const uint8_t *data, uint32_t data_length);
 
 void common_hal_displayio_fourwire_end_transaction(mp_obj_t self);
 
