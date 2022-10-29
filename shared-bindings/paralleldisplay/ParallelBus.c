@@ -144,8 +144,8 @@ STATIC mp_obj_t paralleldisplay_parallelbus_obj_send(mp_obj_t self, mp_obj_t com
     while (!common_hal_paralleldisplay_parallelbus_begin_transaction(self)) {
         RUN_BACKGROUND_TASKS;
     }
-    common_hal_paralleldisplay_parallelbus_send(self, DISPLAY_COMMAND, CHIP_SELECT_UNTOUCHED, &command, 1);
-    common_hal_paralleldisplay_parallelbus_send(self, DISPLAY_DATA, CHIP_SELECT_UNTOUCHED, ((uint8_t *)bufinfo.buf), bufinfo.len);
+    common_hal_paralleldisplay_parallelbus_send(self, DISPLAY_COMMAND | CHIP_SELECT_UNTOUCHED, &command, 1);
+    common_hal_paralleldisplay_parallelbus_send(self, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED, ((uint8_t *)bufinfo.buf), bufinfo.len);
     common_hal_paralleldisplay_parallelbus_end_transaction(self);
 
     return mp_const_none;

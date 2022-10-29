@@ -115,8 +115,7 @@ bool common_hal_displayio_fourwire_begin_transaction(mp_obj_t obj) {
     return true;
 }
 
-void common_hal_displayio_fourwire_send(mp_obj_t obj, display_byte_type_t data_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
+void common_hal_displayio_fourwire_send(mp_obj_t obj, display_write_mode_t mode, const uint8_t *data, uint32_t data_length) {
     displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(obj);
     if (self->command.base.type == &mp_type_NoneType) {
         // When the data/command pin is not specified, we simulate a 9-bit SPI mode, by
@@ -126,7 +125,7 @@ void common_hal_displayio_fourwire_send(mp_obj_t obj, display_byte_type_t data_t
         // transmission. We toggle the CS pin to make the receiver discard them.
         uint8_t buffer = 0;
         uint8_t bits = 0;
-        uint8_t dc = (data_type == DISPLAY_DATA);
+        uint8_t dc = mode & DISPLAY_DATA;
 
         for (size_t i = 0; i < data_length; i++) {
             bits = (bits + 1) % 8;
@@ -156,8 +155,8 @@ void common_hal_displayio_fourwire_send(mp_obj_t obj, display_byte_type_t data_t
             common_hal_digitalio_digitalinout_set_value(&self->chip_select, false);
         }
     } else {
-        common_hal_digitalio_digitalinout_set_value(&self->command, data_type == DISPLAY_DATA);
-        if (chip_select == CHIP_SELECT_TOGGLE_EVERY_BYTE) {
+        common_hal_digitalio_digitalinout_set_value(&self->command, mode & DISPLAY_DATA);
+        if (mode & CHIP_SELECT_TOGGLE_EVERY_BYTE) {
             // Toggle chip select after each command byte in case the display driver
             // IC latches commands based on it.
             for (size_t i = 0; i < data_length; i++) {

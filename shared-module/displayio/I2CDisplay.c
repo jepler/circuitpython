@@ -103,10 +103,11 @@ bool common_hal_displayio_i2cdisplay_begin_transaction(mp_obj_t obj) {
     return common_hal_busio_i2c_try_lock(self->bus);
 }
 
-void common_hal_displayio_i2cdisplay_send(mp_obj_t obj, display_byte_type_t data_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
+void common_hal_displayio_i2cdisplay_send(mp_obj_t obj, display_write_mode_t mode,
+    const uint8_t *data, uint32_t data_length) {
     displayio_i2cdisplay_obj_t *self = MP_OBJ_TO_PTR(obj);
-    if (data_type == DISPLAY_COMMAND) {
+
+    if ((mode & MASK_DISPLAY) == DISPLAY_COMMAND) {
         uint8_t command_bytes[2 * data_length];
         for (uint32_t i = 0; i < data_length; i++) {
             command_bytes[2 * i] = 0x80;

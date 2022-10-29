@@ -56,7 +56,7 @@ typedef struct {
     bool color_bits_inverted;
     bool refreshing;
     bool grayscale;
-    display_chip_select_behavior_t chip_select;
+    display_write_mode_t chip_select;
     bool two_byte_sequence_length;
 } displayio_epaperdisplay_obj_t;
 

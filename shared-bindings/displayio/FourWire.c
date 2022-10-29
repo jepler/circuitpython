@@ -148,12 +148,12 @@ STATIC mp_obj_t displayio_fourwire_obj_send(size_t n_args, const mp_obj_t *pos_a
     while (!common_hal_displayio_fourwire_begin_transaction(self)) {
         RUN_BACKGROUND_TASKS;
     }
-    display_chip_select_behavior_t chip_select = CHIP_SELECT_UNTOUCHED;
+    display_write_mode_t chip_select = CHIP_SELECT_UNTOUCHED;
     if (args[ARG_toggle_every_byte].u_bool) {
         chip_select = CHIP_SELECT_TOGGLE_EVERY_BYTE;
     }
-    common_hal_displayio_fourwire_send(self, DISPLAY_COMMAND, chip_select, &command, 1);
-    common_hal_displayio_fourwire_send(self, DISPLAY_DATA, chip_select, ((uint8_t *)bufinfo.buf), bufinfo.len);
+    common_hal_displayio_fourwire_send(self, DISPLAY_COMMAND | chip_select, &command, 1);
+    common_hal_displayio_fourwire_send(self, DISPLAY_DATA | chip_select, ((uint8_t *)bufinfo.buf), bufinfo.len);
     common_hal_displayio_fourwire_end_transaction(self);
 
     return mp_const_none;
