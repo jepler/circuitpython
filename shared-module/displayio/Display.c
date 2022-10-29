@@ -274,6 +274,7 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
     uint32_t mask[mask_length];
     uint16_t remaining_rows = displayio_area_height(&clipped);
 
+    displayio_display_core_begin_transaction(&self->core);
     for (uint16_t j = 0; j < subrectangles; j++) {
         displayio_area_t subrectangle = {
             .x1 = clipped.x1,
@@ -307,9 +308,7 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
             return false;
         }
 
-        displayio_display_core_begin_transaction(&self->core);
         _send_pixels(self, (uint8_t *)buffer, subrectangle_size_bytes);
-        displayio_display_core_end_transaction(&self->core);
 
         // TODO(tannewt): Make refresh displays faster so we don't starve other
         // background tasks.
@@ -317,6 +316,7 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
         usb_background();
         #endif
     }
+    displayio_display_core_end_transaction(&self->core);
     return true;
 }
 
