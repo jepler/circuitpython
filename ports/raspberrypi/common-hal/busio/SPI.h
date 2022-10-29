@@ -45,6 +45,7 @@ typedef struct {
     uint8_t polarity;
     uint8_t phase;
     uint8_t bits;
+    int8_t chan_rx, chan_tx;
 } busio_spi_obj_t;
 
 void reset_spi(void);

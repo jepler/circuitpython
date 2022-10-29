@@ -165,6 +165,11 @@ bool common_hal_busio_spi_try_lock(busio_spi_obj_t *self) {
     if (!self->has_lock) {
         grabbed_lock = true;
         self->has_lock = true;
+        self->chan_tx = dma_claim_unused_channel(false);
+        self->chan_rx = dma_claim_unused_channel(false);
+
+        if (self->chan_tx != -1 && self->chan_rx != -1) {
+        }
     }
     return grabbed_lock;
 }
@@ -186,9 +191,8 @@ static bool _transfer(busio_spi_obj_t *self,
     int chan_rx = -1;
     size_t len = MAX(out_len, in_len);
     if (len >= dma_min_size_threshold) {
-        // Use two DMA channels to service the two FIFOs
-        chan_tx = dma_claim_unused_channel(false);
-        chan_rx = dma_claim_unused_channel(false);
+        chan_tx = self->chan_tx;
+        chan_rx = self->chan_rx;
     }
     bool use_dma = chan_rx >= 0 && chan_tx >= 0;
     if (use_dma) {
@@ -219,18 +223,7 @@ static bool _transfer(busio_spi_obj_t *self,
             // TODO: We should idle here until we get a DMA interrupt or something else.
             RUN_BACKGROUND_TASKS;
         }
-    }
-
-    // If we have claimed only one channel successfully, we should release immediately. This also
-    // releases the DMA after use_dma has been done.
-    if (chan_rx >= 0) {
-        dma_channel_unclaim(chan_rx);
-    }
-    if (chan_tx >= 0) {
-        dma_channel_unclaim(chan_tx);
-    }
-
-    if (!use_dma) {
+    } else {
         // Use software for small transfers, or if couldn't claim two DMA channels
         // Never have more transfers in flight than will fit into the RX FIFO,
         // else FIFO will overflow if this code is heavily interrupted.
