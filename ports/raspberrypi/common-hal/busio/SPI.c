@@ -179,10 +179,29 @@ bool common_hal_busio_spi_has_lock(busio_spi_obj_t *self) {
 }
 
 void common_hal_busio_spi_unlock(busio_spi_obj_t *self) {
+    common_hal_busio_spi_wait_complete(self);
+    if (self->chan_rx != -1) {
+        dma_channel_unclaim(self->chan_rx);
+        self->chan_rx = -1;
+    }
+    if (self->chan_tx >= 0) {
+        dma_channel_unclaim(self->chan_tx);
+        self->chan_rx = -1;
+    }
+
     self->has_lock = false;
 }
 
-static bool _transfer(busio_spi_obj_t *self,
+void common_hal_busio_spi_wait_complete(busio_spi_obj_t *self) {
+    if (self->chan_rx != -1) {
+        while (dma_channel_is_busy(self->chan_rx) || dma_channel_is_busy(self->chan_tx)) {
+            // TODO: We should idle here until we get a DMA interrupt or something else.
+            RUN_BACKGROUND_TASKS;
+        }
+    }
+}
+
+static bool _bg_transfer(busio_spi_obj_t *self,
     const uint8_t *data_out, size_t out_len,
     uint8_t *data_in, size_t in_len) {
     // Use DMA for large transfers if channels are available
@@ -219,10 +238,6 @@ static bool _transfer(busio_spi_obj_t *self,
             false);
 
         dma_start_channel_mask((1u << chan_rx) | (1u << chan_tx));
-        while (dma_channel_is_busy(chan_rx) || dma_channel_is_busy(chan_tx)) {
-            // TODO: We should idle here until we get a DMA interrupt or something else.
-            RUN_BACKGROUND_TASKS;
-        }
     } else {
         // Use software for small transfers, or if couldn't claim two DMA channels
         // Never have more transfers in flight than will fit into the RX FIFO,
@@ -254,20 +269,48 @@ static bool _transfer(busio_spi_obj_t *self,
     return true;
 }
 
-bool common_hal_busio_spi_write(busio_spi_obj_t *self,
+bool common_hal_busio_spi_write_background(busio_spi_obj_t *self,
     const uint8_t *data, size_t len) {
     uint32_t data_in;
-    return _transfer(self, data, len, (uint8_t *)&data_in, MIN(len, 4));
+    return _bg_transfer(self, data, len, (uint8_t *)&data_in, MIN(len, 4));
+}
+
+bool common_hal_busio_spi_write(busio_spi_obj_t *self,
+    const uint8_t *data, size_t len) {
+    bool result = common_hal_busio_spi_write_background(self, data, len);
+    if (result) {
+        common_hal_busio_spi_wait_complete(self);
+    }
+    return result;
+}
+
+
+bool common_hal_busio_spi_read_background(busio_spi_obj_t *self,
+    uint8_t *data, size_t len, uint8_t write_value) {
+    uint32_t data_out = write_value << 24 | write_value << 16 | write_value << 8 | write_value;
+    return _bg_transfer(self, (const uint8_t *)&data_out, MIN(4, len), data, len);
 }
 
 bool common_hal_busio_spi_read(busio_spi_obj_t *self,
     uint8_t *data, size_t len, uint8_t write_value) {
-    uint32_t data_out = write_value << 24 | write_value << 16 | write_value << 8 | write_value;
-    return _transfer(self, (const uint8_t *)&data_out, MIN(4, len), data, len);
+    common_hal_busio_spi_read_background(self, data, len, write_value);
+    bool result = common_hal_busio_spi_read_background(self, data, len, write_value);
+    if (result) {
+        common_hal_busio_spi_wait_complete(self);
+    }
+    return result;
+}
+
+bool common_hal_busio_spi_transfer_background(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len) {
+    return _bg_transfer(self, data_out, len, data_in, len);
 }
 
 bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len) {
-    return _transfer(self, data_out, len, data_in, len);
+    bool result = _bg_transfer(self, data_out, len, data_in, len);
+    if (result) {
+        common_hal_busio_spi_wait_complete(self);
+    }
+    return result;
 }
 
 uint32_t common_hal_busio_spi_get_frequency(busio_spi_obj_t *self) {

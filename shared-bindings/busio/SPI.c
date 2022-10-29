@@ -230,6 +230,7 @@ STATIC mp_obj_t busio_spi_obj_unlock(mp_obj_t self_in) {
     busio_spi_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
     common_hal_busio_spi_unlock(self);
+    common_hal_busio_spi_wait_complete(self);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(busio_spi_unlock_obj, busio_spi_obj_unlock);
@@ -468,4 +469,17 @@ busio_spi_obj_t *validate_obj_is_spi_bus(mp_obj_t obj) {
         mp_raise_TypeError_varg(translate("Expected a %q"), busio_spi_type.name);
     }
     return MP_OBJ_TO_PTR(obj);
+}
+
+MP_WEAK bool common_hal_busio_spi_write_background(busio_spi_obj_t *self, const uint8_t *data, size_t len) {
+    return common_hal_busio_spi_write(self, data, len);
+}
+MP_WEAK bool common_hal_busio_spi_read_background(busio_spi_obj_t *self, uint8_t *data, size_t len, uint8_t write_value) {
+    return common_hal_busio_spi_read(self, data, len, write_value);
+}
+MP_WEAK bool common_hal_busio_spi_transfer_background(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len) {
+    return common_hal_busio_spi_transfer(self, data_out, data_in, len);
+}
+MP_WEAK void common_hal_busio_spi_wait_complete(busio_spi_obj_t *self) {
+    return;
 }

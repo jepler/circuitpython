@@ -51,12 +51,17 @@ extern void common_hal_busio_spi_unlock(busio_spi_obj_t *self);
 
 // Writes out the given data.
 extern bool common_hal_busio_spi_write(busio_spi_obj_t *self, const uint8_t *data, size_t len);
+extern bool common_hal_busio_spi_write_background(busio_spi_obj_t *self, const uint8_t *data, size_t len);
 
 // Reads in len bytes while outputting the byte write_value.
 extern bool common_hal_busio_spi_read(busio_spi_obj_t *self, uint8_t *data, size_t len, uint8_t write_value);
+extern bool common_hal_busio_spi_read_background(busio_spi_obj_t *self, uint8_t *data, size_t len, uint8_t write_value);
 
 // Reads and write len bytes simultaneously.
 extern bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len);
+extern bool common_hal_busio_spi_transfer_background(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len);
+
+extern void common_hal_busio_spi_wait_complete(busio_spi_obj_t *self);
 
 // Return actual SPI bus frequency.
 uint32_t common_hal_busio_spi_get_frequency(busio_spi_obj_t *self);
