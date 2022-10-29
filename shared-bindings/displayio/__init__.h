@@ -31,14 +31,14 @@
 #include "py/obj.h"
 
 typedef enum {
-    DISPLAY_COMMAND,
-    DISPLAY_DATA
-} display_byte_type_t;
+    DISPLAY_COMMAND = 0,
+    DISPLAY_DATA = 1,
+    MASK_DISPLAY = DISPLAY_DATA,
 
-typedef enum {
-    CHIP_SELECT_UNTOUCHED,
-    CHIP_SELECT_TOGGLE_EVERY_BYTE
-} display_chip_select_behavior_t;
+    CHIP_SELECT_UNTOUCHED = 0,
+    CHIP_SELECT_TOGGLE_EVERY_BYTE = 2,
+    MASK_CHIP_SELECT = CHIP_SELECT_TOGGLE_EVERY_BYTE,
+} display_write_mode_t;
 
 typedef enum displayio_colorspace {
     DISPLAYIO_COLORSPACE_RGB888,
@@ -56,8 +56,7 @@ typedef enum displayio_colorspace {
 typedef bool (*display_bus_bus_reset)(mp_obj_t bus);
 typedef bool (*display_bus_bus_free)(mp_obj_t bus);
 typedef bool (*display_bus_begin_transaction)(mp_obj_t bus);
-typedef void (*display_bus_send)(mp_obj_t bus, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length);
+typedef void (*display_bus_send)(mp_obj_t bus, display_write_mode_t mode, const uint8_t *data, uint32_t data_length);
 typedef void (*display_bus_end_transaction)(mp_obj_t bus);
 
 void common_hal_displayio_release_displays(void);

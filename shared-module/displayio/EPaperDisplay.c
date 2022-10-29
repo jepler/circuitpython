@@ -153,8 +153,8 @@ STATIC void send_command_sequence(displayio_epaperdisplay_obj_t *self,
             data = cmd + 3;
         }
         displayio_display_core_begin_transaction(&self->core);
-        self->core.send(self->core.bus, DISPLAY_COMMAND, self->chip_select, cmd, 1);
-        self->core.send(self->core.bus, DISPLAY_DATA, self->chip_select, data, data_size);
+        self->core.send(self->core.bus, DISPLAY_COMMAND | self->chip_select, cmd, 1);
+        self->core.send(self->core.bus, DISPLAY_DATA | self->chip_select, data, data_size);
         displayio_display_core_end_transaction(&self->core);
         uint16_t delay_length_ms = 0;
         if (delay) {
@@ -205,7 +205,7 @@ uint32_t common_hal_displayio_epaperdisplay_get_time_to_refresh(displayio_epaper
 STATIC void displayio_epaperdisplay_finish_refresh(displayio_epaperdisplay_obj_t *self) {
     // Actually refresh the display now that all pixel RAM has been updated.
     displayio_display_core_begin_transaction(&self->core);
-    self->core.send(self->core.bus, DISPLAY_COMMAND, self->chip_select, &self->refresh_display_command, 1);
+    self->core.send(self->core.bus, DISPLAY_COMMAND | self->chip_select, &self->refresh_display_command, 1);
     displayio_display_core_end_transaction(&self->core);
     supervisor_enable_tick();
     self->refreshing = true;
@@ -292,7 +292,7 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
             write_command = self->write_color_ram_command;
         }
         displayio_display_core_begin_transaction(&self->core);
-        self->core.send(self->core.bus, DISPLAY_COMMAND, self->chip_select, &write_command, 1);
+        self->core.send(self->core.bus, DISPLAY_COMMAND | self->chip_select, &write_command, 1);
         displayio_display_core_end_transaction(&self->core);
 
         for (uint16_t j = 0; j < subrectangles; j++) {
@@ -339,7 +339,7 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
                 // Can't acquire display bus; skip the rest of the data. Try next display.
                 return false;
             }
-            self->core.send(self->core.bus, DISPLAY_DATA, self->chip_select, (uint8_t *)buffer, subrectangle_size_bytes);
+            self->core.send(self->core.bus, DISPLAY_DATA | self->chip_select, (uint8_t *)buffer, subrectangle_size_bytes);
             displayio_display_core_end_transaction(&self->core);
 
             // TODO(tannewt): Make refresh displays faster so we don't starve other

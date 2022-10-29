@@ -172,11 +172,11 @@ bool common_hal_paralleldisplay_parallelbus_begin_transaction(mp_obj_t obj) {
     return r;
 }
 
-void common_hal_paralleldisplay_parallelbus_send(mp_obj_t obj, display_byte_type_t byte_type,
-    display_chip_select_behavior_t chip_select, const uint8_t *data, uint32_t data_length) {
+void common_hal_paralleldisplay_parallelbus_send(mp_obj_t obj, display_write_mode_t mode,
+    const uint8_t *data, uint32_t data_length) {
     paralleldisplay_parallelbus_obj_t *self = MP_OBJ_TO_PTR(obj);
     if (data_length) {
-        gpio_set_level(self->config.pin_num_rs, byte_type == DISPLAY_DATA);
+        gpio_set_level(self->config.pin_num_rs, (mode & MASK_DISPLAY) == DISPLAY_DATA);
         i2s_lcd_write(self->handle, data, data_length);
     }
 }
