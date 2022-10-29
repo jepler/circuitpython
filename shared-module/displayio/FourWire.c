@@ -166,7 +166,11 @@ void common_hal_displayio_fourwire_send(mp_obj_t obj, display_write_mode_t mode,
                 common_hal_digitalio_digitalinout_set_value(&self->chip_select, false);
             }
         } else {
-            common_hal_busio_spi_write(self->bus, data, data_length);
+            if (mode & WRITE_MODE_BACKGROUND) {
+                common_hal_busio_spi_write_background(self->bus, data, data_length);
+            } else {
+                common_hal_busio_spi_write(self->bus, data, data_length);
+            }
         }
     }
 }

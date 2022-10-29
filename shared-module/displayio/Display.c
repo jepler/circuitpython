@@ -220,10 +220,7 @@ STATIC const displayio_area_t *_get_refresh_areas(displayio_display_obj_t *self)
 }
 
 STATIC void _send_pixels(displayio_display_obj_t *self, uint8_t *pixels, uint32_t length) {
-    if (!self->data_as_commands) {
-        self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, &self->write_ram_command, 1);
-    }
-    self->core.send(self->core.bus, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED, pixels, length);
+    self->core.send(self->core.bus, DISPLAY_DATA | CHIP_SELECT_UNTOUCHED | WRITE_MODE_BACKGROUND, pixels, length);
 }
 
 STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t *area) {
@@ -269,13 +266,24 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
 
     // Allocated and shared as a uint32_t array so the compiler knows the
     // alignment everywhere.
-    uint32_t buffer[buffer_size];
+    uint32_t buffers[2 * buffer_size];
     uint32_t mask_length = (pixels_per_buffer / 32) + 1;
     uint32_t mask[mask_length];
     uint16_t remaining_rows = displayio_area_height(&clipped);
 
+    // Can't acquire display bus; skip the update
+    if (!displayio_display_core_bus_free(&self->core)) {
+        return false;
+    }
     displayio_display_core_begin_transaction(&self->core);
+    self->core.send(self->core.bus, DISPLAY_COMMAND | CHIP_SELECT_TOGGLE_EVERY_BYTE, &self->write_ram_command, 1);
+    displayio_display_core_set_region_to_update(&self->core, self->set_column_command,
+        self->set_row_command, NO_COMMAND, NO_COMMAND, self->data_as_commands, false,
+        &clipped, self->SH1107_addressing);
+
     for (uint16_t j = 0; j < subrectangles; j++) {
+        uint32_t *buffer = &buffers[j % 2 ? buffer_size : 0];
+
         displayio_area_t subrectangle = {
             .x1 = clipped.x1,
             .y1 = clipped.y1 + rows_per_buffer * j,
@@ -286,10 +294,6 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
             subrectangle.y2 = subrectangle.y1 + remaining_rows;
         }
         remaining_rows -= rows_per_buffer;
-
-        displayio_display_core_set_region_to_update(&self->core, self->set_column_command,
-            self->set_row_command, NO_COMMAND, NO_COMMAND, self->data_as_commands, false,
-            &subrectangle, self->SH1107_addressing);
 
         uint16_t subrectangle_size_bytes;
         if (self->core.colorspace.depth >= 8) {
@@ -302,11 +306,6 @@ STATIC bool _refresh_area(displayio_display_obj_t *self, const displayio_area_t 
         memset(buffer, 0, buffer_size * sizeof(buffer[0]));
 
         displayio_display_core_fill_area(&self->core, &subrectangle, mask, buffer);
-
-        // Can't acquire display bus; skip the rest of the data.
-        if (!displayio_display_core_bus_free(&self->core)) {
-            return false;
-        }
 
         _send_pixels(self, (uint8_t *)buffer, subrectangle_size_bytes);
 

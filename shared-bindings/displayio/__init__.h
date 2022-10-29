@@ -38,6 +38,9 @@ typedef enum {
     CHIP_SELECT_UNTOUCHED = 0,
     CHIP_SELECT_TOGGLE_EVERY_BYTE = 2,
     MASK_CHIP_SELECT = CHIP_SELECT_TOGGLE_EVERY_BYTE,
+
+    WRITE_MODE_FOREGROUND = 0,
+    WRITE_MODE_BACKGROUND = 4,
 } display_write_mode_t;
 
 typedef enum displayio_colorspace {
