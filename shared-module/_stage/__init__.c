@@ -46,14 +46,14 @@ void render_stage(
     area.y1 = y0 * scale;
     area.x2 = x1 * scale;
     area.y2 = y1 * scale;
+    while (!displayio_display_core_begin_transaction(&display->core)) {
+        RUN_BACKGROUND_TASKS;
+    }
     displayio_display_core_set_region_to_update(
         &display->core, display->set_column_command, display->set_row_command,
         NO_COMMAND, NO_COMMAND, display->data_as_commands, false, &area,
         display->SH1107_addressing);
 
-    while (!displayio_display_core_begin_transaction(&display->core)) {
-        RUN_BACKGROUND_TASKS;
-    }
     display->core.send(display->core.bus, DISPLAY_COMMAND,
         CHIP_SELECT_TOGGLE_EVERY_BYTE,
         &display->write_ram_command, 1);

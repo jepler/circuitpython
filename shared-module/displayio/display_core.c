@@ -251,7 +251,6 @@ void displayio_display_core_set_region_to_update(displayio_display_core_t *self,
     }
 
     // Set column.
-    displayio_display_core_begin_transaction(self);
     uint8_t data[5];
     data[0] = column_command;
     uint8_t data_length = 1;
@@ -282,19 +281,15 @@ void displayio_display_core_set_region_to_update(displayio_display_core_t *self,
     }
 
     self->send(self->bus, data_type | chip_select, data, data_length);
-    displayio_display_core_end_transaction(self);
 
     if (set_current_column_command != NO_COMMAND) {
         uint8_t command = set_current_column_command;
-        displayio_display_core_begin_transaction(self);
         self->send(self->bus, DISPLAY_COMMAND | chip_select, &command, 1);
         self->send(self->bus, DISPLAY_DATA | chip_select, data, data_length / 2);
-        displayio_display_core_end_transaction(self);
     }
 
 
     // Set row.
-    displayio_display_core_begin_transaction(self);
     data[0] = row_command;
     data_length = 1;
     if (!data_as_commands) {
@@ -321,14 +316,11 @@ void displayio_display_core_set_region_to_update(displayio_display_core_t *self,
     }
 
     self->send(self->bus, data_type | chip_select, data, data_length);
-    displayio_display_core_end_transaction(self);
 
     if (set_current_row_command != NO_COMMAND) {
         uint8_t command = set_current_row_command;
-        displayio_display_core_begin_transaction(self);
         self->send(self->bus, DISPLAY_COMMAND | chip_select, &command, 1);
         self->send(self->bus, DISPLAY_DATA | chip_select, data, data_length / 2);
-        displayio_display_core_end_transaction(self);
     }
 }
 

@@ -281,6 +281,11 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
     for (uint8_t pass = 0; pass < passes; pass++) {
         uint16_t remaining_rows = displayio_area_height(&clipped);
 
+        if (!displayio_display_core_begin_transaction(&self->core)) {
+            // Can't acquire display bus; bail
+            return false;
+        }
+        displayio_display_core_begin_transaction(&self->core);
         if (self->set_row_window_command != NO_COMMAND) {
             displayio_display_core_set_region_to_update(&self->core, self->set_column_window_command,
                 self->set_row_window_command, self->set_current_column_command, self->set_current_row_command,
@@ -291,9 +296,7 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
         if (pass == 1) {
             write_command = self->write_color_ram_command;
         }
-        displayio_display_core_begin_transaction(&self->core);
         self->core.send(self->core.bus, DISPLAY_COMMAND | self->chip_select, &write_command, 1);
-        displayio_display_core_end_transaction(&self->core);
 
         for (uint16_t j = 0; j < subrectangles; j++) {
             displayio_area_t subrectangle = {
@@ -335,12 +338,7 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
                 }
             }
 
-            if (!displayio_display_core_begin_transaction(&self->core)) {
-                // Can't acquire display bus; skip the rest of the data. Try next display.
-                return false;
-            }
             self->core.send(self->core.bus, DISPLAY_DATA | self->chip_select, (uint8_t *)buffer, subrectangle_size_bytes);
-            displayio_display_core_end_transaction(&self->core);
 
             // TODO(tannewt): Make refresh displays faster so we don't starve other
             // background tasks.
@@ -348,6 +346,7 @@ STATIC bool displayio_epaperdisplay_refresh_area(displayio_epaperdisplay_obj_t *
             usb_background();
             #endif
         }
+        displayio_display_core_end_transaction(&self->core);
     }
 
     return true;
