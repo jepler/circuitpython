@@ -70,4 +70,5 @@ void common_hal_bitmaptools_dither(displayio_bitmap_t *dest_bitmap, displayio_bi
 
 void common_hal_bitmaptools_alphablend(displayio_bitmap_t *destination, displayio_bitmap_t *source1, displayio_bitmap_t *source2, displayio_colorspace_t colorspace, mp_float_t factor1, mp_float_t factor2);
 
+void common_hal_bitmaptools_scattergather(mp_obj_t destination, mp_obj_t source, mp_obj_t destination_index, mp_obj_t source_index, bool wrap, mp_int_t destination_len);
 #endif // MICROPY_INCLUDED_SHARED_BINDINGS_BITMAPTOOLS__INIT__H

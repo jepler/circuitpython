@@ -857,3 +857,83 @@ void common_hal_bitmaptools_alphablend(displayio_bitmap_t *dest, displayio_bitma
         }
     }
 }
+
+static inline void simple_subscr(mp_obj_t destination, mp_subscr_fun_t subscr, mp_obj_t dest_index_item, mp_obj_t item, mp_int_t destination_len, bool wrap) {
+    mp_int_t index = MP_OBJ_SMALL_INT_VALUE(dest_index_item);
+    if (index < 0 || index >= destination_len) {
+        if (!wrap) {
+            return;
+        }
+        // This is naive but avoids expensive % operation
+        while (index < 0) {
+            index += destination_len;
+        }
+        while (index >= destination_len) {
+            index -= destination_len;
+        }
+    }
+    subscr(destination, MP_OBJ_NEW_SMALL_INT(index), item);
+}
+
+static inline void nested_subscr(mp_obj_t destination, mp_subscr_fun_t subscr, mp_obj_t dest_index_item, mp_obj_t item, mp_int_t destination_len, bool wrap) {
+    if (mp_obj_is_small_int(dest_index_item)) {
+        simple_subscr(destination, subscr, dest_index_item, item, destination_len, wrap);
+    } else {
+        size_t len;
+        mp_obj_t *items;
+
+        mp_obj_get_array(dest_index_item, &len, &items);
+        for (size_t i = 0; i < len; i++) {
+            if (!mp_obj_is_small_int(items[i])) {
+                mp_raise_TypeError_varg(translate("%q must be of type %q"), MP_QSTR_index, MP_QSTR_int);
+            }
+            simple_subscr(destination, subscr, items[i], item, destination_len, wrap);
+        }
+    }
+}
+
+void common_hal_bitmaptools_scattergather(mp_obj_t destination, mp_obj_t source, mp_obj_t destination_index, mp_obj_t source_index, bool wrap, mp_int_t destination_len) {
+    mp_subscr_fun_t subscr = mp_type_get_subscr_slot(mp_obj_get_type(destination));
+
+    mp_obj_iter_buf_t dest_index_iter_buf;
+    mp_obj_t dest_index_iterable = mp_getiter(destination_index, &dest_index_iter_buf);
+
+    if (source_index == mp_const_none) {
+        mp_obj_iter_buf_t iter_buf;
+        mp_obj_t iterable = mp_getiter(source, &iter_buf);
+
+        while (true) {
+            mp_obj_t dest_index_item = mp_iternext(dest_index_iterable);
+            if (dest_index_item == MP_OBJ_STOP_ITERATION) {
+                break;
+            }
+
+            mp_obj_t item = mp_iternext(iterable);
+            if (item == MP_OBJ_STOP_ITERATION) {
+                break;
+            }
+
+            nested_subscr(destination, subscr, dest_index_item, item, destination_len, wrap);
+        }
+    } else {
+        mp_subscr_fun_t src_subscr = mp_type_get_subscr_slot(mp_obj_get_type(source));
+
+        mp_obj_iter_buf_t src_index_iter_buf;
+        mp_obj_t src_index_iterable = mp_getiter(source_index, &src_index_iter_buf);
+
+        while (true) {
+            mp_obj_t dest_index_item = mp_iternext(dest_index_iterable);
+            if (dest_index_item == MP_OBJ_STOP_ITERATION) {
+                break;
+            }
+
+            mp_obj_t src_index_item = mp_iternext(src_index_iterable);
+            if (src_index_item == MP_OBJ_STOP_ITERATION) {
+                break;
+            }
+
+            mp_obj_t item = src_subscr(source, src_index_item, MP_OBJ_SENTINEL);
+            nested_subscr(destination, subscr, dest_index_item, item, destination_len, wrap);
+        }
+    }
+}

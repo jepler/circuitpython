@@ -780,18 +780,103 @@ STATIC mp_obj_t bitmaptools_dither(size_t n_args, const mp_obj_t *pos_args, mp_m
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(bitmaptools_dither_obj, 0, bitmaptools_dither);
 
+//|
+//| def scattergather(destination, source, destination_index=None, source_index=None, wrap=False):
+//|     """Perform a scatter-gather operation efficiently
+//|
+//|     In its basic form, this is like:
+//|
+//|     .. code-block:: python
+//|
+//|         for di, si in zip(destination_index, source_index):
+//|             destination[di] = source[si]
+//|
+//|     except that handling of negative or out-of-bounds indices is
+//|     different than standard Python indexing.
+//|
+//|     If ``wrap`` is True, then destination indexing is performed modulo the
+//|     size of the container. For example, for a container of length 3,
+//|     the indexes -1, 2, and 5 all refer to the same element.  If
+//|     `wrap` is false, then an out of bound index is skipped. Note
+//|     that the wrapping code is extremely inefficient if indices are
+//|     outside the ``range(-destination_len, 2*destination_len)``!
+//|
+//|     If ``destination_index`` is None, then the elements of
+//|     ``destination`` are taken sequentially.  If it is an integer,
+//|     then elements are taken sequentially starting with the given
+//|     element. In this case, the operation will terminate after the
+//|     last element of ``destination`` is stored (if ``wrap`` is False)
+//|     or after all elements of ``destination`` have been stored once
+//|     (if ``wrap`` is True).
+//|
+//|     The same is true for ``source_index`` and ``source``.
+//|     Additionally if ``source_index`` is None, then ``source`` may be an
+//|     object that only supports iteration, not indexing (e.g., a generator
+//|     function)
+//|     """
+//|
+// Naughty! must match objrange.c!
+typedef struct _mp_obj_range_t {
+    mp_obj_base_t base;
+    // TODO make these values generic objects or something
+    mp_int_t start;
+    mp_int_t stop;
+    mp_int_t step;
+} mp_obj_range_t;
+STATIC mp_obj_t bitmaptools_scattergather(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_destination, ARG_source, ARG_destination_index, ARG_source_index, ARG_wrap };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_destination, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_source, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_destination_index, MP_ARG_OBJ, {.u_obj = MP_ROM_NONE } },
+        { MP_QSTR_source_index, MP_ARG_OBJ, {.u_obj = MP_ROM_NONE } },
+        { MP_QSTR_wrap, MP_ARG_BOOL, { .u_bool = false } },
+    };
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+
+    mp_obj_t destination = args[ARG_destination].u_obj;
+    mp_int_t destination_len = MP_OBJ_SMALL_INT_VALUE(mp_obj_len(destination));
+    if (destination_len == 0) {
+        return mp_const_none;
+    }
+
+    bool wrap = args[ARG_wrap].u_bool;
+    mp_obj_t destination_index = args[ARG_destination_index].u_obj;
+
+    if (destination_index == MP_ROM_NONE) {
+        destination_index = MP_OBJ_NEW_SMALL_INT(0);
+    }
+
+    mp_obj_range_t destination_range;
+    if (mp_obj_is_small_int(destination_index)) {
+        destination_range.base.type = &mp_type_range;
+        destination_range.start = MP_OBJ_SMALL_INT_VALUE(destination_index);
+        destination_range.stop = wrap ?
+            destination_range.start + destination_len
+                : destination_len;
+        destination_range.step = 1;
+        destination_index = MP_OBJ_FROM_PTR(&destination_range);
+    }
+
+    common_hal_bitmaptools_scattergather(destination, args[ARG_source].u_obj, destination_index, args[ARG_source_index].u_obj, wrap, destination_len);
+
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_KW(bitmaptools_scattergather_obj, 0, bitmaptools_scattergather);
 
 STATIC const mp_rom_map_elem_t bitmaptools_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_bitmaptools) },
+    { MP_ROM_QSTR(MP_QSTR_DitherAlgorithm), MP_ROM_PTR(&bitmaptools_dither_algorithm_type) },
+    { MP_ROM_QSTR(MP_QSTR_alphablend), MP_ROM_PTR(&bitmaptools_alphablend_obj) },
+    { MP_ROM_QSTR(MP_QSTR_arrayblit), MP_ROM_PTR(&bitmaptools_arrayblit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_boundary_fill), MP_ROM_PTR(&bitmaptools_boundary_fill_obj) },
+    { MP_ROM_QSTR(MP_QSTR_dither), MP_ROM_PTR(&bitmaptools_dither_obj) },
+    { MP_ROM_QSTR(MP_QSTR_draw_line), MP_ROM_PTR(&bitmaptools_draw_line_obj) },
+    { MP_ROM_QSTR(MP_QSTR_fill_region), MP_ROM_PTR(&bitmaptools_fill_region_obj) },
     { MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&bitmaptools_readinto_obj) },
     { MP_ROM_QSTR(MP_QSTR_rotozoom), MP_ROM_PTR(&bitmaptools_rotozoom_obj) },
-    { MP_ROM_QSTR(MP_QSTR_arrayblit), MP_ROM_PTR(&bitmaptools_arrayblit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_alphablend), MP_ROM_PTR(&bitmaptools_alphablend_obj) },
-    { MP_ROM_QSTR(MP_QSTR_fill_region), MP_ROM_PTR(&bitmaptools_fill_region_obj) },
-    { MP_ROM_QSTR(MP_QSTR_boundary_fill), MP_ROM_PTR(&bitmaptools_boundary_fill_obj) },
-    { MP_ROM_QSTR(MP_QSTR_draw_line), MP_ROM_PTR(&bitmaptools_draw_line_obj) },
-    { MP_ROM_QSTR(MP_QSTR_dither), MP_ROM_PTR(&bitmaptools_dither_obj) },
-    { MP_ROM_QSTR(MP_QSTR_DitherAlgorithm), MP_ROM_PTR(&bitmaptools_dither_algorithm_type) },
+    { MP_ROM_QSTR(MP_QSTR_scattergather), MP_ROM_PTR(&bitmaptools_scattergather_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(bitmaptools_module_globals, bitmaptools_module_globals_table);
 
