@@ -143,13 +143,6 @@ safe_mode_t port_init(void) {
     never_reset_pin_number(24);
     never_reset_pin_number(25);
     never_reset_pin_number(29);
-    // Change this as a placeholder as to how to init with country code.
-    // Default country code is CYW43_COUNTRY_WORLDWIDE)
-    if (cyw43_arch_init_with_country(PICO_CYW43_ARCH_DEFAULT_COUNTRY_CODE)) {
-        serial_write("WiFi init failed\n");
-    } else {
-        cyw_ever_init = true;
-    }
     #endif
     if (board_requests_safe_mode()) {
         return USER_SAFE_MODE;
@@ -159,6 +152,18 @@ safe_mode_t port_init(void) {
 }
 
 void reset_port(void) {
+    #if CIRCUITPY_CYW43
+    if (!cyw_ever_init) {
+        // Change this as a placeholder as to how to init with country code.
+        // Default country code is CYW43_COUNTRY_WORLDWIDE)
+        if (cyw43_arch_init_with_country(PICO_CYW43_ARCH_DEFAULT_COUNTRY_CODE)) {
+            serial_write("WiFi init failed\n");
+        } else {
+            cyw_ever_init = true;
+        }
+    }
+    #endif
+
     #if CIRCUITPY_BUSIO
     reset_i2c();
     reset_spi();
