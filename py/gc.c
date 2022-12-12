@@ -500,6 +500,23 @@ bool gc_alloc_possible(void) {
     return MP_STATE_MEM(gc_pool_start) != 0;
 }
 
+void gc_reserve_blocks(size_t start_block, size_t end_block) {
+    // mark first block as used head
+    ATB_FREE_TO_HEAD(start_block);
+
+    // mark rest of blocks as used tail
+    // TODO for a run of many blocks can make this more efficient
+    for (size_t bl = start_block + 1; bl <= end_block; bl++) {
+        ATB_FREE_TO_TAIL(bl);
+    }
+}
+
+void gc_reserve(void *ptr, size_t n_bytes) {
+    size_t start_block = BLOCK_FROM_PTR(ptr);
+    size_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
+    gc_reserve_blocks(start_block, start_block + n_blocks);
+}
+
 // We place long lived objects at the end of the heap rather than the start. This reduces
 // fragmentation by localizing the heap churn to one portion of memory (the start of the heap.)
 void *gc_alloc(size_t n_bytes, unsigned int alloc_flags, bool long_lived) {
@@ -623,14 +640,7 @@ void *gc_alloc(size_t n_bytes, unsigned int alloc_flags, bool long_lived) {
     gc_log_change(start_block, end_block - start_block + 1);
     #endif
 
-    // mark first block as used head
-    ATB_FREE_TO_HEAD(start_block);
-
-    // mark rest of blocks as used tail
-    // TODO for a run of many blocks can make this more efficient
-    for (size_t bl = start_block + 1; bl <= end_block; bl++) {
-        ATB_FREE_TO_TAIL(bl);
-    }
+    gc_reserve_blocks(start_block, end_block);
 
     // get pointer to first block
     // we must create this pointer before unlocking the GC so a collection can find it

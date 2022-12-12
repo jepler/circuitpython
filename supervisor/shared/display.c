@@ -56,7 +56,7 @@ extern displayio_bitmap_t blinka_bitmap;
 extern displayio_group_t circuitpython_splash;
 
 #if CIRCUITPY_TERMINALIO
-static supervisor_allocation *tilegrid_tiles = NULL;
+static supervisor_allocation tilegrid_tiles;
 #endif
 
 void supervisor_start_terminal(uint16_t width_px, uint16_t height_px) {
@@ -85,23 +85,22 @@ void supervisor_start_terminal(uint16_t width_px, uint16_t height_px) {
         reset_tiles = true;
     }
     // Reuse the previous allocation if possible
-    if (tilegrid_tiles) {
-        if (get_allocation_length(tilegrid_tiles) != align32_size(total_tiles)) {
-            free_memory(tilegrid_tiles);
-            tilegrid_tiles = NULL;
+    if (tilegrid_tiles.ptr) {
+        if (tilegrid_tiles.n_bytes != total_tiles) {
+            free_memory(&tilegrid_tiles);
             reset_tiles = true;
         }
     }
-    if (!tilegrid_tiles) {
-        tilegrid_tiles = allocate_memory(align32_size(total_tiles), false, true);
-        reset_tiles = true;
-        if (!tilegrid_tiles) {
+    if (!tilegrid_tiles.ptr) {
+        allocate_memory(&tilegrid_tiles, total_tiles, supervisor_simple_move);
+        if (!tilegrid_tiles.ptr) {
             return;
         }
+        reset_tiles = true;
     }
 
     if (reset_tiles) {
-        uint8_t *tiles = (uint8_t *)tilegrid_tiles->ptr;
+        uint8_t *tiles = (uint8_t *)tilegrid_tiles.ptr;
 
         #if CIRCUITPY_REPL_LOGO
         status_bar->x = supervisor_blinka_sprite.pixel_width + 1;
@@ -148,14 +147,11 @@ void supervisor_start_terminal(uint16_t width_px, uint16_t height_px) {
 
 void supervisor_stop_terminal(void) {
     #if CIRCUITPY_TERMINALIO
-    if (tilegrid_tiles != NULL) {
-        free_memory(tilegrid_tiles);
-        tilegrid_tiles = NULL;
-        supervisor_terminal_scroll_area_text_grid.tiles = NULL;
-        supervisor_terminal_status_bar_text_grid.tiles = NULL;
-        supervisor_terminal.scroll_area = NULL;
-        supervisor_terminal.status_bar = NULL;
-    }
+    free_memory(&tilegrid_tiles);
+    supervisor_terminal_scroll_area_text_grid.tiles = NULL;
+    supervisor_terminal_status_bar_text_grid.tiles = NULL;
+    supervisor_terminal.scroll_area = NULL;
+    supervisor_terminal.status_bar = NULL;
     #endif
 }
 
@@ -163,9 +159,9 @@ void supervisor_display_move_memory(void) {
     #if CIRCUITPY_TERMINALIO
     displayio_tilegrid_t *scroll_area = &supervisor_terminal_scroll_area_text_grid;
     displayio_tilegrid_t *status_bar = &supervisor_terminal_status_bar_text_grid;
-    if (tilegrid_tiles != NULL) {
-        status_bar->tiles = (uint8_t *)tilegrid_tiles->ptr;
-        scroll_area->tiles = (uint8_t *)tilegrid_tiles->ptr + scroll_area->width_in_tiles;
+    if (tilegrid_tiles.ptr) {
+        status_bar->tiles = (uint8_t *)tilegrid_tiles.ptr;
+        scroll_area->tiles = (uint8_t *)tilegrid_tiles.ptr + scroll_area->width_in_tiles;
     } else {
         scroll_area->tiles = NULL;
         status_bar->tiles = NULL;

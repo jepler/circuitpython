@@ -25,11 +25,3 @@
  */
 
 #pragma once
-
-#include <stdbool.h>
-#include "py/gc.h"
-#include "py/misc.h"
-#include "supervisor/memory.h"
-
-extern void *common_hal_is31fl3741_allocator_impl(size_t sz);
-extern void common_hal_is31fl3741_free_impl(void *);

@@ -27,6 +27,7 @@
 #pragma once
 
 #include "py/obj.h"
+#include "supervisor/memory.h"
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-module/framebufferio/FramebufferDisplay.h"
@@ -37,6 +38,7 @@ typedef struct {
     busio_spi_obj_t inline_bus;
     digitalio_digitalinout_obj_t chip_select;
     mp_buffer_info_t bufinfo;
+    supervisor_allocation allocation;
 
     uint16_t width, height;
     uint32_t baudrate;

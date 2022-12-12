@@ -79,7 +79,7 @@ static const uint8_t usb_hid_descriptor_template[] = {
 
 #define MAX_HID_DEVICES 8
 
-static supervisor_allocation *hid_report_descriptor_allocation;
+static supervisor_allocation hid_report_descriptor_allocation;
 static usb_hid_device_obj_t hid_devices[MAX_HID_DEVICES];
 // If 0, USB HID is disabled.
 static mp_int_t num_hid_devices;
@@ -298,15 +298,8 @@ void usb_hid_save_report_descriptor(uint8_t *report_descriptor_space, size_t rep
         return;
     }
 
-    // Allocate storage that persists across VMs to hold the combined report descriptor.
-    // and to remember the device details.
-
-    // Copy the descriptor from the temporary area to a supervisor storage allocation that
-    // will leave between VM instantiations.
-    hid_report_descriptor_allocation =
-        allocate_memory(align32_size(report_descriptor_length),
-            /*high_address*/ false, /*movable*/ false);
-    memcpy((uint8_t *)hid_report_descriptor_allocation->ptr, report_descriptor_space, report_descriptor_length);
+    allocate_memory(&hid_report_descriptor_allocation, report_descriptor_length, supervisor_simple_move);
+    memcpy(hid_report_descriptor_allocation.ptr, report_descriptor_space, report_descriptor_length);
 }
 
 void usb_hid_gc_collect(void) {
@@ -346,7 +339,7 @@ bool usb_hid_get_device_with_report_id(uint8_t report_id, usb_hid_device_obj_t *
 // Application returns pointer to descriptor
 // Descriptor contents must exist long enough for transfer to complete
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t itf) {
-    return (uint8_t *)hid_report_descriptor_allocation->ptr;
+    return (uint8_t *)hid_report_descriptor_allocation.ptr;
 }
 
 // Callback invoked when we receive a SET_PROTOCOL request.

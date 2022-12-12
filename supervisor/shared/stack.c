@@ -41,6 +41,8 @@ static uint32_t current_stack_size = 0;
 static uint32_t *stack_limit = NULL;
 static size_t stack_length = 0;
 
+supervisor_allocation stack_alloc;
+
 #define EXCEPTION_STACK_SIZE 1024
 
 static void allocate_stack(void) {
@@ -54,15 +56,14 @@ static void allocate_stack(void) {
         mp_uint_t sp = cpu_get_regs_and_sp(regs);
 
         mp_uint_t c_size = (mp_uint_t)port_stack_get_top() - sp;
-        supervisor_allocation *stack_alloc = allocate_memory(c_size + next_stack_size + EXCEPTION_STACK_SIZE, true, false);
-        if (stack_alloc == NULL) {
-            stack_alloc = allocate_memory(c_size + CIRCUITPY_DEFAULT_STACK_SIZE + EXCEPTION_STACK_SIZE, true, false);
+        if (!allocate_memory(&stack_alloc, c_size + next_stack_size + EXCEPTION_STACK_SIZE, SUPERVISOR_STACK_ALLOCATION)) {
+            allocate_memory(&stack_alloc, c_size + CIRCUITPY_DEFAULT_STACK_SIZE + EXCEPTION_STACK_SIZE, SUPERVISOR_STACK_ALLOCATION);
             current_stack_size = CIRCUITPY_DEFAULT_STACK_SIZE;
         } else {
             current_stack_size = next_stack_size;
         }
-        stack_limit = stack_alloc->ptr;
-        stack_length = get_allocation_length(stack_alloc);
+        stack_limit = stack_alloc.ptr;
+        stack_length = stack_alloc.n_bytes;
     }
 
     *stack_limit = STACK_CANARY_VALUE;

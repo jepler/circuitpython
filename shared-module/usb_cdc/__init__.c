@@ -384,7 +384,7 @@ size_t usb_vendor_add_descriptor(uint8_t *descriptor_buf, descriptor_counts_t *d
 
     if (ms_os_20_descriptor_template[MS_OS_20_ITF_NUM_OFFSET] == MS_OS_20_ITF_NUM_MAGIC) {
         ms_os_20_descriptor_allocation =
-            allocate_memory(align32_size(sizeof(ms_os_20_descriptor_template)),
+            allocate_memory(align32_size(ms_os_20_descriptor_template),
                 /*high_address*/ false, /*movable*/ false);
         uint8_t *ms_os_20_descriptor_buf = (uint8_t *)ms_os_20_descriptor_allocation->ptr;
         memcpy(ms_os_20_descriptor_buf, ms_os_20_descriptor_template, sizeof(ms_os_20_descriptor_template));

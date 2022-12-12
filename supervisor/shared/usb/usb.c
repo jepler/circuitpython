@@ -123,7 +123,7 @@ void usb_set_defaults(void) {
 };
 
 #if CIRCUITPY_USB_IDENTIFICATION
-supervisor_allocation *usb_identification_allocation;
+supervisor_allocation usb_identification_allocation;
 #endif
 
 // Some dynamic USB data must be saved after boot.py. How much is needed?
@@ -140,9 +140,9 @@ size_t usb_boot_py_data_size(void) {
 // Fill in the data to save.
 void usb_get_boot_py_data(uint8_t *temp_storage, size_t temp_storage_size) {
     #if CIRCUITPY_USB_IDENTIFICATION
-    if (usb_identification_allocation) {
-        memcpy(temp_storage, usb_identification_allocation->ptr, sizeof(usb_identification_t));
-        free_memory(usb_identification_allocation);
+    if (usb_identification_allocation.ptr) {
+        memcpy(temp_storage, usb_identification_allocation.ptr, sizeof(usb_identification_t));
+        free_memory(&usb_identification_allocation);
     }
     #else
     if (false) {

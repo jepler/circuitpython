@@ -153,18 +153,13 @@ STATIC mp_obj_t supervisor_set_next_code_file(size_t n_args, const mp_obj_t *pos
     }
     size_t len;
     const char *filename = mp_obj_str_get_data(args.filename.u_obj, &len);
-    free_memory(next_code_allocation);
+    free_memory(&next_code_allocation);
     if (options != 0 || len != 0) {
-        next_code_allocation = allocate_memory(align32_size(sizeof(next_code_info_t) + len + 1), false, true);
-        if (next_code_allocation == NULL) {
-            m_malloc_fail(sizeof(next_code_info_t) + len + 1);
-        }
-        next_code_info_t *next_code = (next_code_info_t *)next_code_allocation->ptr;
+        allocate_memory_throw(&next_code_allocation, sizeof(next_code_info_t) + len + 1, supervisor_simple_move);
+        next_code_info_t *next_code = (next_code_info_t *)next_code_allocation.ptr;
         next_code->options = options | SUPERVISOR_NEXT_CODE_OPT_NEWLY_SET;
         memcpy(&next_code->filename, filename, len);
         next_code->filename[len] = '\0';
-    } else {
-        next_code_allocation = NULL;
     }
     return mp_const_none;
 }
@@ -293,10 +288,10 @@ STATIC mp_obj_t supervisor_set_usb_identification(size_t n_args, const mp_obj_t 
     } args;
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, (mp_arg_val_t *)&args);
 
-    if (!usb_identification_allocation) {
-        usb_identification_allocation = allocate_memory(sizeof(usb_identification_t), false, true);
+    if (!usb_identification_allocation.ptr) {
+        allocate_memory_throw(&usb_identification_allocation, sizeof(usb_identification_t), supervisor_simple_move);
     }
-    usb_identification_t *identification = (usb_identification_t *)usb_identification_allocation->ptr;
+    usb_identification_t *identification = (usb_identification_t *)usb_identification_allocation.ptr;
 
     mp_arg_validate_int_range(args.vid.u_int, -1, (1 << 16) - 1, MP_QSTR_vid);
     mp_arg_validate_int_range(args.pid.u_int, -1, (1 << 16) - 1, MP_QSTR_pid);

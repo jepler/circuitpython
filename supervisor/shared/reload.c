@@ -31,7 +31,7 @@
 #include "supervisor/shared/reload.h"
 #include "supervisor/shared/tick.h"
 
-supervisor_allocation *next_code_allocation;
+supervisor_allocation next_code_allocation;
 #include "shared-bindings/supervisor/Runtime.h"
 
 // True if user has disabled autoreload.

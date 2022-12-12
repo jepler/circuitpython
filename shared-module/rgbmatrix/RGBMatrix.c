@@ -41,6 +41,7 @@
 #include "shared-module/framebufferio/FramebufferDisplay.h"
 
 extern Protomatter_core *_PM_protoPtr;
+static supervisor_allocation allocation_slots[4];
 
 void common_hal_rgbmatrix_rgbmatrix_construct(rgbmatrix_rgbmatrix_obj_t *self, int width, int bit_depth, uint8_t rgb_count, uint8_t *rgb_pins, uint8_t addr_count, uint8_t *addr_pins, uint8_t clock_pin, uint8_t latch_pin, uint8_t oe_pin, bool doublebuffer, mp_obj_t framebuffer, int8_t tile, bool serpentine, void *timer) {
     self->width = width;
@@ -214,9 +215,22 @@ int common_hal_rgbmatrix_rgbmatrix_get_height(rgbmatrix_rgbmatrix_obj_t *self) {
     return computed_height;
 }
 
+STATIC supervisor_allocation *get_allocation_slot(void) {
+    for (size_t i = 0; i < MP_ARRAY_SIZE(allocation_slots); i++) {
+        if (!allocation_slots[i].ptr) {
+            return &allocation_slots[i];
+        }
+    }
+    return NULL;
+}
+
 void *common_hal_rgbmatrix_allocator_impl(size_t sz) {
-    supervisor_allocation *allocation = allocate_memory(align32_size(sz), false, true);
-    return allocation ? allocation->ptr : NULL;
+    supervisor_allocation *allocation = get_allocation_slot();
+    if (!allocation) {
+        return NULL;
+    }
+    allocate_memory(allocation, sz, NULL);
+    return allocation->ptr;
 }
 
 void common_hal_rgbmatrix_free_impl(void *ptr_in) {

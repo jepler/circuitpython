@@ -126,13 +126,15 @@ uint8_t value_out = 0;
 static size_t PLACE_IN_DTCM_BSS(_pystack[CIRCUITPY_PYSTACK_SIZE / sizeof(size_t)]);
 #endif
 
+supervisor_allocation prev_traceback;
+
 static void reset_devices(void) {
     #if CIRCUITPY_BLEIO_HCI
     bleio_reset();
     #endif
 }
 
-STATIC void start_mp(supervisor_allocation *heap) {
+STATIC void start_mp(void) {
     supervisor_workflow_reset();
 
     // Stack limit should be less than real stack size, so we have a chance
@@ -163,9 +165,7 @@ STATIC void start_mp(supervisor_allocation *heap) {
     mp_pystack_init(_pystack, _pystack + (sizeof(_pystack) / sizeof(size_t)));
     #endif
 
-    #if MICROPY_ENABLE_GC
-    gc_init(heap->ptr, heap->ptr + get_allocation_length(heap) / 4);
-    #endif
+    supervisor_gc_init();
     mp_init();
     mp_obj_list_init((mp_obj_list_t *)mp_sys_path, 0);
     mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR_)); // current dir (or base dir of the script)
@@ -196,7 +196,7 @@ STATIC void stop_mp(void) {
     usb_background();
     #endif
 
-    gc_deinit();
+    supervisor_gc_deinit();
 }
 
 STATIC const char *_current_executing_filename = NULL;
@@ -264,30 +264,29 @@ STATIC void count_strn(void *data, const char *str, size_t len) {
     *(size_t *)data += len;
 }
 
-STATIC void cleanup_after_vm(supervisor_allocation *heap, mp_obj_t exception) {
+STATIC void cleanup_after_vm(mp_obj_t exception) {
     // Get the traceback of any exception from this run off the heap.
     // MP_OBJ_SENTINEL means "this run does not contribute to traceback storage, don't touch it"
     // MP_OBJ_NULL (=0) means "this run completed successfully, clear any stored traceback"
     if (exception != MP_OBJ_SENTINEL) {
-        free_memory(prev_traceback_allocation);
+        free_memory(&prev_traceback);
         // ReloadException is exempt from traceback printing in pyexec_file(), so treat it as "no
         // traceback" here too.
         if (exception && exception != MP_OBJ_FROM_PTR(&MP_STATE_VM(mp_reload_exception))) {
             size_t traceback_len = 0;
             mp_print_t print_count = {&traceback_len, count_strn};
             mp_obj_print_exception(&print_count, exception);
-            prev_traceback_allocation = allocate_memory(align32_size(traceback_len + 1), false, true);
             // Empirically, this never fails in practice - even when the heap is totally filled up
             // with single-block-sized objects referenced by a root pointer, exiting the VM frees
             // up several hundred bytes, sufficient for the traceback (which tends to be shortened
             // because there wasn't memory for the full one). There may be convoluted ways of
             // making it fail, but at this point I believe they are not worth spending code on.
-            if (prev_traceback_allocation != NULL) {
+            if (allocate_memory(&prev_traceback, traceback_len + 1, supervisor_simple_move)) {
                 vstr_t vstr;
-                vstr_init_fixed_buf(&vstr, traceback_len, (char *)prev_traceback_allocation->ptr);
+                vstr_init_fixed_buf(&vstr, traceback_len + 1, (char *)prev_traceback_allocation->ptr);
                 mp_print_t print = {&vstr, (mp_print_strn_t)vstr_add_strn};
                 mp_obj_print_exception(&print, exception);
-                ((char *)prev_traceback_allocation->ptr)[traceback_len] = '\0';
+                vstr_null_terminated_str(&vstr);
             }
         } else {
             prev_traceback_allocation = NULL;
@@ -344,8 +343,6 @@ STATIC void cleanup_after_vm(supervisor_allocation *heap, mp_obj_t exception) {
     // Free the heap last because other modules may reference heap memory and need to shut down.
     filesystem_flush();
     stop_mp();
-    free_memory(heap);
-    supervisor_move_memory();
 
     // Let the workflows know we've reset in case they want to restart.
     supervisor_workflow_reset();
@@ -399,18 +396,16 @@ STATIC bool run_code_py(safe_mode_t safe_mode, bool *simulate_reset) {
         };
         #endif
 
-        supervisor_allocation *heap = allocate_remaining_memory();
-
         // Prepare the VM state.
-        start_mp(heap);
+        start_mp();
 
         #if CIRCUITPY_USB
         usb_setup_with_vm();
         #endif
 
         // Check if a different run file has been allocated
-        if (next_code_allocation) {
-            next_code_info_t *info = ((next_code_info_t *)next_code_allocation->ptr);
+        if (next_code_allocation.ptr) {
+            next_code_info_t *info = ((next_code_info_t *)next_code_allocation.ptr);
             info->options &= ~SUPERVISOR_NEXT_CODE_OPT_NEWLY_SET;
             next_code_options = info->options;
             if (info->filename[0] != '\0') {
@@ -450,15 +445,15 @@ STATIC bool run_code_py(safe_mode_t safe_mode, bool *simulate_reset) {
 
 
         // Finished executing python code. Cleanup includes filesystem flush and a board reset.
-        cleanup_after_vm(heap, _exec_result.exception);
+        cleanup_after_vm(_exec_result.exception);
         _exec_result.exception = NULL;
 
         // If a new next code file was set, that is a reason to keep it (obviously). Stuff this into
         // the options because it can be treated like any other reason-for-stickiness bit. The
         // source is different though: it comes from the options that will apply to the next run,
         // while the rest of next_code_options is what applied to this run.
-        if (next_code_allocation != NULL &&
-            (((next_code_info_t *)next_code_allocation->ptr)->options & SUPERVISOR_NEXT_CODE_OPT_NEWLY_SET)) {
+        if (next_code_allocation.ptr &&
+            (((next_code_info_t *)next_code_allocation.ptr)->options & SUPERVISOR_NEXT_CODE_OPT_NEWLY_SET)) {
             next_code_options |= SUPERVISOR_NEXT_CODE_OPT_NEWLY_SET;
         }
 
@@ -706,8 +701,7 @@ STATIC bool run_code_py(safe_mode_t safe_mode, bool *simulate_reset) {
 
     // free code allocation if unused
     if ((next_code_options & next_code_stickiness_situation) == 0) {
-        free_memory(next_code_allocation);
-        next_code_allocation = NULL;
+        free_memory(&next_code_allocation);
     }
 
     #if CIRCUITPY_STATUS_LED
@@ -746,9 +740,7 @@ STATIC void __attribute__ ((noinline)) run_boot_py(safe_mode_t safe_mode) {
 
     // Do USB setup even if boot.py is not run.
 
-    supervisor_allocation *heap = allocate_remaining_memory();
-
-    start_mp(heap);
+    start_mp();
 
     #if CIRCUITPY_USB
     // Set up default USB values after boot.py VM starts but before running boot.py.
@@ -834,7 +826,7 @@ STATIC void __attribute__ ((noinline)) run_boot_py(safe_mode_t safe_mode) {
 
     port_post_boot_py(true);
 
-    cleanup_after_vm(heap, _exec_result.exception);
+    cleanup_after_vm(_exec_result.exception);
     _exec_result.exception = NULL;
 
     port_post_boot_py(false);
@@ -849,8 +841,7 @@ STATIC int run_repl(void) {
     int exit_code = PYEXEC_FORCED_EXIT;
     stack_resize();
     filesystem_flush();
-    supervisor_allocation *heap = allocate_remaining_memory();
-    start_mp(heap);
+    start_mp();
 
     #if CIRCUITPY_USB
     usb_setup_with_vm();
@@ -893,7 +884,7 @@ STATIC int run_repl(void) {
         exit_code = PYEXEC_DEEP_SLEEP;
     }
     #endif
-    cleanup_after_vm(heap, MP_OBJ_SENTINEL);
+    cleanup_after_vm(MP_OBJ_SENTINEL);
 
     // Also reset bleio. The above call omits it in case workflows should continue. In this case,
     // we're switching straight to another VM so we want to reset.

@@ -35,11 +35,20 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef struct {
-    uint32_t *ptr;
+typedef struct supervisor_allocation supervisor_allocation;
+typedef uint32_t __attribute__((aligned(16))) supervisor_memory_t;
+
+typedef void (*supervisor_move_f)(supervisor_allocation *, supervisor_memory_t *old_allocation);
+#define SUPERVISOR_STACK_ALLOCATION ((supervisor_move_f)1)
+
+typedef struct supervisor_allocation {
+    supervisor_memory_t *ptr;
+    size_t n_bytes;
+    supervisor_allocation *next;
+    supervisor_move_f move;
 } supervisor_allocation;
 
-
+extern supervisor_allocation supervisor_root;
 
 void free_memory(supervisor_allocation *allocation);
 
@@ -51,8 +60,6 @@ void free_memory(supervisor_allocation *allocation);
 // free_memory() is a permissible no-op in either case.
 supervisor_allocation *allocation_from_ptr(void *ptr);
 
-supervisor_allocation *allocate_remaining_memory(void);
-
 // Allocate a piece of a given length in bytes. If high_address is true then it should be allocated
 // at a lower address from the top of the stack. Otherwise, addresses will increase starting after
 // statically allocated memory. If movable is false, memory will be taken from outside the GC heap
@@ -62,16 +69,29 @@ supervisor_allocation *allocate_remaining_memory(void);
 // The ptr of the returned supervisor_allocation will change at that point. If you need to be
 // notified of that, add your own callback function at the designated place near the end of
 // supervisor_move_memory().
-supervisor_allocation *allocate_memory(uint32_t length, bool high_address, bool movable);
+bool allocate_memory(supervisor_allocation *allocation, size_t n_bytes, supervisor_move_f move);
 
-static inline size_t align32_size(size_t size) {
-    return (size + 3) & ~3;
+// Same as above but calls m_malloc_fail in the case of failure
+void allocate_memory_throw(supervisor_allocation *allocation, size_t n_bytes, supervisor_move_f move);
+
+static inline size_t get_allocation_length(supervisor_allocation *allocation) {
+    return allocation->n_bytes;
 }
-
-size_t get_allocation_length(supervisor_allocation *allocation);
 
 // Called after the GC heap is freed, transfers movable allocations from the GC heap to the
 // supervisor heap and compacts the supervisor heap.
 void supervisor_move_memory(void);
+
+// Marks supervisor memory as allocated in the garbage collector
+void supervisor_reserve_memory(void);
+
+void supervisor_simple_move(supervisor_allocation *, supervisor_memory_t *old_allocation);
+
+void supervisor_gc_init(void);
+void supervisor_gc_deinit(void);
+
+void supervisor_allocator_collect_ptrs(void);
+
+void supervisor_allocation_promote(supervisor_allocation *, void *ptr, supervisor_move_f move);
 
 #endif  // MICROPY_INCLUDED_SUPERVISOR_MEMORY_H

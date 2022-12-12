@@ -74,7 +74,7 @@ bool common_hal_espidf_set_reserved_psram(size_t amount) {
     #endif
 }
 
-supervisor_allocation *psram_for_idf;
+supervisor_allocation psram_for_idf;
 
 void common_hal_espidf_reserve_psram(void) {
     #ifdef CONFIG_SPIRAM
@@ -83,8 +83,7 @@ void common_hal_espidf_reserve_psram(void) {
         if (reserved_psram == 0) {
             return;
         }
-        psram_for_idf = allocate_memory(reserved_psram, true, false);
-        if (psram_for_idf) {
+        if (allocate_memory(&psram_for_idf, reserved_psram, NULL)) {
             intptr_t psram_for_idf_start = (intptr_t)psram_for_idf->ptr;
             intptr_t psram_for_idf_end = psram_for_idf_start + reserved_psram;
             ESP_LOGI(TAG, "Reserved %x..%x", psram_for_idf_start, psram_for_idf_end);

@@ -79,6 +79,8 @@ size_t gc_nbytes(const void *ptr);
 bool gc_has_finaliser(const void *ptr);
 void *gc_make_long_lived(void *old_ptr);
 void *gc_realloc(void *ptr, size_t n_bytes, bool allow_move);
+void gc_reserve(void *ptr, size_t n_bytes);
+void gc_reserve_blocks(size_t start_block, size_t end_block);
 
 // Prevents a pointer from ever being freed because it establishes a permanent reference to it. Use
 // very sparingly because it can leak memory.

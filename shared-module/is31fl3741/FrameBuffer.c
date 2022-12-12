@@ -61,14 +61,14 @@ void common_hal_is31fl3741_FrameBuffer_construct(is31fl3741_FrameBuffer_obj_t *s
         mp_raise_ValueError(translate("LED mappings must match display size"));
     }
 
-    self->mapping = common_hal_is31fl3741_allocator_impl(sizeof(uint16_t) * len);
+    allocate_memory_throw(&self->mapping_allocation, sizeof(uint16_t) * len, supervisor_simple_move);
     for (size_t i = 0; i < len; i++) {
         mp_int_t value = mp_obj_get_int(items[i]);
         // We only store up to 16 bits
         if (value > 0xFFFF) {
             value = 0xFFFF;
         }
-        self->mapping[i] = (uint16_t)value;
+        self->mapping_allocation.ptr[i] = (uint16_t)value;
     }
 
     common_hal_is31fl3741_FrameBuffer_reconstruct(self, framebuffer);
@@ -89,10 +89,11 @@ void common_hal_is31fl3741_FrameBuffer_reconstruct(is31fl3741_FrameBuffer_obj_t 
         // verify that the matrix is big enough
         mp_get_index(mp_obj_get_type(self->framebuffer), self->bufinfo.len, MP_OBJ_NEW_SMALL_INT(self->bufsize - 1), false);
     } else {
-        common_hal_is31fl3741_free_impl(self->bufinfo.buf);
+        free_memory(&self->framebuffer_allocation);
+        allocate_memory(&self->framebuffer_allocation, self->bufsize, supervisor_simple_move);
 
         self->framebuffer = NULL;
-        self->bufinfo.buf = common_hal_is31fl3741_allocator_impl(self->bufsize);
+        self->bufinfo.buf = self->framebuffer_allocation.buf;
         self->bufinfo.len = self->bufsize;
         self->bufinfo.typecode = 'H' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW;
     }
@@ -117,10 +118,8 @@ void common_hal_is31fl3741_FrameBuffer_deinit(is31fl3741_FrameBuffer_obj_t *self
 
     common_hal_is31fl3741_IS31FL3741_deinit(self->is31fl3741);
 
-    if (self->mapping != 0) {
-        common_hal_is31fl3741_free_impl(self->mapping);
-        self->mapping = 0;
-    }
+    supervisor_free(&self->framebuffer_allocation);
+    supervisor_free(&self->mapping_allocation);
 
     self->base.type = NULL;
 
@@ -211,18 +210,4 @@ int common_hal_is31fl3741_FrameBuffer_get_width(is31fl3741_FrameBuffer_obj_t *se
 
 int common_hal_is31fl3741_FrameBuffer_get_height(is31fl3741_FrameBuffer_obj_t *self) {
     return self->height;
-}
-
-void *common_hal_is31fl3741_allocator_impl(size_t sz) {
-    supervisor_allocation *allocation = allocate_memory(align32_size(sz), false, true);
-    return allocation ? allocation->ptr : NULL;
-}
-
-void common_hal_is31fl3741_free_impl(void *ptr_in) {
-    free_memory(allocation_from_ptr(ptr_in));
-}
-
-void is31fl3741_FrameBuffer_collect_ptrs(is31fl3741_FrameBuffer_obj_t *self) {
-    gc_collect_ptr(self->framebuffer);
-    gc_collect_ptr(self->mapping);
 }

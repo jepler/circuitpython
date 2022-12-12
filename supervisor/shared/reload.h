@@ -52,7 +52,7 @@ typedef struct {
     char filename[];
 } next_code_info_t;
 
-extern supervisor_allocation *next_code_allocation;
+extern supervisor_allocation next_code_allocation;
 
 // Helper for exiting the VM and reloading immediately.
 void reload_initiate(supervisor_run_reason_t run_reason);

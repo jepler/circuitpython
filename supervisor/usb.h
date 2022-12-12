@@ -67,7 +67,7 @@ typedef struct {
     char product_name[128];
 } usb_identification_t;
 
-extern supervisor_allocation *usb_identification_allocation;
+extern supervisor_allocation usb_identification_allocation;
 
 // Shared implementation.
 bool usb_enabled(void);

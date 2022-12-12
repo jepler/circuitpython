@@ -81,24 +81,17 @@ void common_hal_sharpdisplay_framebuffer_reset(sharpdisplay_framebuffer_obj_t *s
 }
 
 void common_hal_sharpdisplay_framebuffer_reconstruct(sharpdisplay_framebuffer_obj_t *self) {
-    // Look up the allocation by the old pointer and get the new pointer from it.
-    supervisor_allocation *alloc = allocation_from_ptr(self->bufinfo.buf);
-    self->bufinfo.buf = alloc ? alloc->ptr : NULL;
 }
 
 void common_hal_sharpdisplay_framebuffer_get_bufinfo(sharpdisplay_framebuffer_obj_t *self, mp_buffer_info_t *bufinfo) {
-    if (!self->bufinfo.buf) {
+    if (!self->allocation.ptr) {
         int row_stride = common_hal_sharpdisplay_framebuffer_get_row_stride(self);
         int height = common_hal_sharpdisplay_framebuffer_get_height(self);
-        self->bufinfo.len = row_stride * height + 2;
-        supervisor_allocation *alloc = allocate_memory(align32_size(self->bufinfo.len), false, true);
-        if (alloc == NULL) {
-            m_malloc_fail(self->bufinfo.len);
-        }
-        self->bufinfo.buf = alloc->ptr;
-        memset(alloc->ptr, 0, self->bufinfo.len);
+        size_t n_bytes = row_stride * height + 2;
+        allocate_memory_throw(&self->allocation, n_bytes, supervisor_simple_move);
+        memset(self->allocation.ptr, 0, n_bytes);
 
-        uint8_t *data = self->bufinfo.buf;
+        uint8_t *data = (uint8_t *)self->allocation.ptr;
         *data++ = SHARPMEM_BIT_WRITECMD_LSB;
 
         for (int y = 0; y < height; y++) {
@@ -108,7 +101,8 @@ void common_hal_sharpdisplay_framebuffer_get_bufinfo(sharpdisplay_framebuffer_ob
         self->full_refresh = true;
     }
     if (bufinfo) {
-        *bufinfo = self->bufinfo;
+        bufinfo->buf = self->allocation.ptr;
+        bufinfo->len = self->allocation.n_bytes;
     }
 }
 
