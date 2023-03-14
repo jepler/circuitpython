@@ -3,8 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- * Copyright (c) 2019 Artur Pacholec
+ * Copyright (c) 2020 Jeff Epler for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +24,27 @@
  * THE SOFTWARE.
  */
 
-#include "supervisor/port.h"
+#pragma once
 
-void port_background_task(void) {
-}
+#include "py/obj.h"
 
-void port_background_tick(void) {
-    #if CIRCUITPY_AUDIOIO || CIRCUITPY_AUDIOBUSIO
-    // audio_dma_background();
-    #endif
-}
+#include "supervisor/background_callback.h"
 
-void port_start_background_task(void) {
-}
-void port_finish_background_task(void) {
-}
+typedef struct {
+    mp_obj_t *sample;
+    background_callback_t callback;
+} i2s_t;
+
+
+void port_i2s_allocate_init(i2s_t *self, bool left_justified);
+void port_i2s_reset_instance(int i);
+void i2s_reset(void);
+void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop);
+void port_i2s_stop(i2s_t *self);
+bool port_i2s_playing(i2s_t *self);
+bool port_i2s_paused(i2s_t *self);
+void port_i2s_pause(i2s_t *self);
+void port_i2s_resume(i2s_t *self);
+
+// some uses (imagecapture) can only operate on i2s0 and need their own init code
+void port_i2s_allocate_i2s0(void);

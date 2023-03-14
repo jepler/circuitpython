@@ -3,8 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
- * Copyright (c) 2019 Artur Pacholec
+ * Copyright (c) 2020 Jeff Epler for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +24,26 @@
  * THE SOFTWARE.
  */
 
-#include "supervisor/port.h"
+#pragma once
 
-void port_background_task(void) {
-}
+#include "supervisor/background_callback.h"
+#include "common-hal/microcontroller/Pin.h"
 
-void port_background_tick(void) {
-    #if CIRCUITPY_AUDIOIO || CIRCUITPY_AUDIOBUSIO
-    // audio_dma_background();
-    #endif
-}
+#include "common-hal/audiobusio/__init__.h"
 
-void port_start_background_task(void) {
-}
-void port_finish_background_task(void) {
-}
+// Some boards don't implement I2SOut, so suppress any routines from here.
+#if CIRCUITPY_AUDIOBUSIO_I2SOUT
+
+#include "drivers/fsl_sai.h"
+
+typedef struct {
+    mp_obj_base_t base;
+    I2S_Type peripheral;
+    const mcu_pin_obj_t *bit_clock;
+    const mcu_pin_obj_t *word_select;
+    const mcu_pin_obj_t *data;
+    bool playing, paused;
+    uint8_t *buffers[SAI_XFER_QUEUE_SIZE];
+} audiobusio_i2sout_obj_t;
+
+#endif
