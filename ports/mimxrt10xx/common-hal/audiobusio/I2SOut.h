@@ -38,7 +38,7 @@
 
 typedef struct {
     mp_obj_base_t base;
-    I2S_Type peripheral;
+    I2S_Type *peripheral;
     const mcu_pin_obj_t *bit_clock;
     const mcu_pin_obj_t *word_select;
     const mcu_pin_obj_t *data;

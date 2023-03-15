@@ -26,10 +26,16 @@
 
 #pragma once
 
+// Where required we use identifier names that are required by NXP's
+// API, even though they do not conform to the naming standards that Adafruit
+// strives to adhere to. https://www.adafruit.com/blacklivesmatter
+#include "drivers/fsl_sai.h"
 #include "py/obj.h"
 
 #include "supervisor/background_callback.h"
 
+I2S_Type *SAI_GetPeripheral(int idx);
+uint32_t SAI_GetInstance(I2S_Type *base);
 typedef struct {
     mp_obj_t *sample;
     background_callback_t callback;

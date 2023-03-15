@@ -31,9 +31,13 @@
 #include "common-hal/audiobusio/__init__.h"
 #include "shared-module/audiocore/__init__.h"
 
-const static I2S_Type i2s_instances = I2S_BASE_PTRS;
+static const I2S_Type *i2s_instances = I2S_BASE_PTRS;
 
-static uint32_t SAI_GetInstance(I2S_Type *base) {
+I2S_Type *SAI_GetPeripheral(int idx) {
+    return i2s_instances[idx];
+}
+
+uint32_t SAI_GetInstance(I2S_Type *base) {
     uint32_t instance;
 
     /* Find the instance index from base address mappings. */
