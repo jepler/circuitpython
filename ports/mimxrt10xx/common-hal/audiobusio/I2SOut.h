@@ -38,12 +38,10 @@
 
 typedef struct {
     mp_obj_base_t base;
-    I2S_Type *peripheral;
+    i2s_t i2s;
     const mcu_pin_obj_t *bit_clock;
     const mcu_pin_obj_t *word_select;
     const mcu_pin_obj_t *data;
-    bool playing, paused;
-    uint8_t *buffers[SAI_XFER_QUEUE_SIZE];
 } audiobusio_i2sout_obj_t;
 
 #endif

@@ -32,8 +32,6 @@
 // Some boards don't implement I2SOut, so suppress any routines from here.
 #if CIRCUITPY_AUDIOBUSIO_I2SOUT
 
-#define AUDIO_BUFFER_SIZE (512) // in bytes; there are 4, giving 2048 bytes = 10ms @ stereo 16-bit 48kHz before all buffers drain
-
 #include "py/gc.h"
 #include "py/mperrno.h"
 #include "py/runtime.h"
@@ -48,13 +46,6 @@
 // API, even though they do not conform to the naming standards that Adafruit
 // strives to adhere to. https://www.adafruit.com/blacklivesmatter
 #include "drivers/fsl_sai.h"
-
-static void release_buffers(audiobusio_i2sout_obj_t *self) {
-    for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
-        gc_free(self->buffers[i]);
-        self->buffers[i] = NULL;
-    }
-}
 
 STATIC void config_periph_pin(const mcu_periph_obj_t *periph) {
     if (!periph) {
@@ -90,21 +81,10 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
     const mcu_periph_obj_t *sync_periph = find_pin_function(mcu_sai_tx_sync_list, bit_clock, &instance, MP_QSTR_word_select);
     const mcu_periph_obj_t *data_periph = find_pin_function(mcu_sai_tx_data0_list, bit_clock, &instance, MP_QSTR_data);
 
-// TODO determine SAI1 vs SAI3
-// set up pinmuxes
-// set up clocks
-// set up etc
-
-    for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
-        self->buffers[i] = m_malloc(AUDIO_BUFFER_SIZE, false);
-    }
-
-    I2S_Type *peripheral = SAI_GetPeripheral(instance);
     sai_config_t config;
     SAI_TxGetDefaultConfig(&config);
-    SAI_TxInit(peripheral, &config);
+    port_i2s_initialize(&self->i2s, instance, &config);
 
-    self->peripheral = peripheral;
     self->bit_clock = bit_clock;
     self->word_select = word_select;
     self->data = data;
@@ -114,11 +94,10 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
     config_periph_pin(data_periph);
     config_periph_pin(sync_periph);
     config_periph_pin(bclk_periph);
-    supervisor_enable_tick(); // object has a finaliser so we can rely on disable_tick being called in _deinit
 }
 
 bool common_hal_audiobusio_i2sout_deinited(audiobusio_i2sout_obj_t *self) {
-    return self->peripheral != NULL;
+    return port_i2s_deinited(&self->i2s);
 }
 
 void common_hal_audiobusio_i2sout_deinit(audiobusio_i2sout_obj_t *self) {
@@ -126,8 +105,7 @@ void common_hal_audiobusio_i2sout_deinit(audiobusio_i2sout_obj_t *self) {
         return;
     }
 
-    SAI_Deinit(self->peripheral);
-    self->peripheral = NULL;
+    port_i2s_deinit(&self->i2s);
 
     common_hal_reset_pin(self->bit_clock);
     self->bit_clock = NULL;
@@ -137,9 +115,6 @@ void common_hal_audiobusio_i2sout_deinit(audiobusio_i2sout_obj_t *self) {
 
     common_hal_reset_pin(self->data);
     self->data = NULL;
-
-    release_buffers(self);
-    supervisor_disable_tick();
 }
 
 void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t *self,
@@ -147,30 +122,27 @@ void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t *self,
     if (common_hal_audiobusio_i2sout_get_playing(self)) {
         common_hal_audiobusio_i2sout_stop(self);
     }
-    self->sample = sample;
-    self->loop = loop;
-    self->playing = true;
+    port_i2s_play(&self->i2s, sample, loop);
 }
 
 void common_hal_audiobusio_i2sout_pause(audiobusio_i2sout_obj_t *self) {
-    self->paused = true;
+    port_i2s_pause(&self->i2s);
 }
 
 void common_hal_audiobusio_i2sout_resume(audiobusio_i2sout_obj_t *self) {
-    self->paused = false;
+    port_i2s_resume(&self->i2s);
 }
 
 bool common_hal_audiobusio_i2sout_get_paused(audiobusio_i2sout_obj_t *self) {
-    return self->paused;
+    return port_i2s_get_paused(&self->i2s);
 }
 
 void common_hal_audiobusio_i2sout_stop(audiobusio_i2sout_obj_t *self) {
-    self->playing = False;
-    self->sample = NULL;
+    port_i2s_stop(&self->i2s);
 }
 
 bool common_hal_audiobusio_i2sout_get_playing(audiobusio_i2sout_obj_t *self) {
-    return self->playing;
+    return port_i2s_get_playing(&self->i2s);
 }
 
 #endif // CIRCUITPY_AUDIOBUSIO_I2SOUT

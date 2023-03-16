@@ -31,130 +31,121 @@
 #include "common-hal/audiobusio/__init__.h"
 #include "shared-module/audiocore/__init__.h"
 
-static const I2S_Type *i2s_instances = I2S_BASE_PTRS;
+#define AUDIO_BUFFER_FRAME_COUNT (128) // in uint32_t; there are 4, giving 2048 bytes. In all they hold 10ms @ stereo 16-bit 48kHz before all buffers drain
 
-I2S_Type *SAI_GetPeripheral(int idx) {
+static I2S_Type *const i2s_instances[] = I2S_BASE_PTRS;
+static uint8_t i2s_in_use;
+
+static I2S_Type *SAI_GetPeripheral(int idx) {
+    if (idx < 0 || idx >= (int)MP_ARRAY_SIZE(i2s_instances)) {
+        return NULL;
+    }
     return i2s_instances[idx];
 }
 
-uint32_t SAI_GetInstance(I2S_Type *base) {
+static int SAI_GetInstance(I2S_Type *base) {
     uint32_t instance;
 
     /* Find the instance index from base address mappings. */
     for (instance = 0; instance < MP_ARRAY_SIZE(i2s_instances); instance++)
     {
         if (i2s_instances[instance] == base) {
-            break;
+            return instance;
         }
     }
 
-    assert(instance < MP_ARRAY_SIZE(i2s_instances));
-
-    return instance;
+    return -1;
 }
 
-
-#define I2S_NUM_MAX (MP_ARRAY_SIZE(i2s_instances))
-
-void port_i2s_reset_instance(int i) {
-    assert(i >= 0 && i < I2S_NUM_MAX);
-    if (i2s_tasks[i]) {
-        vTaskDelete(i2s_tasks[i]);
-    }
-    i2s_tasks[i] = NULL;
-
-    (void)i2s_driver_uninstall(i);
-    i2s_instance[i] = NULL;
+static bool i2s_queue_available(i2s_t *self) {
+    return !self->handle.saiQueue[self->handle.queueUser].data;
 }
-
-void i2s_reset(void) {
-    for (int i = 0; i < I2S_NUM_MAX; i++) {
-        port_i2s_reset_instance(i);
-    }
-}
-
-#define I2S_WRITE_DELAY pdMS_TO_TICKS(1)
 
 static void i2s_fill_buffer(i2s_t *self) {
-    if (self->instance < 0 || self->instance >= I2S_NUM_MAX) {
+    if (!self->peripheral) {
         return;
     }
-#define STACK_BUFFER_SIZE (4096)
-    int16_t signed_samples[STACK_BUFFER_SIZE / sizeof(int16_t)];
+    while (i2s_queue_available(self)) {
+        uint32_t *buffer = self->buffers[self->buffer_idx];
+        uint32_t *ptr = buffer, *end = buffer + AUDIO_BUFFER_FRAME_COUNT;
+        self->buffer_idx = (self->buffer_idx + 1) % SAI_XFER_QUEUE_SIZE;
 
-    if (!self->playing || self->paused || !self->sample || self->stopping) {
-        memset(signed_samples, 0, sizeof(signed_samples));
-
-        size_t bytes_written = 0;
-        do {
-            CHECK_ESP_RESULT(i2s_write(self->instance, signed_samples, sizeof(signed_samples), &bytes_written, I2S_WRITE_DELAY));
-        } while (bytes_written != 0);
-        return;
-    }
-    while (!self->stopping) {
-        if (self->sample_data == self->sample_end) {
-            uint32_t sample_buffer_length;
-            audioio_get_buffer_result_t get_buffer_result =
-                audiosample_get_buffer(self->sample, false, 0,
-                    &self->sample_data, &sample_buffer_length);
-            self->sample_end = self->sample_data + sample_buffer_length;
-            if (get_buffer_result == GET_BUFFER_DONE) {
-                if (self->loop) {
-                    audiosample_reset_buffer(self->sample, false, 0);
-                } else {
+        while (self->playing && !self->paused && ptr < end) {
+            if (self->sample_data == self->sample_end) {
+                if (self->stopping) {
+                    // non-looping sample, previously returned GET_BUFFER_DONE
+                    self->playing = false;
+                    break;
+                }
+                uint32_t sample_buffer_length;
+                audioio_get_buffer_result_t get_buffer_result =
+                    audiosample_get_buffer(self->sample, false, 0,
+                        &self->sample_data, &sample_buffer_length);
+                self->sample_end = self->sample_data + sample_buffer_length;
+                if (get_buffer_result == GET_BUFFER_DONE) {
+                    if (self->loop) {
+                        audiosample_reset_buffer(self->sample, false, 0);
+                    } else {
+                        self->stopping = true; // TODO does this cut off the end of the audio?
+                        break;
+                    }
+                }
+                if (get_buffer_result == GET_BUFFER_ERROR || sample_buffer_length == 0) {
                     self->stopping = true;
                     break;
                 }
             }
-            if (get_buffer_result == GET_BUFFER_ERROR || sample_buffer_length == 0) {
-                self->stopping = true;
-                break;
-            }
-        }
-        size_t bytes_written = 0;
-        size_t bytecount = self->sample_end - self->sample_data;
-        if (self->samples_signed && self->channel_count == 2) {
-            if (self->bytes_per_sample == 2) {
-                CHECK_ESP_RESULT(i2s_write(self->instance, self->sample_data, bytecount, &bytes_written, I2S_WRITE_DELAY));
-            } else {
-                CHECK_ESP_RESULT(i2s_write_expand(self->instance, self->sample_data, bytecount, 8, 16, &bytes_written, I2S_WRITE_DELAY));
-            }
-        } else {
-            const size_t bytes_per_output_frame = 4;
+            size_t input_bytecount = self->sample_end - self->sample_data;
             size_t bytes_per_input_frame = self->channel_count * self->bytes_per_sample;
-            size_t framecount = MIN(STACK_BUFFER_SIZE / bytes_per_output_frame, bytecount / bytes_per_input_frame);
-            if (self->samples_signed) {
-                assert(self->channel_count == 1);
-                if (self->bytes_per_sample == 1) {
-                    audiosample_convert_s8m_s16s(signed_samples, (int8_t *)(void *)self->sample_data, framecount);
-                } else {
-                    audiosample_convert_s16m_s16s(signed_samples, (int16_t *)(void *)self->sample_data, framecount);
-                }
-            } else {
-                if (self->channel_count == 1) {
-                    if (self->bytes_per_sample == 1) {
-                        audiosample_convert_u8m_s16s(signed_samples, (uint8_t *)(void *)self->sample_data, framecount);
-                    } else {
-                        audiosample_convert_u16m_s16s(signed_samples, (uint16_t *)(void *)self->sample_data, framecount);
-                    }
-                } else {
-                    if (self->bytes_per_sample == 1) {
-                        audiosample_convert_u8s_s16s(signed_samples, (uint8_t *)(void *)self->sample_data, framecount);
-                    } else {
-                        audiosample_convert_u16s_s16s(signed_samples, (uint16_t *)(void *)self->sample_data, framecount);
-                    }
-                }
+            size_t framecount = MIN((size_t)(end - ptr), input_bytecount / bytes_per_input_frame);
+
+#define SAMPLE_TYPE(is_signed, channel_count, bytes_per_sample) ((is_signed) | ((channel_count) << 1) | ((bytes_per_sample) << 3))
+
+            switch (SAMPLE_TYPE(self->samples_signed, self->channel_count, self->bytes_per_sample)) {
+
+                case SAMPLE_TYPE(true, 2, 2):
+                    memcpy(ptr, self->sample_data, 4 * framecount);
+                    break;
+
+                case SAMPLE_TYPE(false, 2, 2):
+                    audiosample_convert_u16s_s16s((int16_t *)ptr, (uint16_t *)(void *)self->sample_data, framecount);
+                    break;
+
+                case SAMPLE_TYPE(true, 1, 2):
+                    audiosample_convert_s16m_s16s((int16_t *)ptr, (int16_t *)(void *)self->sample_data, framecount);
+                    break;
+
+                case SAMPLE_TYPE(false, 1, 2):
+                    audiosample_convert_u16m_s16s((int16_t *)ptr, (uint16_t *)(void *)self->sample_data, framecount);
+                    break;
+
+                case SAMPLE_TYPE(true, 2, 1):
+                    audiosample_convert_s8s_s16s((int16_t *)ptr, (int8_t *)(void *)self->sample_data, framecount);
+                    memcpy(ptr, self->sample_data, 4 * framecount);
+                    break;
+
+                case SAMPLE_TYPE(false, 2, 1):
+                    audiosample_convert_u8s_s16s((int16_t *)ptr, (uint8_t *)(void *)self->sample_data, framecount);
+                    break;
+
+                case SAMPLE_TYPE(true, 1, 1):
+                    audiosample_convert_s8m_s16s((int16_t *)ptr, (int8_t *)(void *)self->sample_data, framecount);
+                    break;
+
+                case SAMPLE_TYPE(false, 1, 1):
+                    audiosample_convert_u8m_s16s((int16_t *)ptr, (uint8_t *)(void *)self->sample_data, framecount);
+                    break;
             }
-            size_t expanded_bytes_written = 0;
-            CHECK_ESP_RESULT(i2s_write(self->instance, signed_samples, bytes_per_output_frame * framecount, &expanded_bytes_written, I2S_WRITE_DELAY));
-            assert(expanded_bytes_written % 4 == 0);
-            bytes_written = expanded_bytes_written / bytes_per_output_frame * bytes_per_input_frame;
+            self->sample_data += bytes_per_input_frame * framecount; // in bytes
+            ptr += framecount; // in frames
         }
-        self->sample_data += bytes_written;
-        // We have filled the DMA buffer
-        if (!bytes_written) {
-            break;
-        }
+        // Fill any remaining portion of the buffer with 'no sound'
+        memset(ptr, 0, (end - ptr) * sizeof(uint32_t));
+        sai_transfer_t xfer = {
+            .data = (uint8_t *)buffer,
+            .dataSize = AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t),
+        };
+        SAI_TransferSendNonBlocking(self->peripheral, &self->handle, &xfer);
     }
 }
 
@@ -163,39 +154,40 @@ static void i2s_callback_fun(void *self_in) {
     i2s_fill_buffer(self);
 }
 
-static void i2s_event_task(void *self_in) {
+static void i2s_transfer_callback(I2S_Type *base, sai_handle_t *handle, status_t status, void *self_in) {
     i2s_t *self = self_in;
-    while (true) {
-        i2s_event_type_t event;
-        BaseType_t result = xQueueReceive(i2s_queues[self->instance], &event, portMAX_DELAY);
-        if (result && event == I2S_EVENT_TX_DONE) {
-            background_callback_add(&self->callback, i2s_callback_fun, self_in);
-        }
+    if (status == kStatus_SAI_TxIdle) {
+        // a block has been finished
+        background_callback_add(&self->callback, i2s_callback_fun, self_in);
     }
 }
 
-void port_i2s_allocate_init(i2s_t *self, bool left_justified) {
-    self->instance = port_i2s_allocate();
 
-    i2s_config_t i2s_config = {
-        .mode = I2S_MODE_MASTER | I2S_MODE_TX,
-        .sample_rate = 44100,
-        .bits_per_sample = 16,
-        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-        .communication_format = left_justified ? I2S_COMM_FORMAT_STAND_I2S : I2S_COMM_FORMAT_STAND_I2S,
-        .dma_buf_count = 3,
-        .dma_buf_len = 1024, // in _frames_, so 1024 is 4096 bytes per dma buf
-        .use_apll = false,
-    };
-    CHECK_ESP_RESULT(i2s_driver_install(self->instance, &i2s_config, I2S_QUEUE_SIZE, &i2s_queues[self->instance]));
-
-    if (!xTaskCreate(i2s_event_task, "I2S_task", 3 * configMINIMAL_STACK_SIZE, self, CONFIG_PTHREAD_TASK_PRIO_DEFAULT, &i2s_tasks[self->instance])) {
-        mp_raise_OSError_msg(translate("xTaskCreate failed"));
+void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config) {
+    I2S_Type *peripheral = SAI_GetPeripheral(instance);
+    if (!peripheral) {
+        mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_I2SOut);
     }
-    i2s_instance[self->instance] = self;
-
+    if (i2s_in_use & (1 << instance)) {
+        mp_raise_ValueError_varg(translate("%q in use"), MP_QSTR_I2SOut);
+    }
+    for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
+        self->buffers[i] = m_malloc(AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t), false);
+    }
+    self->peripheral = peripheral;
+    i2s_in_use |= (1 << instance);
 }
 
+void port_i2s_deinit(i2s_t *self) {
+    if (!self->peripheral) {
+        return;
+    }
+    SAI_TransferAbortSend(self->peripheral, &self->handle);
+    self->peripheral = NULL;
+    for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
+        self->buffers[i] = NULL;
+    }
+}
 
 void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop) {
     self->sample = sample;
@@ -213,25 +205,25 @@ void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop) {
     self->paused = false;
     self->stopping = false;
     self->sample_data = self->sample_end = NULL;
-    // We always output stereo so output twice as many bits.
-    // uint16_t bits_per_sample_output = bits_per_sample * 2;
 
     audiosample_reset_buffer(self->sample, false, 0);
 
+// TODO
+    #if 0
     uint32_t sample_rate = audiosample_sample_rate(sample);
     if (sample_rate != self->i2s_config.sample_rate) {
         CHECK_ESP_RESULT(i2s_set_sample_rates(self->instance, audiosample_sample_rate(sample)));
         self->i2s_config.sample_rate = sample_rate;
     }
-
+    #endif
     background_callback_add(&self->callback, i2s_callback_fun, self);
 }
 
-bool port_i2s_playing(i2s_t *self) {
-    return self->playing && !self->stopping;
+bool port_i2s_get_playing(i2s_t *self) {
+    return self->playing;
 }
 
-bool port_i2s_paused(i2s_t *self) {
+bool port_i2s_get_paused(i2s_t *self) {
     return self->paused;
 }
 
@@ -243,15 +235,9 @@ void port_i2s_stop(i2s_t *self) {
 }
 
 void port_i2s_pause(i2s_t *self) {
-    if (!self->paused) {
-        self->paused = true;
-        CHECK_ESP_RESULT(i2s_stop(self->instance));
-    }
+    self->paused = true;
 }
 
 void port_i2s_resume(i2s_t *self) {
-    if (self->paused) {
-        self->paused = false;
-        CHECK_ESP_RESULT(i2s_start(self->instance));
-    }
+    self->paused = false;
 }

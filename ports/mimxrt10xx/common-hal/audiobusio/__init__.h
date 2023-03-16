@@ -34,23 +34,28 @@
 
 #include "supervisor/background_callback.h"
 
-I2S_Type *SAI_GetPeripheral(int idx);
-uint32_t SAI_GetInstance(I2S_Type *base);
+
 typedef struct {
-    mp_obj_t *sample;
+    I2S_Type *peripheral;
+    sai_handle_t handle;
+    mp_obj_t sample;
+    uint32_t *buffers[SAI_XFER_QUEUE_SIZE];
+    uint8_t *sample_data, *sample_end;
     background_callback_t callback;
+    bool playing, paused, loop, stopping;
+    bool samples_signed;
+    uint8_t channel_count, bytes_per_sample;
+    uint8_t buffer_idx;
 } i2s_t;
 
 
-void port_i2s_allocate_init(i2s_t *self, bool left_justified);
-void port_i2s_reset_instance(int i);
 void i2s_reset(void);
+void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config);
+void port_i2s_deinit(i2s_t *self);
+bool port_i2s_deinited(i2s_t *self);
 void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop);
 void port_i2s_stop(i2s_t *self);
-bool port_i2s_playing(i2s_t *self);
-bool port_i2s_paused(i2s_t *self);
+bool port_i2s_get_playing(i2s_t *self);
+bool port_i2s_get_paused(i2s_t *self);
 void port_i2s_pause(i2s_t *self);
 void port_i2s_resume(i2s_t *self);
-
-// some uses (imagecapture) can only operate on i2s0 and need their own init code
-void port_i2s_allocate_i2s0(void);
