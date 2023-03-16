@@ -43,21 +43,14 @@ static I2S_Type *SAI_GetPeripheral(int idx) {
     return i2s_instances[idx];
 }
 
-#if 0
-static int SAI_GetInstance(I2S_Type *base) {
-    uint32_t instance;
-
-    /* Find the instance index from base address mappings. */
-    for (instance = 0; instance < MP_ARRAY_SIZE(i2s_instances); instance++)
-    {
-        if (i2s_instances[instance] == base) {
-            return instance;
-        }
+static int SAI_GetInstance(I2S_Type *peripheral) {
+    for (size_t i = 0; i < MP_ARRAY_SIZE(i2s_instances); i++) { if (peripheral == i2s_instances[i]) {
+                                                                    return i;
+                                                                }
     }
-
     return -1;
 }
-#endif
+
 
 static bool i2s_queue_available(i2s_t *self) {
     return !self->handle.saiQueue[self->handle.queueUser].data;
@@ -72,7 +65,9 @@ static void i2s_fill_buffer(i2s_t *self) {
         uint32_t *ptr = buffer, *end = buffer + AUDIO_BUFFER_FRAME_COUNT;
         self->buffer_idx = (self->buffer_idx + 1) % SAI_XFER_QUEUE_SIZE;
 
+        mp_printf(&mp_plat_print, "[1] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
         while (self->playing && !self->paused && ptr < end) {
+            mp_printf(&mp_plat_print, "[2] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             if (self->sample_data == self->sample_end) {
                 if (self->stopping) {
                     // non-looping sample, previously returned GET_BUFFER_DONE
@@ -83,23 +78,24 @@ static void i2s_fill_buffer(i2s_t *self) {
                 audioio_get_buffer_result_t get_buffer_result =
                     audiosample_get_buffer(self->sample, false, 0,
                         &self->sample_data, &sample_buffer_length);
+                mp_printf(&mp_plat_print, "get_buffer() -> %d\n", (int)get_buffer_result);
                 self->sample_end = self->sample_data + sample_buffer_length;
                 if (get_buffer_result == GET_BUFFER_DONE) {
                     if (self->loop) {
                         audiosample_reset_buffer(self->sample, false, 0);
                     } else {
-                        self->stopping = true; // TODO does this cut off the end of the audio?
-                        break;
+                        self->stopping = true;
                     }
                 }
                 if (get_buffer_result == GET_BUFFER_ERROR || sample_buffer_length == 0) {
                     self->stopping = true;
-                    break;
                 }
             }
+            mp_printf(&mp_plat_print, "[3] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             size_t input_bytecount = self->sample_end - self->sample_data;
             size_t bytes_per_input_frame = self->channel_count * self->bytes_per_sample;
             size_t framecount = MIN((size_t)(end - ptr), input_bytecount / bytes_per_input_frame);
+            mp_printf(&mp_plat_print, "[3] framecount %d\n", (int)framecount);
 
 #define SAMPLE_TYPE(is_signed, channel_count, bytes_per_sample) ((is_signed) | ((channel_count) << 1) | ((bytes_per_sample) << 3))
 
@@ -148,7 +144,12 @@ static void i2s_fill_buffer(i2s_t *self) {
             .data = (uint8_t *)buffer,
             .dataSize = AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t),
         };
-        SAI_TransferSendNonBlocking(self->peripheral, &self->handle, &xfer);
+        int r = SAI_TransferSendNonBlocking(self->peripheral, &self->handle, &xfer);
+        if (r == kStatus_Success) {
+            mp_printf(&mp_plat_print, "transfer success\n");
+        } else {
+            mp_printf(&mp_plat_print, "transfer returned %d\n", (int)r);
+        }
     }
 }
 
@@ -191,7 +192,9 @@ void port_i2s_deinit(i2s_t *self) {
     if (port_i2s_deinited(self)) {
         return;
     }
+    mp_printf(&mp_plat_print, "i2s_deinit\n");
     SAI_TransferAbortSend(self->peripheral, &self->handle);
+    i2s_in_use &= ~(1 << SAI_GetInstance(self->peripheral));
     self->peripheral = NULL;
     for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
         self->buffers[i] = NULL;
