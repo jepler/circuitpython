@@ -103,6 +103,7 @@ SRC_SDK := \
 	drivers/fsl_common.c \
 	drivers/fsl_flexspi.c \
 	drivers/fsl_gpio.c \
+	drivers/fsl_sai.c \
 	drivers/fsl_lpi2c.c \
 	drivers/fsl_lpspi.c \
 	drivers/fsl_lpuart.c \
@@ -115,7 +116,7 @@ SRC_SDK := \
 	system_$(CHIP_FAMILY).c \
 
 SRC_SDK := $(addprefix sdk/devices/$(CHIP_FAMILY)/, $(SRC_SDK))
-$(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef -Wno-missing-prototypes -Wno-cast-align
+$(addprefix $(BUILD)/, $(SRC_SDK:.c=.o)): CFLAGS += -Wno-undef -Wno-missing-prototypes -Wno-cast-align -Wno-sign-compare
 
 SRC_C += \
 	background.c \

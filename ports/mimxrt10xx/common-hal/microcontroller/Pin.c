@@ -123,11 +123,13 @@ const mcu_periph_obj_t *find_pin_function_sz(const mcu_periph_obj_t *list, size_
         return NULL;
     }
     for (size_t i = 0; i < sz; i++) {
+        mp_printf(&mp_plat_print, "instance=%d vs bank=%d pin = %p vs %p\n", instance, list[i].bank_idx, pin, list[i].pin);
         if (*instance != -1 && *instance != list[i].bank_idx) {
             continue;
         }
         if (pin == list[i].pin) {
             *instance = list[i].bank_idx;
+            mp_printf(&mp_plat_print, "\n");
             return &list[i];
         }
     }

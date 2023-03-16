@@ -43,6 +43,7 @@ static I2S_Type *SAI_GetPeripheral(int idx) {
     return i2s_instances[idx];
 }
 
+#if 0
 static int SAI_GetInstance(I2S_Type *base) {
     uint32_t instance;
 
@@ -56,6 +57,7 @@ static int SAI_GetInstance(I2S_Type *base) {
 
     return -1;
 }
+#endif
 
 static bool i2s_queue_available(i2s_t *self) {
     return !self->handle.saiQueue[self->handle.queueUser].data;
@@ -139,6 +141,7 @@ static void i2s_fill_buffer(i2s_t *self) {
             self->sample_data += bytes_per_input_frame * framecount; // in bytes
             ptr += framecount; // in frames
         }
+        mp_printf(&mp_plat_print, "filling i2s queue including %d silence\n", (int)(end - ptr));
         // Fill any remaining portion of the buffer with 'no sound'
         memset(ptr, 0, (end - ptr) * sizeof(uint32_t));
         sai_transfer_t xfer = {
@@ -155,6 +158,7 @@ static void i2s_callback_fun(void *self_in) {
 }
 
 static void i2s_transfer_callback(I2S_Type *base, sai_handle_t *handle, status_t status, void *self_in) {
+    mp_printf(&mp_plat_print, "i2s_transfer_callback with %d\n", (int)status);
     i2s_t *self = self_in;
     if (status == kStatus_SAI_TxIdle) {
         // a block has been finished
@@ -175,11 +179,16 @@ void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config) {
         self->buffers[i] = m_malloc(AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t), false);
     }
     self->peripheral = peripheral;
+    SAI_TransferTxCreateHandle(peripheral, &self->handle, i2s_transfer_callback, (void *)self);
     i2s_in_use |= (1 << instance);
 }
 
+bool port_i2s_deinited(i2s_t *self) {
+    return !self->peripheral;
+}
+
 void port_i2s_deinit(i2s_t *self) {
-    if (!self->peripheral) {
+    if (port_i2s_deinited(self)) {
         return;
     }
     SAI_TransferAbortSend(self->peripheral, &self->handle);
@@ -240,4 +249,8 @@ void port_i2s_pause(i2s_t *self) {
 
 void port_i2s_resume(i2s_t *self) {
     self->paused = false;
+}
+
+void i2s_reset() {
+// this port relies on object finalizers for reset
 }
