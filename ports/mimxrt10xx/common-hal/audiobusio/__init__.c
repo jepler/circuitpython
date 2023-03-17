@@ -31,6 +31,11 @@
 #include "common-hal/audiobusio/__init__.h"
 #include "shared-module/audiocore/__init__.h"
 
+// must match what's in clocks.c (but that's a C file so there's no way to include it)
+// This is 480MMHz * (18/17) / 8 (around 63.5MHz) and there's no partiuclar
+// logic to this value that I was able to determine.
+#define BOARD_BOOTCLOCKRUN_SAI1_CLK_ROOT 63529411UL
+
 #define AUDIO_BUFFER_FRAME_COUNT (128) // in uint32_t; there are 4, giving 2048 bytes. In all they hold 10ms @ stereo 16-bit 48kHz before all buffers drain
 
 static I2S_Type *const i2s_instances[] = I2S_BASE_PTRS;
@@ -49,6 +54,124 @@ static int SAI_GetInstance(I2S_Type *peripheral) {
                                                                 }
     }
     return -1;
+}
+
+static bool i2s_clock_off(I2S_Type *peripheral) {
+    int index = SAI_GetInstance(peripheral);
+    t switch (index) {
+        #if defined(SAI0)
+        case 0:
+            CLOCK_DisableClock(kCLOCK_Sai0);
+            return true;
+        #endif
+        #if defined(SAI1)
+        case 1:
+            CLOCK_DisableClock(kCLOCK_Sai1);
+            return true;
+        #endif
+        #if defined(SAI2)
+        case 2:
+            CLOCK_DisableClock(kCLOCK_Sai2);
+            return true;
+        #endif
+        #if defined(SAI3)
+        case 3:
+            CLOCK_DisableClock(kCLOCK_Sai3);
+            return true;
+        #endif
+        #if defined(SAI4)
+        case 4:
+            CLOCK_DisableClock(kCLOCK_Sai4);
+            return true;
+        #endif
+        #if defined(SAI5)
+        case 5:
+            CLOCK_DisableClock(kCLOCK_Sai5);
+            return true;
+        #endif
+        #if defined(SAI6)
+        case 6:
+            CLOCK_DisableClock(kCLOCK_Sai6);
+            return true;
+        #endif
+        #if defined(SAI7)
+        case 7:
+            CLOCK_DisableClock(kCLOCK_Sai7);
+            return true;
+        #endif
+    }
+    return false;
+}
+
+static bool i2s_clocking(I2S_Type *peripheral) {
+    int index = SAI_GetInstance(peripheral);
+    switch (index) {
+        #if defined(SAI0)
+        case 0:
+            CLOCK_SetDiv(kCLOCK_Sai0PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai0Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai0Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai0);
+            return true;
+        #endif
+        #if defined(SAI1)
+        case 1:
+            CLOCK_SetDiv(kCLOCK_Sai1PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai1Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai1Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai1);
+            return true;
+        #endif
+        #if defined(SAI2)
+        case 2:
+            CLOCK_SetDiv(kCLOCK_Sai2PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai2Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai2Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai2);
+            return true;
+        #endif
+        #if defined(SAI3)
+        case 3:
+            CLOCK_SetDiv(kCLOCK_Sai3PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai3Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai3Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai3);
+            return true;
+        #endif
+        #if defined(SAI4)
+        case 4:
+            CLOCK_SetDiv(kCLOCK_Sai4PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai4Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai4Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai4);
+            return true;
+        #endif
+        #if defined(SAI5)
+        case 5:
+            CLOCK_SetDiv(kCLOCK_Sai5PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai5Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai5Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai5);
+            return true;
+        #endif
+        #if defined(SAI6)
+        case 6:
+            CLOCK_SetDiv(kCLOCK_Sai6PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai6Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai6Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai6);
+            return true;
+        #endif
+        #if defined(SAI7)
+        case 7:
+            CLOCK_SetDiv(kCLOCK_Sai7PreDiv, 0);
+            CLOCK_SetDiv(kCLOCK_Sai7Div, 0);
+            CLOCK_SetMux(kCLOCK_Sai7Mux, 2);
+            CLOCK_EnableClock(kCLOCK_Sai7);
+            return true;
+        #endif
+    }
+    return false;
 }
 
 
@@ -169,6 +292,10 @@ static void i2s_transfer_callback(I2S_Type *base, sai_handle_t *handle, status_t
 
 
 void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config) {
+    if (!i2s_in_use) {
+        // Enable the audio clock. This bypasses the PLL and uses REF_CLK_24MHz reference clock instead
+        CCM_ANALOG->PLL_AUDIO = CCM_ANALOG_PLL_AUDIO_BYPASS_MASK | CCM_ANALOG_PLL_AUDIO_ENABLE_MASK | CCM_ANALOG_PLL_AUDIO_BYPASS_CLK_SRC(kCLOCK_PllClkSrc24M);
+    }
     I2S_Type *peripheral = SAI_GetPeripheral(instance);
     if (!peripheral) {
         mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_I2SOut);
@@ -176,14 +303,17 @@ void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config) {
     if (i2s_in_use & (1 << instance)) {
         mp_raise_ValueError_varg(translate("%q in use"), MP_QSTR_I2SOut);
     }
+    if (!i2s_clocking(peripheral)) {
+        mp_raise_ValueError_varg(translate("Invalid %q"), MP_QSTR_I2SOut);
+    }
     for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
         self->buffers[i] = m_malloc(AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t), false);
     }
     self->peripheral = peripheral;
     SAI_Init(self->peripheral);
     SAI_TransferTxCreateHandle(peripheral, &self->handle, i2s_transfer_callback, (void *)self);
-    SAI_TransferTxSetConfig(peripheral, &self->handle, &config);
-    SAI_TxSetBitClockRate ....!
+    // SAI_TransferTxSetConfig(peripheral, &self->handle, &config);
+    // SAI_TxSetBitClockRate(peripheral,
     i2s_in_use |= (1 << instance);
 }
 
@@ -198,6 +328,9 @@ void port_i2s_deinit(i2s_t *self) {
     mp_printf(&mp_plat_print, "i2s_deinit\n");
     SAI_TransferAbortSend(self->peripheral, &self->handle);
     i2s_in_use &= ~(1 << SAI_GetInstance(self->peripheral));
+    if (!i2s_in_use) {
+        CCM_ANALOG->PLL_AUDIO = CCM_ANALOG_PLL_AUDIO_BYPASS_MASK | CCM_ANALOG_PLL_AUDIO_POWERDOWN_MASK | CCM_ANALOG_PLL_AUDIO_BYPASS_CLK_SRC(kCLOCK_PllClkSrc24M);
+    }
     self->peripheral = NULL;
     for (size_t i = 0; i < MP_ARRAY_SIZE(self->buffers); i++) {
         self->buffers[i] = NULL;
