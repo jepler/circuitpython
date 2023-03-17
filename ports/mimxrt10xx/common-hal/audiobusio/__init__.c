@@ -180,7 +180,10 @@ void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config) {
         self->buffers[i] = m_malloc(AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t), false);
     }
     self->peripheral = peripheral;
+    SAI_Init(self->peripheral);
     SAI_TransferTxCreateHandle(peripheral, &self->handle, i2s_transfer_callback, (void *)self);
+    SAI_TransferTxSetConfig(peripheral, &self->handle, &config);
+    SAI_TxSetBitClockRate ....!
     i2s_in_use |= (1 << instance);
 }
 
