@@ -81,8 +81,13 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
     const mcu_periph_obj_t *sync_periph = find_pin_function(mcu_sai_tx_sync_list, word_select, &instance, MP_QSTR_word_select);
     const mcu_periph_obj_t *data_periph = find_pin_function(mcu_sai_tx_data0_list, data, &instance, MP_QSTR_data);
 
-    sai_config_t config;
-    SAI_TxGetDefaultConfig(&config);
+    sai_transceiver_t config;
+    SAI_GetClassicI2SConfig(&config, 16, true, 1u << 2);
+    config.syncMode = kSAI_ModeAsync;
+    // These identifier names are required by NXP's API, even though they do
+    // not conform to the naming standards that Adafruit strives to adhere to.
+    // https://www.adafruit.com/blacklivesmatter
+    config.masterSlave = kSAI_Master;
     port_i2s_initialize(&self->i2s, instance, &config);
 
     self->bit_clock = bit_clock;

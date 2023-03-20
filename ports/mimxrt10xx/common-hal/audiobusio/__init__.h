@@ -26,9 +26,6 @@
 
 #pragma once
 
-// Where required we use identifier names that are required by NXP's
-// API, even though they do not conform to the naming standards that Adafruit
-// strives to adhere to. https://www.adafruit.com/blacklivesmatter
 #include "drivers/fsl_sai.h"
 #include "py/obj.h"
 
@@ -50,7 +47,7 @@ typedef struct {
 
 
 void i2s_reset(void);
-void port_i2s_initialize(i2s_t *self, int instance, sai_config_t *config);
+void port_i2s_initialize(i2s_t *self, int instance, sai_transceiver_t *config);
 void port_i2s_deinit(i2s_t *self);
 bool port_i2s_deinited(i2s_t *self);
 void port_i2s_play(i2s_t *self, mp_obj_t sample, bool loop);
