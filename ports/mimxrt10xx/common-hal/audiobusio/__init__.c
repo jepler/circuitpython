@@ -124,7 +124,6 @@ static bool i2s_clock_off(I2S_Type *peripheral) {
 
 static bool i2s_clocking(I2S_Type *peripheral) {
     int index = SAI_GetInstance(peripheral);
-    mp_printf(&mp_plat_print, "SAI clock frequency set to %u\n", SAI_CLOCK_FREQ);
     switch (index) {
         #if defined(SAI0)
         case 0:
@@ -191,7 +190,6 @@ static bool i2s_clocking(I2S_Type *peripheral) {
             return true;
         #endif
     }
-    mp_printf(&mp_plat_print, "failed\n", (unsigned)CLOCK_GetFreq(kCLOCK_AudioPllClk) / 1 / 2);
     return false;
 }
 
@@ -205,14 +203,11 @@ static void i2s_fill_buffer(i2s_t *self) {
         return;
     }
     while (i2s_queue_available(self)) {
-        // mp_printf(&mp_plat_print, "filling buffer #%d\n", self->buffer_idx);
         uint32_t *buffer = self->buffers[self->buffer_idx];
         uint32_t *ptr = buffer, *end = buffer + AUDIO_BUFFER_FRAME_COUNT;
         self->buffer_idx = (self->buffer_idx + 1) % SAI_XFER_QUEUE_SIZE;
 
-        mp_printf(&mp_plat_print, "p%d\n", self->playing);
         while (self->playing && !self->paused && ptr < end) {
-            // mp_printf(&mp_plat_print, "[2] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             if (self->sample_data == self->sample_end) {
                 if (self->stopping) {
                     // non-looping sample, previously returned GET_BUFFER_DONE
@@ -223,7 +218,6 @@ static void i2s_fill_buffer(i2s_t *self) {
                 audioio_get_buffer_result_t get_buffer_result =
                     audiosample_get_buffer(self->sample, false, 0,
                         &self->sample_data, &sample_buffer_length);
-                // mp_printf(&mp_plat_print, "get_buffer() -> %d\n", (int)get_buffer_result);
                 self->sample_end = self->sample_data + sample_buffer_length;
                 if (get_buffer_result == GET_BUFFER_DONE) {
                     if (self->loop) {
@@ -236,11 +230,9 @@ static void i2s_fill_buffer(i2s_t *self) {
                     self->stopping = true;
                 }
             }
-            // mp_printf(&mp_plat_print, "[3] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             size_t input_bytecount = self->sample_end - self->sample_data;
             size_t bytes_per_input_frame = self->channel_count * self->bytes_per_sample;
             size_t framecount = MIN((size_t)(end - ptr), input_bytecount / bytes_per_input_frame);
-            // mp_printf(&mp_plat_print, "[3] framecount %d\n", (int)framecount);
 
 #define SAMPLE_TYPE(is_signed, channel_count, bytes_per_sample) ((is_signed) | ((channel_count) << 1) | ((bytes_per_sample) << 3))
 
@@ -282,7 +274,6 @@ static void i2s_fill_buffer(i2s_t *self) {
             self->sample_data += bytes_per_input_frame * framecount; // in bytes
             ptr += framecount; // in frames
         }
-        // mp_printf(&mp_plat_print, "filling i2s queue including %d silence\n", (int)(end - ptr));
         // Fill any remaining portion of the buffer with 'no sound'
         memset(ptr, 0, (end - ptr) * sizeof(uint32_t));
         sai_transfer_t xfer = {
@@ -302,7 +293,6 @@ static void i2s_callback_fun(void *self_in) {
 }
 
 static void i2s_transfer_callback(I2S_Type *base, sai_handle_t *handle, status_t status, void *self_in) {
-    // mp_printf(&mp_plat_print, "i2s_transfer_callback with 0x%04x\n", (int)status);
     i2s_t *self = self_in;
     if (status == kStatus_SAI_TxIdle) {
         // a block has been finished
@@ -326,8 +316,6 @@ void port_i2s_initialize(i2s_t *self, int instance, sai_transceiver_t *config) {
         CCM_ANALOG->PLL_AUDIO |= CCM_ANALOG_PLL_AUDIO_ENABLE_MASK;
 
         CLOCK_InitAudioPll(&audioPllConfig);
-
-        mp_printf(&mp_plat_print, "enabled audio pll and set frequency to %u\n", (unsigned)CLOCK_GetFreq(kCLOCK_AudioPllClk));
     }
 
     I2S_Type *peripheral = SAI_GetPeripheral(instance);
@@ -359,7 +347,6 @@ void port_i2s_deinit(i2s_t *self) {
     if (port_i2s_deinited(self)) {
         return;
     }
-    mp_printf(&mp_plat_print, "i2s_deinit\n");
     SAI_TransferAbortSend(self->peripheral, &self->handle);
     i2s_clock_off(self->peripheral);
     i2s_in_use &= ~(1 << SAI_GetInstance(self->peripheral));
