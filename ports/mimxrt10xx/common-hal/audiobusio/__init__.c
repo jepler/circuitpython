@@ -205,13 +205,14 @@ static void i2s_fill_buffer(i2s_t *self) {
         return;
     }
     while (i2s_queue_available(self)) {
+        // mp_printf(&mp_plat_print, "filling buffer #%d\n", self->buffer_idx);
         uint32_t *buffer = self->buffers[self->buffer_idx];
         uint32_t *ptr = buffer, *end = buffer + AUDIO_BUFFER_FRAME_COUNT;
         self->buffer_idx = (self->buffer_idx + 1) % SAI_XFER_QUEUE_SIZE;
 
-        mp_printf(&mp_plat_print, "[1] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
+        mp_printf(&mp_plat_print, "p%d\n", self->playing);
         while (self->playing && !self->paused && ptr < end) {
-            mp_printf(&mp_plat_print, "[2] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
+            // mp_printf(&mp_plat_print, "[2] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             if (self->sample_data == self->sample_end) {
                 if (self->stopping) {
                     // non-looping sample, previously returned GET_BUFFER_DONE
@@ -222,7 +223,7 @@ static void i2s_fill_buffer(i2s_t *self) {
                 audioio_get_buffer_result_t get_buffer_result =
                     audiosample_get_buffer(self->sample, false, 0,
                         &self->sample_data, &sample_buffer_length);
-                mp_printf(&mp_plat_print, "get_buffer() -> %d\n", (int)get_buffer_result);
+                // mp_printf(&mp_plat_print, "get_buffer() -> %d\n", (int)get_buffer_result);
                 self->sample_end = self->sample_data + sample_buffer_length;
                 if (get_buffer_result == GET_BUFFER_DONE) {
                     if (self->loop) {
@@ -235,11 +236,11 @@ static void i2s_fill_buffer(i2s_t *self) {
                     self->stopping = true;
                 }
             }
-            mp_printf(&mp_plat_print, "[3] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
+            // mp_printf(&mp_plat_print, "[3] playing=%d paused=%d stopping=%d sample_data=%p sample_end=%p\n", self->playing, self->paused, self->stopping, self->sample_data, self->sample_end);
             size_t input_bytecount = self->sample_end - self->sample_data;
             size_t bytes_per_input_frame = self->channel_count * self->bytes_per_sample;
             size_t framecount = MIN((size_t)(end - ptr), input_bytecount / bytes_per_input_frame);
-            mp_printf(&mp_plat_print, "[3] framecount %d\n", (int)framecount);
+            // mp_printf(&mp_plat_print, "[3] framecount %d\n", (int)framecount);
 
 #define SAMPLE_TYPE(is_signed, channel_count, bytes_per_sample) ((is_signed) | ((channel_count) << 1) | ((bytes_per_sample) << 3))
 
@@ -281,7 +282,7 @@ static void i2s_fill_buffer(i2s_t *self) {
             self->sample_data += bytes_per_input_frame * framecount; // in bytes
             ptr += framecount; // in frames
         }
-        mp_printf(&mp_plat_print, "filling i2s queue including %d silence\n", (int)(end - ptr));
+        // mp_printf(&mp_plat_print, "filling i2s queue including %d silence\n", (int)(end - ptr));
         // Fill any remaining portion of the buffer with 'no sound'
         memset(ptr, 0, (end - ptr) * sizeof(uint32_t));
         sai_transfer_t xfer = {
@@ -289,9 +290,7 @@ static void i2s_fill_buffer(i2s_t *self) {
             .dataSize = AUDIO_BUFFER_FRAME_COUNT * sizeof(uint32_t),
         };
         int r = SAI_TransferSendNonBlocking(self->peripheral, &self->handle, &xfer);
-        if (r == kStatus_Success) {
-            mp_printf(&mp_plat_print, "transfer success\n");
-        } else {
+        if (r != kStatus_Success) {
             mp_printf(&mp_plat_print, "transfer returned %d\n", (int)r);
         }
     }
@@ -303,7 +302,7 @@ static void i2s_callback_fun(void *self_in) {
 }
 
 static void i2s_transfer_callback(I2S_Type *base, sai_handle_t *handle, status_t status, void *self_in) {
-    mp_printf(&mp_plat_print, "i2s_transfer_callback with %d\n", (int)status);
+    // mp_printf(&mp_plat_print, "i2s_transfer_callback with 0x%04x\n", (int)status);
     i2s_t *self = self_in;
     if (status == kStatus_SAI_TxIdle) {
         // a block has been finished

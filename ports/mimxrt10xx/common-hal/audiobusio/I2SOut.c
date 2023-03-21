@@ -56,7 +56,7 @@ STATIC void config_periph_pin(const mcu_periph_obj_t *periph) {
             periph->pin->mux_reg, periph->mux_mode,
             periph->input_reg, periph->input_idx,
             0,
-            0);
+            1);
     }
 
     IOMUXC_SetPinConfig(0, 0, 0, 0,
@@ -82,8 +82,9 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t *self,
     const mcu_periph_obj_t *data_periph = find_pin_function(mcu_sai_tx_data0_list, data, &instance, MP_QSTR_data);
 
     sai_transceiver_t config;
-    SAI_GetClassicI2SConfig(&config, 16, true, 1u << 2);
+    SAI_GetClassicI2SConfig(&config, 16, kSAI_Stereo, 1);
     config.syncMode = kSAI_ModeAsync;
+    config.fifo.fifoPacking = kSAI_FifoPackingDisabled;
     // These identifier names are required by NXP's API, even though they do
     // not conform to the naming standards that Adafruit strives to adhere to.
     // https://www.adafruit.com/blacklivesmatter
