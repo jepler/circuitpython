@@ -29,15 +29,18 @@
 #include "py/gc.h"
 #include "py/mpstate.h"
 
-mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_depth) {
+STATIC mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_depth);
+STATIC mp_obj_property_t *make_property_long_lived(mp_obj_property_t *prop, uint8_t max_depth);
+STATIC mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth);
+STATIC mp_obj_str_t *make_str_long_lived(mp_obj_str_t *str);
+mp_obj_t make_obj_long_lived_depth(mp_obj_t obj, uint8_t max_depth);
+
+STATIC mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_depth) {
     #ifndef MICROPY_ENABLE_GC
     return fun_bc;
     #endif
-    if (fun_bc == NULL || MP_OBJ_FROM_PTR(fun_bc) == mp_const_none || max_depth == 0) {
-        return fun_bc;
-    }
     fun_bc->bytecode = gc_make_long_lived((byte *)fun_bc->bytecode);
-    fun_bc->globals = make_dict_long_lived(fun_bc->globals, max_depth - 1);
+    fun_bc->globals = make_dict_long_lived(fun_bc->globals, max_depth);
     for (uint32_t i = 0; i < gc_nbytes(fun_bc->const_table) / sizeof(mp_obj_t); i++) {
         // Skip things that aren't allocated on the heap (and hence have zero bytes.)
         if (gc_nbytes(MP_OBJ_TO_PTR(fun_bc->const_table[i])) == 0) {
@@ -49,8 +52,8 @@ mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_dep
             raw_code->fun_data = gc_make_long_lived((byte *)raw_code->fun_data);
             raw_code->const_table = gc_make_long_lived((byte *)raw_code->const_table);
         }
-        ((mp_uint_t *)fun_bc->const_table)[i] = (mp_uint_t)make_obj_long_lived(
-            (mp_obj_t)fun_bc->const_table[i], max_depth - 1);
+        ((mp_uint_t *)fun_bc->const_table)[i] = (mp_uint_t)make_obj_long_lived_depth(
+            (mp_obj_t)fun_bc->const_table[i], max_depth);
 
     }
     fun_bc->const_table = gc_make_long_lived((mp_uint_t *)fun_bc->const_table);
@@ -63,33 +66,30 @@ mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_dep
             continue;
         }
         if (mp_obj_is_type(fun_bc->extra_args[i], &mp_type_dict)) {
-            fun_bc->extra_args[i] = MP_OBJ_FROM_PTR(make_dict_long_lived(MP_OBJ_TO_PTR(fun_bc->extra_args[i]), max_depth - 1));
+            fun_bc->extra_args[i] = MP_OBJ_FROM_PTR(make_dict_long_lived(MP_OBJ_TO_PTR(fun_bc->extra_args[i]), max_depth));
         } else {
-            fun_bc->extra_args[i] = make_obj_long_lived(fun_bc->extra_args[i], max_depth - 1);
+            fun_bc->extra_args[i] = make_obj_long_lived_depth(fun_bc->extra_args[i], max_depth);
         }
 
     }
     return gc_make_long_lived(fun_bc);
 }
 
-mp_obj_property_t *make_property_long_lived(mp_obj_property_t *prop, uint8_t max_depth) {
+STATIC mp_obj_property_t *make_property_long_lived(mp_obj_property_t *prop, uint8_t max_depth) {
     #ifndef MICROPY_ENABLE_GC
     return prop;
     #endif
-    if (max_depth == 0) {
-        return prop;
-    }
-    prop->proxy[0] = make_obj_long_lived(prop->proxy[0], max_depth - 1);
-    prop->proxy[1] = make_obj_long_lived(prop->proxy[1], max_depth - 1);
-    prop->proxy[2] = make_obj_long_lived(prop->proxy[2], max_depth - 1);
+    prop->proxy[0] = make_obj_long_lived_depth(prop->proxy[0], max_depth);
+    prop->proxy[1] = make_obj_long_lived_depth(prop->proxy[1], max_depth);
+    prop->proxy[2] = make_obj_long_lived_depth(prop->proxy[2], max_depth);
     return gc_make_long_lived(prop);
 }
 
-mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth) {
+STATIC mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth) {
     #ifndef MICROPY_ENABLE_GC
     return dict;
     #endif
-    if (dict == NULL || max_depth == 0 || dict == &MP_STATE_VM(dict_main) || dict->map.is_fixed) {
+    if (dict == &MP_STATE_VM(dict_main) || dict->map.is_fixed) {
         return dict;
     }
     // Don't recurse unnecessarily. Return immediately if we've already seen this dict.
@@ -105,7 +105,7 @@ mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth) {
     for (size_t i = 0; i < dict->map.alloc; i++) {
         if (mp_map_slot_is_filled(&dict->map, i)) {
             mp_obj_t value = dict->map.table[i].value;
-            dict->map.table[i].value = make_obj_long_lived(value, max_depth - 1);
+            dict->map.table[i].value = make_obj_long_lived_depth(value, max_depth);
         }
     }
     dict = gc_make_long_lived(dict);
@@ -119,31 +119,43 @@ mp_obj_str_t *make_str_long_lived(mp_obj_str_t *str) {
     return gc_make_long_lived(str);
 }
 
-mp_obj_t make_obj_long_lived(mp_obj_t obj, uint8_t max_depth) {
+mp_obj_t make_obj_long_lived_depth(mp_obj_t obj, uint8_t max_depth) {
     #ifndef MICROPY_ENABLE_GC
     return obj;
     #endif
-    if (MP_OBJ_TO_PTR(obj) == NULL) {
+    if (max_depth <= 0) {
         return obj;
     }
+    max_depth -= 1;
+
+    // This also catches the case that obj is a NULL pointer or is a
+    // "non-object object" such as a number or a qstr.
+
     // If not in the GC pool, do nothing. This can happen (at least) when
-    // there are frozen mp_type_bytes objects in ROM.
-    if (!VERIFY_PTR((void *)obj)) {
+    // there are frozen mp_type_bytes objects in ROM. This also catches the case that the object is MP_OBJ_NULL
+    // and the case that it's not !mp_obj_is_obj
+    void *ptr = MP_OBJ_TO_PTR(obj);
+    if (!VERIFY_PTR((void *)ptr)) {
         return obj;
     }
-    if (mp_obj_is_type(obj, &mp_type_fun_bc)) {
-        mp_obj_fun_bc_t *fun_bc = MP_OBJ_TO_PTR(obj);
-        return MP_OBJ_FROM_PTR(make_fun_bc_long_lived(fun_bc, max_depth));
-    } else if (mp_obj_is_type(obj, &mp_type_property)) {
-        mp_obj_property_t *prop = MP_OBJ_TO_PTR(obj);
-        return MP_OBJ_FROM_PTR(make_property_long_lived(prop, max_depth));
-    } else if (mp_obj_is_type(obj, &mp_type_str) || mp_obj_is_type(obj, &mp_type_bytes)) {
-        mp_obj_str_t *str = MP_OBJ_TO_PTR(obj);
-        return MP_OBJ_FROM_PTR(make_str_long_lived(str));
-    } else if (mp_obj_is_type(obj, &mp_type_type)) {
+
+    const mp_obj_type_t *type = ((mp_obj_base_t *)ptr)->type;
+
+    if (type == &mp_type_fun_bc) {
+        ptr = make_fun_bc_long_lived(ptr, max_depth);
+    } else if (type == &mp_type_dict) {
+        ptr = make_dict_long_lived(ptr, max_depth);
+    } else if (type == &mp_type_property) {
+        ptr = make_property_long_lived(ptr, max_depth);
+    } else if (type == &mp_type_str || type == &mp_type_bytes) {
+        ptr = make_str_long_lived(ptr);
+    } else if (type != &mp_type_type) {
         // Types are already long lived during creation.
-        return obj;
-    } else {
-        return MP_OBJ_FROM_PTR(gc_make_long_lived(MP_OBJ_TO_PTR(obj)));
+        ptr = gc_make_long_lived(ptr);
     }
+    return MP_OBJ_FROM_PTR(ptr);
+}
+
+mp_obj_t make_obj_long_lived(mp_obj_t obj) {
+    return make_obj_long_lived_depth(obj, 10);
 }

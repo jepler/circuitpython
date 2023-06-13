@@ -126,7 +126,7 @@ STATIC int parse_compile_execute(const void *source, mp_parse_input_kind_t input
             // If the code was loaded from a file it's likely to be running for a while so we'll long
             // live it and collect any garbage before running.
             if (input_kind == MP_PARSE_FILE_INPUT) {
-                module_fun = make_obj_long_lived(module_fun, 6);
+                module_fun = make_obj_long_lived_depth(module_fun, 6);
                 gc_collect();
             }
         }

@@ -34,10 +34,7 @@
 #include "py/objproperty.h"
 #include "py/objstr.h"
 
-mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_depth);
-mp_obj_property_t *make_property_long_lived(mp_obj_property_t *prop, uint8_t max_depth);
-mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth);
-mp_obj_str_t *make_str_long_lived(mp_obj_str_t *str);
-mp_obj_t make_obj_long_lived(mp_obj_t obj, uint8_t max_depth);
+mp_obj_t make_obj_long_lived(mp_obj_t obj);
+mp_obj_t make_obj_long_lived_depth(mp_obj_t obj, uint8_t depth);
 
 #endif // MICROPY_INCLUDED_PY_GC_LONG_LIVED_H

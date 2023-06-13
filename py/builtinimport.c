@@ -159,7 +159,7 @@ STATIC void do_load_from_lexer(mp_obj_t module_obj, mp_lexer_t *lex) {
     // parse, compile and execute the module in its context
     mp_obj_dict_t *mod_globals = mp_obj_module_get_globals(module_obj);
     mp_parse_compile_execute(lex, MP_PARSE_FILE_INPUT, mod_globals, mod_globals);
-    mp_obj_module_set_globals(module_obj, make_dict_long_lived(mod_globals, 10));
+    mp_obj_module_set_globals(module_obj, MP_OBJ_TO_PTR(make_obj_long_lived(MP_OBJ_FROM_PTR(mod_globals))));
 }
 #endif
 
@@ -188,8 +188,7 @@ STATIC void do_execute_raw_code(mp_obj_t module_obj, mp_raw_code_t *raw_code, co
 
         // finish nlr block, restore context
         nlr_pop();
-        mp_obj_module_set_globals(module_obj,
-            make_dict_long_lived(mp_obj_module_get_globals(module_obj), 10));
+        mp_obj_module_set_globals(module_obj, MP_OBJ_TO_PTR(make_obj_long_lived(MP_OBJ_FROM_PTR(mod_globals))));
         mp_globals_set(old_globals);
         mp_locals_set(old_locals);
     } else {
