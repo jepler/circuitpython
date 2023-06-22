@@ -505,6 +505,10 @@ bool gc_alloc_possible(void) {
 // We place long lived objects at the end of the heap rather than the start. This reduces
 // fragmentation by localizing the heap churn to one portion of memory (the start of the heap.)
 void *gc_alloc(size_t n_bytes, unsigned int alloc_flags, bool long_lived) {
+    #if !CIRCUITPY_LONG_LIVED_GC
+    long_lived = false;
+    #endif
+
     bool has_finaliser = alloc_flags & GC_ALLOC_FLAG_HAS_FINALISER;
     size_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
     DEBUG_printf("gc_alloc(" UINT_FMT " bytes -> " UINT_FMT " blocks)\n", n_bytes, n_blocks);
@@ -795,6 +799,7 @@ bool gc_has_finaliser(const void *ptr) {
 }
 
 void *gc_make_long_lived(void *old_ptr) {
+    #if CIRCUITPY_LONG_LIVED_GC
     // If its already in the long lived section then don't bother moving it.
     if (old_ptr >= MP_STATE_MEM(gc_lowest_long_lived_ptr)) {
         return old_ptr;
@@ -819,6 +824,9 @@ void *gc_make_long_lived(void *old_ptr) {
     // confuse things when its mutable.)
     memcpy(new_ptr, old_ptr, n_bytes);
     return new_ptr;
+    #else
+    return old_ptr;
+    #endif
 }
 
 #if 0

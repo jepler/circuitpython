@@ -34,7 +34,12 @@
 #include "py/objproperty.h"
 #include "py/objstr.h"
 
+#if CIRCUITPY_LONG_LIVED_GC
 mp_obj_t make_obj_long_lived(mp_obj_t obj);
 mp_obj_t make_obj_long_lived_depth(mp_obj_t obj, uint8_t depth);
+#else
+#define make_obj_long_lived(obj) (obj)
+#define make_obj_long_lived_depth(obj, depth) (obj)
+#endif
 
 #endif // MICROPY_INCLUDED_PY_GC_LONG_LIVED_H

@@ -29,6 +29,7 @@
 #include "py/gc.h"
 #include "py/mpstate.h"
 
+#if CIRCUITPY_LONG_LIVED_GC
 STATIC mp_obj_fun_bc_t *make_fun_bc_long_lived(mp_obj_fun_bc_t *fun_bc, uint8_t max_depth);
 STATIC mp_obj_property_t *make_property_long_lived(mp_obj_property_t *prop, uint8_t max_depth);
 STATIC mp_obj_dict_t *make_dict_long_lived(mp_obj_dict_t *dict, uint8_t max_depth);
@@ -159,3 +160,4 @@ mp_obj_t make_obj_long_lived_depth(mp_obj_t obj, uint8_t max_depth) {
 mp_obj_t make_obj_long_lived(mp_obj_t obj) {
     return make_obj_long_lived_depth(obj, 10);
 }
+#endif

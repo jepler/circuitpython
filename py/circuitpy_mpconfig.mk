@@ -36,6 +36,18 @@ CFLAGS += -DCIRCUITPY=$(CIRCUITPY)
 CIRCUITPY_FULL_BUILD ?= 1
 CFLAGS += -DCIRCUITPY_FULL_BUILD=$(CIRCUITPY_FULL_BUILD)
 
+# CircuitPython implements a "long lived" region in the garbage collector. This
+# improves memory fragmentation on low-RAM boards. However, the semantics of
+# object identity in imported modules are subtly altered compared to standard
+# Python. (https://github.com/adafruit/circuitpython/issues/2687)
+#
+# This _partially_ disables the long-lived machinery: objects are never copied
+# to the upper memory area. However, certain allocations that are initially
+# made in the upper memory area still are, and code in the GC to deal with the
+# two halves of the heap differently remain, increasing code size.
+CIRCUITPY_LONG_LIVED_GC ?= 1
+CFLAGS += -DCIRCUITPY_LONG_LIVED_GC=$(CIRCUITPY_LONG_LIVED_GC)
+
 # Reduce the size of in-flash properties. Requires support in the .ld linker
 # file, so not enabled by default.
 CIRCUITPY_OPTIMIZE_PROPERTY_FLASH_SIZE ?= 0
