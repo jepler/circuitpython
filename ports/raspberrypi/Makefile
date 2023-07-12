@@ -28,6 +28,13 @@ CROSS_COMPILE = arm-none-eabi-
 
 HAL_DIR=hal/$(MCU_SERIES)
 
+PIOASM = $(BUILD)/pioasm/pioasm/pioasm
+.PHONY: PioasmBuild
+PioasmBuild: $(PIOASM)
+$(PIOASM):
+	$(Q)cmake -S pioasm -B $(BUILD)/pioasm
+	$(Q)$(MAKE) -C $(BUILD)/pioasm PioasmBuild
+
 ifeq ($(CIRCUITPY_CYW43),1)
 INC_CYW43 := \
 	-isystem lib/cyw43-driver/firmware \
@@ -68,13 +75,6 @@ SRC_CYW43 := \
 	lib/cyw43-driver/src/cyw43_ll.c \
 	lib/cyw43-driver/src/cyw43_lwip.c \
 
-PIOASM = $(BUILD)/pioasm/pioasm/pioasm
-.PHONY: PioasmBuild
-PioasmBuild: $(PIOASM)
-$(PIOASM):
-	$(Q)cmake -S pioasm -B $(BUILD)/pioasm
-	$(Q)$(MAKE) -C $(BUILD)/pioasm PioasmBuild
-
 $(BUILD)/cyw43_bus_pio_spi.pio.h: sdk/src/rp2_common/pico_cyw43_driver/cyw43_bus_pio_spi.pio $(PIOASM)
 	$(Q)$(PIOASM) -o c-sdk $< $@
 $(BUILD)/sdk/src/rp2_common/pico_cyw43_driver/cyw43_bus_pio_spi.o: $(BUILD)/cyw43_bus_pio_spi.pio.h
@@ -85,6 +85,15 @@ CFLAGS_CYW43 :=
 SRC_SDK_CYW43 :=
 SRC_CYW43 :=
 SRC_LWIP :=
+endif
+
+ifeq ($(CIRCUITPY_SDCARDIO),1)
+$(BUILD)/sd_card.pio.h: peripherals/pico_sd_card/sd_card.pio $(PIOASM)
+	$(Q)$(PIOASM) -o c-sdk $< $@
+$(BUILD)/peripherals/pico_sd_card/sd_card.o: $(BUILD)/sd_card.pio.h
+$(BUILD)/peripherals/pico_sd_card/sd_card.o: CFLAGS += -iquote peripherals/pico_sd_card
+SRC_C += \
+	peripherals/pico_sd_card/sd_card.c
 endif
 
 INC += \
@@ -138,6 +147,7 @@ INC += \
         -isystem sdk/src/rp2_common/pico_runtime/include/ \
         -isystem sdk/src/rp2_common/pico_bootrom/include/ \
         -isystem sdk/src/rp2_common/pico_unique_id/include/ \
+        -iquote peripherals/include \
 	$(INC_CYW43) \
         -Isdk_config \
         -I../../lib/tinyusb/src \
