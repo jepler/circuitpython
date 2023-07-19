@@ -31,5 +31,4 @@
 typedef struct {
     mp_obj_base_t base;
     pico_pio_sdio sdio;
-    uint32_t capacity;
 } sdioio_sdcard_obj_t;

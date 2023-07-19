@@ -100,7 +100,7 @@ void common_hal_sdioio_sdcard_construct(sdioio_sdcard_obj_t *self,
 }
 
 uint32_t common_hal_sdioio_sdcard_get_count(sdioio_sdcard_obj_t *self) {
-    return self->capacity;
+    return self->sdio.capacity;
 }
 
 uint32_t common_hal_sdioio_sdcard_get_frequency(sdioio_sdcard_obj_t *self) {
@@ -180,7 +180,17 @@ bool common_hal_sdioio_sdcard_deinited(sdioio_sdcard_obj_t *self) {
 }
 
 void common_hal_sdioio_sdcard_deinit(sdioio_sdcard_obj_t *self) {
-    sd_deinit(&self->sdio);
+    if (self->sdio.sd_pio) {
+        reset_pin_number(self->sdio.clk);
+        reset_pin_number(self->sdio.cmd);
+        reset_pin_number(self->sdio.dat0);
+        if (self->sdio.allow_four_data_pins) {
+            reset_pin_number(self->sdio.dat0 + 1);
+            reset_pin_number(self->sdio.dat0 + 2);
+            reset_pin_number(self->sdio.dat0 + 3);
+        }
+        sd_deinit(&self->sdio);
+    }
 }
 
 void common_hal_sdioio_sdcard_never_reset(sdioio_sdcard_obj_t *self) {

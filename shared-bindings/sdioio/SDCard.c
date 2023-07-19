@@ -51,6 +51,7 @@
 //|
 //|     def __init__(
 //|         self,
+//|         *,
 //|         clock: microcontroller.Pin,
 //|         command: microcontroller.Pin,
 //|         data: Sequence[microcontroller.Pin],
@@ -84,7 +85,7 @@
 //|         ...
 
 STATIC mp_obj_t sdioio_sdcard_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
-    sdioio_sdcard_obj_t *self = m_new_obj(sdioio_sdcard_obj_t);
+    sdioio_sdcard_obj_t *self = m_new_obj_with_finaliser(sdioio_sdcard_obj_t);
     self->base.type = &sdioio_SDCard_type;
     enum { ARG_clock, ARG_command, ARG_data, ARG_frequency, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
@@ -258,6 +259,7 @@ STATIC const mp_rom_map_elem_t sdioio_sdcard_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&sdioio_sdcard_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&default___enter___obj) },
     { MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&sdioio_sdcard_obj___exit___obj) },
+    { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&sdioio_sdcard_deinit_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_configure), MP_ROM_PTR(&sdioio_sdcard_configure_obj) },
     { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_PTR(&sdioio_sdcard_frequency_obj) },

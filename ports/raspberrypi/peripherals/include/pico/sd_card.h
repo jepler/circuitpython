@@ -29,8 +29,9 @@ typedef struct {
     PIO sd_pio;
     uint8_t clk, cmd, dat0;
     uint8_t allow_four_data_pins, bytes_swap_on_read;
-    uint clk_program_offset;
     pico_pio_bus_width bus_width;
+    uint clk_program_offset;
+    uint32_t capacity;
 } pico_pio_sdio;
 
 int sd_init(pico_pio_sdio *self);

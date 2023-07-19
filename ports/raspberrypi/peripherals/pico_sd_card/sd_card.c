@@ -44,6 +44,7 @@ static inline uint32_t sd_pio_cmd(uint cmd, uint32_t param) {
 // todo struct these
 static uint8_t rca_high, rca_low;
 
+// can I get a yikes - these have to be runtime allocated!!!
 const int sd_cmd_dma_channel = 11;
 const int sd_data_dma_channel = 10;
 const int sd_chain_dma_channel = 9;
@@ -92,7 +93,6 @@ inline static int safe_wait_tx_empty(pio_hw_t *pio, uint sm) {
         if (wooble > 1000000) {
             check_pio_debug("stuck");
             printf("stuck %d @ %d\n", sm, (int)pio->sm[sm].addr);
-            __breakpoint();
             return SD_ERR_STUCK;
         }
     }
@@ -106,7 +106,6 @@ inline static int safe_wait_tx_not_full(pio_hw_t *pio, uint sm) {
         if (wooble > 1000000) {
             check_pio_debug("stuck");
             printf("stuck %d @ %d\n", sm, (int)pio->sm[sm].addr);
-            __breakpoint();
             return SD_ERR_STUCK;
         }
     }
@@ -656,9 +655,8 @@ int sd_init(pico_pio_sdio *self) {
     uint8_t *byte_buf = (uint8_t *)response_buffer;
     fixup_cmd_response_48(response_buffer);
     if (byte_buf[4] != 0xa5) {
-        __breakpoint();
         printf("R7 check pattern doesn't match sent\r\n");
-        return -1;
+        return SD_ERR_BAD_RESPONSE;
     }
 
     do
@@ -682,9 +680,48 @@ int sd_init(pico_pio_sdio *self) {
     sd_wait(self);
 
     int rc = sd_set_wide_bus(self, self->allow_four_data_pins);
-    if (!rc) {
+    printf("set_wide_bus rc=%d\n", rc);
+
+    if (rc == SD_OK) {
         rc = sd_set_clock_divider(self, 1); // as fast as possible please
+        printf("set_clock_divider rc=%d\n", rc);
     }
+    if (rc != SD_OK) {
+        pio_remove_program(self->sd_pio, &sd_cmd_or_dat_program, 0);
+        pio_remove_program(self->sd_pio, &sd_clk_program, self->clk_program_offset);
+        pio_sm_unclaim(self->sd_pio, SD_CLK_SM);
+        pio_sm_unclaim(self->sd_pio, SD_CMD_SM);
+        pio_sm_unclaim(self->sd_pio, SD_DAT_SM);
+        self->sd_pio = NULL;
+    }
+
+    #if 0
+    rc = sd_command(self, sd_make_command(9, 0, 0, 0, 0), response_buffer, 17);
+    printf("rc=%d csd[]=\n", rc);
+    uint8_t *csd = (uint8_t *)response_buffer;
+    for (size_t i = 0; i < 17; i++) {
+        printf("%02x", csd[i]);
+    }
+    printf("\n");
+
+    int csd_version = (csd[0] & 0xC0) >> 6;
+    printf("csd_version=%d\n", csd_version);
+    if (csd_version >= 2) {
+        return SD_ERR_BAD_RESPONSE;
+    }
+
+    if (csd_version == 1) {
+        self->capacity = ((csd[8] << 8 | csd[9]) + 1) * 1024;
+    } else {
+        uint32_t block_length = 1 << (csd[5] & 0xF);
+        uint32_t c_size = ((csd[6] & 0x3) << 10) | (csd[7] << 2) | ((csd[8] & 0xC) >> 6);
+        uint32_t mult = 1 << (((csd[9] & 0x3) << 1 | (csd[10] & 0x80) >> 7) + 2);
+        printf("block_length=%lu c_size=%lu mult=%lu\n", block_length, c_size, mult);
+        self->capacity = (uint64_t)block_length * mult * (c_size + 1);
+    }
+    printf("capacity=%lu\n", self->capacity);
+    #endif
+
     return rc;
 }
 
