@@ -32,6 +32,11 @@ typedef struct {
     pico_pio_bus_width bus_width;
     uint clk_program_offset;
     uint32_t capacity;
+    uint8_t rca_high, rca_low;
+    uint8_t sd_cmd_dma_channel;
+    uint8_t sd_data_dma_channel;
+    uint8_t sd_chain_dma_channel;
+    uint8_t sd_pio_dma_channel;
 } pico_pio_sdio;
 
 int sd_init(pico_pio_sdio *self);

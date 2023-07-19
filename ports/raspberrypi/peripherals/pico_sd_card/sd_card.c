@@ -42,13 +42,6 @@ static inline uint32_t sd_pio_cmd(uint cmd, uint32_t param) {
 }
 
 // todo struct these
-static uint8_t rca_high, rca_low;
-
-// can I get a yikes - these have to be runtime allocated!!!
-const int sd_cmd_dma_channel = 11;
-const int sd_data_dma_channel = 10;
-const int sd_chain_dma_channel = 9;
-const int sd_pio_dma_channel = 8;
 
 struct message {
     int len;
@@ -178,16 +171,16 @@ static int __time_critical_func(start_single_dma)(pico_pio_sdio * self, uint dma
 
 static void __time_critical_func(start_chain_dma_read_with_address_size_only)(pico_pio_sdio * self, uint sm, uint32_t *buf, bool bswap, bool sniff) {
     assert(!sniff); // for now
-    dma_channel_config c = dma_channel_get_default_config(sd_data_dma_channel);
+    dma_channel_config c = dma_channel_get_default_config(self->sd_data_dma_channel);
     channel_config_set_bswap(&c, bswap);
     channel_config_set_read_increment(&c, false);
     channel_config_set_write_increment(&c, true);
     channel_config_set_dreq(&c, DREQ_PIO1_RX0 + sm);
-    channel_config_set_chain_to(&c, sd_chain_dma_channel); // individual buffers chain back to master
+    channel_config_set_chain_to(&c, self->sd_chain_dma_channel); // individual buffers chain back to master
     channel_config_set_irq_quiet(&c, true);
 
     dma_channel_configure(
-        sd_data_dma_channel,
+        self->sd_data_dma_channel,
         &c,
         0,                        // dest
         &self->sd_pio->rxf[sm],            // src
@@ -195,14 +188,14 @@ static void __time_critical_func(start_chain_dma_read_with_address_size_only)(pi
         false
         );
 
-    c = dma_channel_get_default_config(sd_chain_dma_channel);
+    c = dma_channel_get_default_config(self->sd_chain_dma_channel);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, true);
     channel_config_set_ring(&c, 1, 3);  // wrap the write at 8 bytes (so each transfer writes the same 2 word ctrl registers)
     dma_channel_configure(
-        sd_chain_dma_channel,
+        self->sd_chain_dma_channel,
         &c,
-        &dma_channel_hw_addr(sd_data_dma_channel)->al1_write_addr,                        // dest
+        &dma_channel_hw_addr(self->sd_data_dma_channel)->al1_write_addr,                        // dest
         buf,            // src
         2,     // send 2 words to ctrl block of data chain per transfer
         false
@@ -211,33 +204,33 @@ static void __time_critical_func(start_chain_dma_read_with_address_size_only)(pi
     gpio_set_mask(1);
 //    if (sniff)
 //    {
-//        dma_enable_sniffer(sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16);
+//        dma_enable_sniffer(self->sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16);
 //        dma_hw->sniff_data = 0;
 //    }
-    dma_channel_start(sd_chain_dma_channel);
+    dma_channel_start(self->sd_chain_dma_channel);
     gpio_clr_mask(1);
 }
 
-static void __time_critical_func(start_chain_dma_read_with_full_cb)(uint sm, uint32_t *buf) {
-    dma_channel_config c = dma_get_channel_config(sd_data_dma_channel);
-    channel_config_set_chain_to(&c, sd_chain_dma_channel); // todo isn't this the case already
+static void __time_critical_func(start_chain_dma_read_with_full_cb)(pico_pio_sdio * self, uint sm, uint32_t *buf) {
+    dma_channel_config c = dma_get_channel_config(self->sd_data_dma_channel);
+    channel_config_set_chain_to(&c, self->sd_chain_dma_channel); // todo isn't this the case already
     channel_config_set_irq_quiet(&c, true); // todo isn't this the case already
-    dma_channel_set_config(sd_data_dma_channel, &c, false);
+    dma_channel_set_config(self->sd_data_dma_channel, &c, false);
 
-    c = dma_channel_get_default_config(sd_chain_dma_channel);
+    c = dma_channel_get_default_config(self->sd_chain_dma_channel);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, true);
     channel_config_set_ring(&c, 1, 4);  // wrap the write at 16 bytes
     dma_channel_configure(
-        sd_chain_dma_channel,
+        self->sd_chain_dma_channel,
         &c,
-        &dma_channel_hw_addr(sd_data_dma_channel)->read_addr,      // ch DMA config (target "ring" buffer size 16) - this is (read_addr, write_addr, transfer_count, ctrl),                    // dest
+        &dma_channel_hw_addr(self->sd_data_dma_channel)->read_addr,      // ch DMA config (target "ring" buffer size 16) - this is (read_addr, write_addr, transfer_count, ctrl),                    // dest
         buf,            // src
         4,     // send 4 words to ctrl block of data chain per transfer
         false
         );
     gpio_set_mask(1);
-    dma_channel_start(sd_chain_dma_channel);
+    dma_channel_start(self->sd_chain_dma_channel);
     gpio_clr_mask(1);
 }
 static __attribute__((used)) __noinline void spoop(void) {
@@ -371,7 +364,7 @@ static int __noinline sd_command(pico_pio_sdio *self, uint64_t packed_command, u
     pio_sm_put(self->sd_pio, SD_CMD_SM, (uint32_t)(packed_command >> 32u));
     // todo we know the recvlen based on the command
     if (byte_length) {
-        rc = sd_response_dma(self, sd_cmd_dma_channel, SD_CMD_SM, receive_buf, byte_length, false, NULL, NULL, true, true, true);
+        rc = sd_response_dma(self, self->sd_cmd_dma_channel, SD_CMD_SM, receive_buf, byte_length, false, NULL, NULL, true, true, true);
         if (!rc) {
             uint32_t cmd = ((uint32_t)packed_command) >> 24u;
             cmd &= 63u;
@@ -509,7 +502,7 @@ static void read_status(pico_pio_sdio *self, bool dump) {
     int not_ready_retries = 3;
     while (not_ready_retries--) {
         // let's see the status
-        sd_command(self, sd_make_command(13, rca_high, rca_low, 0, 0), response_buffer, 6);
+        sd_command(self, sd_make_command(13, self->rca_high, self->rca_low, 0, 0), response_buffer, 6);
         fixup_cmd_response_48(response_buffer);
         uint8_t *b = (uint8_t *)response_buffer;
         printf("%02x %02x %02x %02x : %02x %02x\n", b[0], b[1], b[2], b[3], b[4], b[5]);
@@ -535,7 +528,7 @@ int sd_set_wide_bus(pico_pio_sdio *self, bool wide) {
             return SD_ERR_BAD_PARAM;
         }
         uint32_t response_buffer[5];
-        int rc = sd_command(self, sd_make_command(55, rca_high, rca_low, 0, 0), response_buffer, 6);
+        int rc = sd_command(self, sd_make_command(55, self->rca_high, self->rca_low, 0, 0), response_buffer, 6);
         if (!rc) {
             rc = sd_command(self, sd_make_command(6, 0, 0, 0, wide ? 2 : 0), response_buffer, 6);
         }
@@ -567,6 +560,12 @@ static bool can_use_pio(PIO sd_pio) {
            !pio_sm_is_claimed(sd_pio, SD_DAT_SM);
 }
 
+static void dma_unclaim_channel_maybe(int channel) {
+    if (channel != -1) {
+        dma_unclaim_mask(1 << channel);
+    }
+}
+
 // todo fixup error handling
 int sd_init(pico_pio_sdio *self) {
     self->bus_width = bw_unknown;
@@ -582,6 +581,22 @@ int sd_init(pico_pio_sdio *self) {
         return SD_ERR_STUCK;
     }
 
+    self->sd_cmd_dma_channel = dma_claim_unused_channel(false);
+    self->sd_data_dma_channel = dma_claim_unused_channel(false);
+    self->sd_chain_dma_channel = dma_claim_unused_channel(false);
+    self->sd_pio_dma_channel = dma_claim_unused_channel(false);
+
+    if (self->sd_cmd_dma_channel == -1 ||
+        self->sd_data_dma_channel == -1 ||
+        self->sd_chain_dma_channel == -1 ||
+        self->sd_pio_dma_channel == -1) {
+        self->sd_pio = NULL;
+        dma_unclaim_channel_maybe(self->sd_cmd_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_data_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_chain_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_pio_dma_channel);
+        return SD_ERR_STUCK;
+    }
     pio_add_program_at_offset(self->sd_pio, &sd_cmd_or_dat_program, 0);
     if (!pio_can_add_program(self->sd_pio, &sd_clk_program)) {
         pio_remove_program(self->sd_pio, &sd_cmd_or_dat_program, 0);
@@ -672,9 +687,9 @@ int sd_init(pico_pio_sdio *self) {
     sd_command(self, sd_make_command(2, 0, 0, 0, 0), response_buffer, 17);
     sd_command(self, sd_make_command(3, 0, 0, 0, 0), response_buffer, 6);
     fixup_cmd_response_48(response_buffer);
-    rca_high = byte_buf[1];
-    rca_low = byte_buf[2];
-    sd_command(self, sd_make_command(7, rca_high, rca_low, 0, 0), response_buffer, 6);
+    self->rca_high = byte_buf[1];
+    self->rca_low = byte_buf[2];
+    sd_command(self, sd_make_command(7, self->rca_high, self->rca_low, 0, 0), response_buffer, 6);
 
     // wait for not busy after CMD7
     sd_wait(self);
@@ -692,6 +707,10 @@ int sd_init(pico_pio_sdio *self) {
         pio_sm_unclaim(self->sd_pio, SD_CLK_SM);
         pio_sm_unclaim(self->sd_pio, SD_CMD_SM);
         pio_sm_unclaim(self->sd_pio, SD_DAT_SM);
+        dma_unclaim_channel_maybe(self->sd_cmd_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_data_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_chain_dma_channel);
+        dma_unclaim_channel_maybe(self->sd_pio_dma_channel);
         self->sd_pio = NULL;
     }
 
@@ -734,6 +753,10 @@ void sd_deinit(pico_pio_sdio *self) {
     pio_sm_unclaim(self->sd_pio, SD_CLK_SM);
     pio_sm_unclaim(self->sd_pio, SD_CMD_SM);
     pio_sm_unclaim(self->sd_pio, SD_DAT_SM);
+    dma_unclaim_channel_maybe(self->sd_cmd_dma_channel);
+    dma_unclaim_channel_maybe(self->sd_data_dma_channel);
+    dma_unclaim_channel_maybe(self->sd_chain_dma_channel);
+    dma_unclaim_channel_maybe(self->sd_pio_dma_channel);
     self->sd_pio = NULL;
 }
 
@@ -850,12 +873,12 @@ int sd_readblocks_scatter_async(pico_pio_sdio *self, uint32_t *control_words, ui
         buf = start_read_to_buf(self, SD_DAT_SM, buf, 512, !i);
     }
 
-    dma_channel_config c = dma_channel_get_default_config(sd_pio_dma_channel);
+    dma_channel_config c = dma_channel_get_default_config(self->sd_pio_dma_channel);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, false);
     channel_config_set_dreq(&c, DREQ_PIO1_TX0 + SD_DAT_SM);
     dma_channel_configure(
-        sd_pio_dma_channel,
+        self->sd_pio_dma_channel,
         &c,
         &sd_pio->txf[SD_DAT_SM],                      // dest
         pio_cmd_buf,            // src
@@ -863,7 +886,7 @@ int sd_readblocks_scatter_async(pico_pio_sdio *self, uint32_t *control_words, ui
         true
         );
     // todo decide timing of this - as long as dat lines are hi, this is fine. (note this comment now applies to the trigger true in the dma_channel_configure)
-    // dma_channel_start(sd_pio_dma_channel);
+    // dma_channel_start(self->sd_pio_dma_channel);
     assert(block_count);
     int rc;
     if (block_count == 1) {
@@ -883,12 +906,12 @@ int sd_readblocks_scatter_async(pico_pio_sdio *self, uint32_t *control_words, ui
 int check_crc_count;
 
 bool sd_scatter_read_complete(pico_pio_sdio *self, int *status) {
-//    printf("%d:%d %d:%d %d:%d %d\n", dma_busy(sd_chain_dma_channel), (uint)dma_hw->ch[sd_chain_dma_channel].transfer_count,
-//           dma_busy(sd_data_dma_channel), (uint)dma_hw->ch[sd_data_dma_channel].transfer_count,
-//           dma_busy(sd_pio_dma_channel), (uint)dma_hw->ch[sd_pio_dma_channel].transfer_count, (uint)pio->sm[SD_DAT_SM].addr);
+//    printf("%d:%d %d:%d %d:%d %d\n", dma_busy(self->sd_chain_dma_channel), (uint)dma_hw->ch[self->sd_chain_dma_channel].transfer_count,
+//           dma_busy(self->sd_data_dma_channel), (uint)dma_hw->ch[self->sd_data_dma_channel].transfer_count,
+//           dma_busy(self->sd_pio_dma_channel), (uint)dma_hw->ch[self->sd_pio_dma_channel].transfer_count, (uint)pio->sm[SD_DAT_SM].addr);
     // this is a bit half arsed atm
     bool rc;
-    if (dma_channel_is_busy(sd_chain_dma_channel) || dma_channel_is_busy(sd_data_dma_channel) || dma_channel_is_busy(sd_pio_dma_channel)) {
+    if (dma_channel_is_busy(self->sd_chain_dma_channel) || dma_channel_is_busy(self->sd_data_dma_channel) || dma_channel_is_busy(self->sd_pio_dma_channel)) {
         rc = false;
     } else {
         rc = (self->sd_pio->sm[SD_DAT_SM].addr == sd_cmd_or_dat_offset_no_arg_state_waiting_for_cmd &&
@@ -912,26 +935,26 @@ bool sd_scatter_read_complete(pico_pio_sdio *self, int *status) {
     return rc;
 }
 
-static void __time_critical_func(start_chain_dma_write)(uint sm, uint32_t *buf) {
-    dma_channel_config c = dma_get_channel_config(sd_data_dma_channel);
-    channel_config_set_chain_to(&c, sd_chain_dma_channel);
+static void __time_critical_func(start_chain_dma_write)(pico_pio_sdio * self, uint sm, uint32_t *buf) {
+    dma_channel_config c = dma_get_channel_config(self->sd_data_dma_channel);
+    channel_config_set_chain_to(&c, self->sd_chain_dma_channel);
     channel_config_set_irq_quiet(&c, true);
-    dma_channel_set_config(sd_data_dma_channel, &c, false);
+    dma_channel_set_config(self->sd_data_dma_channel, &c, false);
 
-    c = dma_channel_get_default_config(sd_chain_dma_channel);
+    c = dma_channel_get_default_config(self->sd_chain_dma_channel);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, true);
     channel_config_set_ring(&c, 1, 4);  // wrap the write at 16 bytes
     dma_channel_configure(
-        sd_chain_dma_channel,
+        self->sd_chain_dma_channel,
         &c,
-        &dma_channel_hw_addr(sd_data_dma_channel)->read_addr,      // ch DMA config (target "ring" buffer size 16) - this is (read_addr, write_addr, transfer_count, ctrl),                    // dest
+        &dma_channel_hw_addr(self->sd_data_dma_channel)->read_addr,      // ch DMA config (target "ring" buffer size 16) - this is (read_addr, write_addr, transfer_count, ctrl),                    // dest
         buf,            // src
         4,     // send 4 words to ctrl block of data chain per transfer
         false
         );
     gpio_set_mask(1);
-    dma_channel_start(sd_chain_dma_channel);
+    dma_channel_start(self->sd_chain_dma_channel);
     gpio_clr_mask(1);
 }
 
@@ -959,29 +982,29 @@ int sd_writeblocks_async(pico_pio_sdio *self, const uint32_t *data, uint32_t sec
 
     #ifdef CRC_FIRST
     // lets crc the first sector
-    dma_channel_config c = dma_channel_get_default_config(sd_data_dma_channel);
+    dma_channel_config c = dma_channel_get_default_config(self->sd_data_dma_channel);
     if (true) {
         channel_config_set_bswap(&c, true);
-        dma_sniffer_enable(sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
+        dma_sniffer_enable(self->sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
         dma_sniffer_set_byte_swap_enabled(true);
     } else {
-        dma_sniffer_enable(sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
+        dma_sniffer_enable(self->sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
     }
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, false);
     channel_config_set_dreq(&c, DREQ_FORCE);
     dma_channel_configure(
-        sd_data_dma_channel,
+        self->sd_data_dma_channel,
         &c,
         flapulent,                      // dest
         data,            // src
         128,
         false
         );
-    hw_set_bits(&dma_hw->ch[sd_data_dma_channel].al1_ctrl, DMA_CH0_CTRL_TRIG_BSWAP_BITS);
+    hw_set_bits(&dma_hw->ch[self->sd_data_dma_channel].al1_ctrl, DMA_CH0_CTRL_TRIG_BSWAP_BITS);
     dma_hw->sniff_data = 0;
-    dma_channel_start(sd_data_dma_channel);
-    dma_channel_wait_for_finish_blocking(sd_data_dma_channel);
+    dma_channel_start(self->sd_data_dma_channel);
+    dma_channel_wait_for_finish_blocking(self->sd_data_dma_channel);
     printf("Sniff raw %08x, word %04x\n", (uint)dma_hw->sniff_data, __bswap16(dma_hw->sniff_data));
     // todo we need to be able to reset the sniff data correctly
     crcs[0] = __bswap16(dma_hw->sniff_data);
@@ -1012,13 +1035,13 @@ int sd_writeblocks_async(pico_pio_sdio *self, const uint32_t *data, uint32_t sec
     *p++ = output_buffer + offset; \
     *p++ = words; \
     offset += words; \
-    *p++ = dma_ctrl_for(size, true, true, DREQ_FORCE, sd_chain_dma_channel, 0, 0, true) | (flags);
+    *p++ = dma_ctrl_for(size, true, true, DREQ_FORCE, self->sd_chain_dma_channel, 0, 0, true) | (flags);
     #else
 #define build_transfer(src, words, size, flags) \
     *p++ = (uintptr_t)(src); \
     *p++ = (uintptr_t)(&self->sd_pio->txf[SD_DAT_SM]); \
     *p++ = words; \
-    *p++ = dma_ctrl_for(size, true, false, DREQ_PIO1_TX0 + SD_DAT_SM, sd_chain_dma_channel, 0, 0, true) | (flags);
+    *p++ = dma_ctrl_for(size, true, false, DREQ_PIO1_TX0 + SD_DAT_SM, self->sd_chain_dma_channel, 0, 0, true) | (flags);
 
     #endif
     for (uint i = 0; i < sector_count; i++) {
@@ -1027,7 +1050,7 @@ int sd_writeblocks_async(pico_pio_sdio *self, const uint32_t *data, uint32_t sec
         *p++ = (uintptr_t)&zeroes;
         *p++ = (uintptr_t)(&dma_hw->sniff_data);
         *p++ = 1;
-        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, sd_chain_dma_channel, 0, 0, true);
+        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, self->sd_chain_dma_channel, 0, 0, true);
         #endif
         // second cb - send bits command
         build_transfer(pio_cmd_buf + i, 1, DMA_SIZE_32, 0);
@@ -1086,15 +1109,15 @@ int sd_writeblocks_async(pico_pio_sdio *self, const uint32_t *data, uint32_t sec
     read_status(self, true);
     if (!rc) {
         pio_sm_set_enabled(self->sd_pio, SD_DAT_SM, false);
-        dma_sniffer_enable(sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
+        dma_sniffer_enable(self->sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, true);
         dma_sniffer_set_byte_swap_enabled(true);
-        start_chain_dma_write(SD_DAT_SM, ctrl_words);
+        start_chain_dma_write(self, SD_DAT_SM, ctrl_words);
         pio_sm_set_enabled(self->sd_pio, SD_DAT_SM, true);
         printf("dma chain data (rem %04x @ %08x) data (rem %04x @ %08x) pio data (rem %04x @ %08x) datsm @ %d\n",
-            (uint)dma_hw->ch[sd_chain_dma_channel].transfer_count,
-            (uint)dma_hw->ch[sd_chain_dma_channel].read_addr,
-            (uint)dma_hw->ch[sd_data_dma_channel].transfer_count, (uint)dma_hw->ch[sd_data_dma_channel].read_addr,
-            (uint)dma_hw->ch[sd_pio_dma_channel].transfer_count, (uint)dma_hw->ch[sd_pio_dma_channel].read_addr,
+            (uint)dma_hw->ch[self->sd_chain_dma_channel].transfer_count,
+            (uint)dma_hw->ch[self->sd_chain_dma_channel].read_addr,
+            (uint)dma_hw->ch[self->sd_data_dma_channel].transfer_count, (uint)dma_hw->ch[self->sd_data_dma_channel].read_addr,
+            (uint)dma_hw->ch[self->sd_pio_dma_channel].transfer_count, (uint)dma_hw->ch[self->sd_pio_dma_channel].read_addr,
             (int)self->sd_pio->sm[SD_DAT_SM].addr);
 
     }
@@ -1103,12 +1126,12 @@ int sd_writeblocks_async(pico_pio_sdio *self, const uint32_t *data, uint32_t sec
 
 bool sd_write_complete(pico_pio_sdio *self, int *status) {
     printf("dma chain data (rem %04x @ %08x) data (rem %04x @ %08x) datsm @ %d\n",
-        (uint)dma_hw->ch[sd_chain_dma_channel].transfer_count, (uint)dma_hw->ch[sd_chain_dma_channel].read_addr,
-        (uint)dma_hw->ch[sd_data_dma_channel].transfer_count, (uint)dma_hw->ch[sd_data_dma_channel].read_addr,
+        (uint)dma_hw->ch[self->sd_chain_dma_channel].transfer_count, (uint)dma_hw->ch[self->sd_chain_dma_channel].read_addr,
+        (uint)dma_hw->ch[self->sd_data_dma_channel].transfer_count, (uint)dma_hw->ch[self->sd_data_dma_channel].read_addr,
         (int)self->sd_pio->sm[SD_DAT_SM].addr);
     // this is a bit half arsed atm
     bool rc;
-    if (dma_channel_is_busy(sd_chain_dma_channel) || dma_channel_is_busy(sd_data_dma_channel)) {
+    if (dma_channel_is_busy(self->sd_chain_dma_channel) || dma_channel_is_busy(self->sd_data_dma_channel)) {
         rc = false;
     } else {
         rc = self->sd_pio->sm[SD_DAT_SM].addr == sd_cmd_or_dat_offset_no_arg_state_waiting_for_cmd;
@@ -1143,22 +1166,22 @@ int sd_read_sectors_1bit_crc_async(pico_pio_sdio *self, uint32_t *sector_buf, ui
         *p++ = (uintptr_t)&zeroes;
         *p++ = (uintptr_t)(&dma_hw->sniff_data);
         *p++ = 1;
-        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, sd_chain_dma_channel, 0, 0, true);
+        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, self->sd_chain_dma_channel, 0, 0, true);
         // second cb - 128 words of sector data
         *p++ = (uintptr_t)(&sd_pio->rxf[SD_DAT_SM]);
         *p++ = (uintptr_t)(sector_buf + i * 128);
         *p++ = 128;
-        *p++ = dma_ctrl_for(DMA_SIZE_32, false, true, DREQ_PIO1_RX0 + SD_DAT_SM, sd_chain_dma_channel, 0, 0, true) | DMA_CH0_CTRL_TRIG_SNIFF_EN_BITS | DMA_CH0_CTRL_TRIG_BSWAP_BITS;
+        *p++ = dma_ctrl_for(DMA_SIZE_32, false, true, DREQ_PIO1_RX0 + SD_DAT_SM, self->sd_chain_dma_channel, 0, 0, true) | DMA_CH0_CTRL_TRIG_SNIFF_EN_BITS | DMA_CH0_CTRL_TRIG_BSWAP_BITS;
         // third crc from stream
         *p++ = (uintptr_t)(&sd_pio->rxf[SD_DAT_SM]);
         *p++ = (uintptr_t)(crcs + i * 2);
         *p++ = 1;
-        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_PIO1_RX0 + SD_DAT_SM, sd_chain_dma_channel, 0, 0, true);
+        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_PIO1_RX0 + SD_DAT_SM, self->sd_chain_dma_channel, 0, 0, true);
         // fourth crc from sniff
         *p++ = (uintptr_t)&dma_hw->sniff_data;
         *p++ = (uintptr_t)(crcs + i * 2 + 1);
         *p++ = 1;
-        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, sd_chain_dma_channel, 0, 0, true);
+        *p++ = dma_ctrl_for(DMA_SIZE_32, false, false, DREQ_FORCE, self->sd_chain_dma_channel, 0, 0, true);
     }
     *p++ = 0;
     *p++ = 0;
@@ -1171,19 +1194,19 @@ int sd_read_sectors_1bit_crc_async(pico_pio_sdio *self, uint32_t *sector_buf, ui
     assert(pio_sm_is_rx_fifo_empty(sd_pio, SD_DAT_SM));
     assert(sector_count <= PICO_SD_MAX_BLOCK_COUNT);
 
-    dma_sniffer_enable(sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, false);
+    dma_sniffer_enable(self->sd_data_dma_channel, DMA_SNIFF_CTRL_CALC_VALUE_CRC16, false);
     // dma_enable_sniffer_byte_swap(true);
-    start_chain_dma_read_with_full_cb(SD_DAT_SM, ctrl_words);
+    start_chain_dma_read_with_full_cb(self, SD_DAT_SM, ctrl_words);
     uint32_t *buf = pio_cmd_buf;
     for (uint i = 0; i < sector_count; i++) {
         buf = start_read_to_buf(self, SD_DAT_SM, buf, 512, !i);
     }
-    dma_channel_config c = dma_channel_get_default_config(sd_pio_dma_channel);
+    dma_channel_config c = dma_channel_get_default_config(self->sd_pio_dma_channel);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, false);
     channel_config_set_dreq(&c, DREQ_PIO1_TX0 + SD_DAT_SM);
     dma_channel_configure(
-        sd_pio_dma_channel,
+        self->sd_pio_dma_channel,
         &c,
         &sd_pio->txf[SD_DAT_SM],                      // dest
         pio_cmd_buf,            // src
@@ -1191,7 +1214,7 @@ int sd_read_sectors_1bit_crc_async(pico_pio_sdio *self, uint32_t *sector_buf, ui
         false
         );
     // todo decide timing of this - as long as dat lines are hi, this is fine.
-    dma_channel_start(sd_pio_dma_channel);
+    dma_channel_start(self->sd_pio_dma_channel);
     assert(sector_count);
     int rc;
     if (sector_count == 1) {
