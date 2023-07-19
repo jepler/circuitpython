@@ -623,7 +623,6 @@ int sd_init(pico_pio_sdio *self) {
     gpio_set_pulls(self->dat0 + 1, true, false);
     gpio_set_pulls(self->dat0 + 2, true, false);
     gpio_set_pulls(self->dat0 + 3, true, false);
-    self->clk_program_offset = pio_add_program(self->sd_pio, &sd_clk_program);
 
     pio_sm_config c = sd_clk_program_get_default_config(self->clk_program_offset);
     sm_config_set_sideset_pins(&c, sd_clk_pin);
