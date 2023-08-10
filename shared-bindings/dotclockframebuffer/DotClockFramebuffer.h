@@ -26,11 +26,11 @@
 
 #pragma once
 
-#include "common-hal/dotclockframebuffer/DotClockFramebuffer.h"
-
 #include "common-hal/microcontroller/Pin.h"
 #include "shared-bindings/displayio/__init__.h"
 #include "shared-module/displayio/Group.h"
+
+typedef struct dotclockframebuffer_framebuffer_obj dotclockframebuffer_framebuffer_obj_t;
 
 extern const mp_obj_type_t dotclockframebuffer_framebuffer_type;
 
