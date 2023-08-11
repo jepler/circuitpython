@@ -115,6 +115,32 @@ void common_hal_dotclockframebuffer_framebuffer_construct(dotclockframebuffer_fr
     self->timing.flags.pclk_active_neg = !pclk_active_high;
     self->timing.flags.pclk_idle_high = pclk_idle_high;
 
+    // install interrupt service, (LCD peripheral shares the interrupt source with Camera by different mask)
+    const int isr_flags = LCD_RGB_INTR_ALLOC_FLAGS | ESP_INTR_FLAG_SHARED;
+    esp_err_t ret = esp_intr_alloc_intrstatus(ETS_LCD_CAM_INTR_SOURCE, isr_flags,
+        (uint32_t)lcd_ll_get_interrupt_status_reg(LCD_CAM),
+        LCD_LL_EVENT_VSYNC_END, lcd_default_isr_handler, rgb_panel, &rgb_panel->intr);
+    // handle error in ret
+
+    lcd_ll_set_blank_cycles(LCD_CAM, 1, 1); // RGB panel always has a front and back blank (porch region)
+    lcd_ll_set_horizontal_timing(LCD_CAM, self->timings.hsync_pulse_width,
+        self->timings.hsync_back_porch, self->timings.h_res,
+        self->timings.hsync_front_porch);
+    lcd_ll_set_vertical_timing(LCD_CAM, self->timings.vsync_pulse_width,
+        self->timings.vsync_back_porch, self->timings.v_res,
+        self->timings.vsync_front_porch);
+
+    // output hsync even in porch region
+    lcd_ll_enable_output_hsync_in_porch_region(LCD_CAM, true);
+    // generate the hsync at the very beginning of line
+    lcd_ll_set_hsync_position(LCD_CAM, 0);
+    // restart flush by hardware has some limitation, instead, the driver will restart the flush in the VSYNC end interrupt by software
+    lcd_ll_enable_auto_next_frame(LCD_CAM, false);
+    // trigger interrupt on the end of frame
+    lcd_ll_enable_interrupt(LCD_CAM, LCD_LL_EVENT_VSYNC_END, true);
+    // enable intr
+    esp_intr_enable(rgb_panel->intr);
+
     self->config.data_width = 16;
     self->config.hsync_gpio_num = common_hal_mcu_pin_number(hsync);
     self->config.vsync_gpio_num = common_hal_mcu_pin_number(vsync);
