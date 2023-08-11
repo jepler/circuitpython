@@ -29,6 +29,8 @@
 #include "py/obj.h"
 
 #include "soc/soc_caps.h"
+#include "esp_private/gdma.h"
+#include "hal/dma_types.h"
 
 typedef struct {
     unsigned int pclk_hz;           /*!< Frequency of pixel clock */
@@ -71,6 +73,11 @@ typedef struct {
 typedef struct dotclockframebuffer_framebuffer_obj {
     mp_obj_base_t base;
     mp_buffer_info_t bufinfo;
+    uint32_t frequency, refresh_rate;
     dotclock_timing_t timing;
     dotclock_config_t config;
+    uint64_t used_pins_mask;
+    gdma_channel_handle_t dma_channel;
+    size_t n_dma_nodes;
+    dma_descriptor_t *dma_nodes;
 } dotclockframebuffer_framebuffer_obj_t;
