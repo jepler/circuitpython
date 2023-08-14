@@ -62,4 +62,6 @@ size_t ringbuf_get_n(ringbuf_t *r, uint8_t *buf, size_t bufsize);
 int ringbuf_get16(ringbuf_t *r);
 int ringbuf_put16(ringbuf_t *r, uint16_t v);
 
+#define ringbuf_avail(r) (ringbuf_num_empty(r))
+#define ringbuf_free(r) (ringbuf_num_filled(r))
 #endif // MICROPY_INCLUDED_PY_RINGBUF_H

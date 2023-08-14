@@ -108,7 +108,9 @@ STATIC const mp_stream_p_t fileio_stream_p = {
 
 STATIC const mp_obj_type_t mp_type_stest_fileio = {
     { &mp_type_type },
-    .protocol = &fileio_stream_p,
+    MP_TYPE_EXTENDED_FIELDS(
+        .protocol = &fileio_stream_p,
+        ),
     .locals_dict = (mp_obj_dict_t *)&rawfile_locals_dict,
 };
 
@@ -135,7 +137,9 @@ STATIC const mp_stream_p_t textio_stream_p2 = {
 
 STATIC const mp_obj_type_t mp_type_stest_textio2 = {
     { &mp_type_type },
-    .protocol = &textio_stream_p2,
+    MP_TYPE_EXTENDED_FIELDS(
+        .protocol = &textio_stream_p2,
+        ),
     .locals_dict = (mp_obj_dict_t *)&rawfile_locals_dict2,
 };
 
@@ -609,8 +613,7 @@ STATIC mp_obj_t extra_coverage(void) {
         mp_printf(&mp_plat_print, "%d %d\n", ringbuf_free(&ringbuf), ringbuf_avail(&ringbuf));
 
         // Two-byte put with wrap around on first byte:
-        ringbuf.iput = 0;
-        ringbuf.iget = 0;
+        ringbuf_clear(&ringbuf);
         for (int i = 0; i < 99; ++i) {
             ringbuf_put(&ringbuf, i);
             ringbuf_get(&ringbuf);
@@ -619,8 +622,7 @@ STATIC mp_obj_t extra_coverage(void) {
         mp_printf(&mp_plat_print, "%04x\n", ringbuf_get16(&ringbuf));
 
         // Two-byte put with wrap around on second byte:
-        ringbuf.iput = 0;
-        ringbuf.iget = 0;
+        ringbuf_clear(&ringbuf);
         for (int i = 0; i < 98; ++i) {
             ringbuf_put(&ringbuf, i);
             ringbuf_get(&ringbuf);
@@ -629,13 +631,11 @@ STATIC mp_obj_t extra_coverage(void) {
         mp_printf(&mp_plat_print, "%04x\n", ringbuf_get16(&ringbuf));
 
         // Two-byte get from empty ringbuf.
-        ringbuf.iput = 0;
-        ringbuf.iget = 0;
+        ringbuf_clear(&ringbuf);
         mp_printf(&mp_plat_print, "%d\n", ringbuf_get16(&ringbuf));
 
         // Two-byte get from ringbuf with one byte available.
-        ringbuf.iput = 0;
-        ringbuf.iget = 0;
+        ringbuf_clear(&ringbuf);
         ringbuf_put(&ringbuf, 0xaa);
         mp_printf(&mp_plat_print, "%d\n", ringbuf_get16(&ringbuf));
     }
