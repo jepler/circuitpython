@@ -38,6 +38,7 @@ void common_hal_keypad_eventqueue_clear(keypad_eventqueue_obj_t *self);
 size_t common_hal_keypad_eventqueue_get_length(keypad_eventqueue_obj_t *self);
 mp_obj_t common_hal_keypad_eventqueue_get(keypad_eventqueue_obj_t *self);
 bool common_hal_keypad_eventqueue_get_into(keypad_eventqueue_obj_t *self, keypad_event_obj_t *event);
+void common_hal_keypad_eventqueue_put(keypad_eventqueue_obj_t *self, mp_uint_t key_number, bool pressed);
 
 bool common_hal_keypad_eventqueue_get_overflowed(keypad_eventqueue_obj_t *self);
 void common_hal_keypad_eventqueue_set_overflowed(keypad_eventqueue_obj_t *self, bool overflowed);

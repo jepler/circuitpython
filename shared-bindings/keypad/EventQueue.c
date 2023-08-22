@@ -41,6 +41,21 @@
 //|
 //|     ...
 
+//|     def put(self, key_number: int, pressed: bool, /) -> None:
+//|         """Add an event to the queue
+//|
+//|         If the queue is full, the queue's `overflowed` property is set to `True`.
+//|         """
+//|         ...
+STATIC mp_obj_t keypad_eventqueue_put(mp_obj_t self_in, mp_obj_t key_number_in, mp_obj_t pressed_in) {
+    keypad_eventqueue_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    mp_int_t key_number = mp_arg_validate_int_range(mp_obj_get_int(key_number_in), 0, 65535, MP_QSTR_key_number);
+    bool pressed = mp_obj_is_true(pressed_in);
+    common_hal_keypad_eventqueue_put(self, key_number, pressed);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_3(keypad_eventqueue_put_obj, keypad_eventqueue_put);
+
 //|     def get(self) -> Optional[Event]:
 //|         """Return the next key transition event. Return ``None`` if no events are pending.
 //|
@@ -132,6 +147,7 @@ MP_PROPERTY_GETTER(keypad_eventqueue_overflowed_obj,
 
 STATIC const mp_rom_map_elem_t keypad_eventqueue_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_clear),      MP_ROM_PTR(&keypad_eventqueue_clear_obj) },
+    { MP_ROM_QSTR(MP_QSTR_put),        MP_ROM_PTR(&keypad_eventqueue_put_obj) },
     { MP_ROM_QSTR(MP_QSTR_get),        MP_ROM_PTR(&keypad_eventqueue_get_obj) },
     { MP_ROM_QSTR(MP_QSTR_get_into),   MP_ROM_PTR(&keypad_eventqueue_get_into_obj) },
     { MP_ROM_QSTR(MP_QSTR_overflowed), MP_ROM_PTR(&keypad_eventqueue_overflowed_obj) },

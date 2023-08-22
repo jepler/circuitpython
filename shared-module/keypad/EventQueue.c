@@ -95,3 +95,7 @@ bool keypad_eventqueue_record(keypad_eventqueue_obj_t *self, mp_uint_t key_numbe
 
     return true;
 }
+
+void common_hal_keypad_eventqueue_put(keypad_eventqueue_obj_t *self, mp_uint_t key_number, bool pressed) {
+    keypad_eventqueue_record(self, key_number, pressed, supervisor_ticks_ms());
+}
