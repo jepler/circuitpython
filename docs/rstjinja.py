@@ -9,6 +9,11 @@ def rstjinja(app, docname, source):
     if app.builder.format not in ("html", "latex"):
         return
 
+    # In the case of an inclusion, docname can be None (https://github.com/sphinx-doc/sphinx/pull/11510) so
+    # avoid an exception just below
+    if docname is None:
+        return
+
     # we only want our one jinja template to run through this func
     if "shared-bindings/support_matrix" not in docname:
         return
