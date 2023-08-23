@@ -26,17 +26,25 @@
 
 #include "shared-bindings/dotclockframebuffer/DotClockFramebuffer.h"
 #include "common-hal/dotclockframebuffer/DotClockFramebuffer.h"
+#include "bindings/espidf/__init__.h"
 #include "shared-bindings/microcontroller/Pin.h"
 #include "py/runtime.h"
-#include "components/esp_rom/include/esp_rom_gpio.h"
-#include "components/hal/include/hal/gpio_hal.h"
 #include "components/driver/include/driver/gpio.h"
 #include "components/driver/include/driver/periph_ctrl.h"
-#include "components/soc/esp32s3/include/soc/lcd_cam_struct.h"
 #include "components/driver/include/esp_private/gdma.h"
+#include "components/esp_rom/include/esp_rom_gpio.h"
+#include "components/hal/esp32s3/include/hal/lcd_ll.h"
+#include "components/hal/include/hal/gpio_hal.h"
+#include "components/soc/esp32s3/include/soc/lcd_cam_struct.h"
 #include "esp_heap_caps.h"
 
+#define LCD_RGB_ISR_IRAM_SAFE (1)
+#define LCD_RGB_INTR_ALLOC_FLAGS     (ESP_INTR_FLAG_IRAM | ESP_INTR_FLAG_INTRDISABLED)
+
 #define common_hal_mcu_pin_number_maybe(x) ((x) ? common_hal_mcu_pin_number((x)) : -1)
+
+static void lcd_default_isr_handler(void *self_in);
+static void lcd_rgb_panel_start_transmission(dotclockframebuffer_framebuffer_obj_t *self);
 
 static void pinmux(int8_t pin, uint8_t signal) {
     esp_rom_gpio_connect_out_signal(pin, signal, false, false);
@@ -64,7 +72,64 @@ void common_hal_dotclockframebuffer_framebuffer_construct(dotclockframebuffer_fr
     int vsync_pulse_width, int vsync_back_porch, int vsync_front_porch, bool vsync_idle_low,
     bool de_idle_high, bool pclk_active_high, bool pclk_idle_high) {
 
-    // LCD_CAM isn't enabled by default -- MUST begin with this:
+    // should be disabled when we start but let's be sure
+    periph_module_disable(PERIPH_LCD_CAM_MODULE);
+
+    // calculate the number of DMA descriptors
+    size_t fb_size_bytes = self->timing.h_res * self->timing.v_res * self->config.data_width / 8;
+
+    self->n_dma_nodes = (fb_size_bytes + DMA_DESCRIPTOR_BUFFER_MAX_SIZE - 1) / DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+    self->dma_nodes = heap_caps_calloc(self->n_dma_nodes, sizeof(dma_descriptor_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+
+    const size_t psram_trans_align = 64;
+    const size_t sram_trans_align = 4;
+    self->fb = heap_caps_aligned_calloc(psram_trans_align, 1, fb_size_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+    // the start of DMA should be prior to the start of LCD engine
+    for (size_t i = 0; i < self->n_dma_nodes - 1; i++) {
+        self->dma_nodes[i].dw0.suc_eof = false;
+        self->dma_nodes[i].dw0.size = DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+        self->dma_nodes[i].dw0.length = DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+        self->dma_nodes[i].dw0.owner = DMA_DESCRIPTOR_BUFFER_OWNER_CPU;
+        self->dma_nodes[i].buffer = &self->fb[i * DMA_DESCRIPTOR_BUFFER_MAX_SIZE];
+        self->dma_nodes[i].next = &self->dma_nodes[i + 1];
+    }
+    self->dma_nodes[self->n_dma_nodes - 1].dw0.suc_eof = true;
+    self->dma_nodes[self->n_dma_nodes - 1].dw0.size = fb_size_bytes % DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+    self->dma_nodes[self->n_dma_nodes - 1].dw0.length = fb_size_bytes % DMA_DESCRIPTOR_BUFFER_MAX_SIZE;
+    self->dma_nodes[self->n_dma_nodes - 1].dw0.owner = DMA_DESCRIPTOR_BUFFER_OWNER_CPU;
+    self->dma_nodes[self->n_dma_nodes - 1].buffer = &self->fb[(self->n_dma_nodes - 1) * DMA_DESCRIPTOR_BUFFER_MAX_SIZE];
+    self->dma_nodes[self->n_dma_nodes - 1].next = NULL;
+    // un-chain last node, rely on isr handler to start next refresh, set length
+    self->dma_nodes[self->n_dma_nodes - 1].dw0.suc_eof = true;
+
+    // give the nodes to the DMA peripheral
+    for (size_t i = 0; i < self->n_dma_nodes; i++) {
+        self->dma_nodes[i].dw0.owner = DMA_DESCRIPTOR_BUFFER_OWNER_DMA;
+    }
+
+    // alloc DMA channel and connect to LCD peripheral
+    gdma_channel_alloc_config_t dma_chan_config = {
+        .direction = GDMA_CHANNEL_DIRECTION_TX,
+    };
+    int ret = gdma_new_channel(&dma_chan_config, &self->dma_channel);
+    if (ret != ESP_OK) {
+        heap_caps_free(self->dma_nodes);
+        heap_caps_free(self->fb);
+        raise_esp_error(ret);
+    }
+    gdma_connect(self->dma_channel, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
+
+    gdma_transfer_ability_t ability = {
+        .psram_trans_align = psram_trans_align,
+        .sram_trans_align = sram_trans_align,
+    };
+    gdma_set_transfer_ability(self->dma_channel, &ability);
+
+    // the start of DMA should be prior to the start of LCD engine
+    lcd_rgb_panel_start_transmission(self);
+
+    // time to start the LCD peripheral
     periph_module_enable(PERIPH_LCD_CAM_MODULE);
     periph_module_reset(PERIPH_LCD_CAM_MODULE);
 
@@ -117,29 +182,33 @@ void common_hal_dotclockframebuffer_framebuffer_construct(dotclockframebuffer_fr
 
     // install interrupt service, (LCD peripheral shares the interrupt source with Camera by different mask)
     const int isr_flags = LCD_RGB_INTR_ALLOC_FLAGS | ESP_INTR_FLAG_SHARED;
-    esp_err_t ret = esp_intr_alloc_intrstatus(ETS_LCD_CAM_INTR_SOURCE, isr_flags,
-        (uint32_t)lcd_ll_get_interrupt_status_reg(LCD_CAM),
-        LCD_LL_EVENT_VSYNC_END, lcd_default_isr_handler, rgb_panel, &rgb_panel->intr);
-    // handle error in ret
+    ret = esp_intr_alloc_intrstatus(ETS_LCD_CAM_INTR_SOURCE, isr_flags,
+        (uint32_t)lcd_ll_get_interrupt_status_reg(&LCD_CAM),
+        LCD_LL_EVENT_VSYNC_END, lcd_default_isr_handler, self, &self->intr);
+    if (ret != ESP_OK) {
+        heap_caps_free(self->dma_nodes);
+        heap_caps_free(self->fb);
+        raise_esp_error(ret);
+    }
 
-    lcd_ll_set_blank_cycles(LCD_CAM, 1, 1); // RGB panel always has a front and back blank (porch region)
-    lcd_ll_set_horizontal_timing(LCD_CAM, self->timings.hsync_pulse_width,
-        self->timings.hsync_back_porch, self->timings.h_res,
-        self->timings.hsync_front_porch);
-    lcd_ll_set_vertical_timing(LCD_CAM, self->timings.vsync_pulse_width,
-        self->timings.vsync_back_porch, self->timings.v_res,
-        self->timings.vsync_front_porch);
+    lcd_ll_set_blank_cycles(&LCD_CAM, 1, 1); // RGB panel always has a front and back blank (porch region)
+    lcd_ll_set_horizontal_timing(&LCD_CAM, self->timing.hsync_pulse_width,
+        self->timing.hsync_back_porch, self->timing.h_res,
+        self->timing.hsync_front_porch);
+    lcd_ll_set_vertical_timing(&LCD_CAM, self->timing.vsync_pulse_width,
+        self->timing.vsync_back_porch, self->timing.v_res,
+        self->timing.vsync_front_porch);
 
     // output hsync even in porch region
-    lcd_ll_enable_output_hsync_in_porch_region(LCD_CAM, true);
+    lcd_ll_enable_output_hsync_in_porch_region(&LCD_CAM, true);
     // generate the hsync at the very beginning of line
-    lcd_ll_set_hsync_position(LCD_CAM, 0);
+    lcd_ll_set_hsync_position(&LCD_CAM, 0);
     // restart flush by hardware has some limitation, instead, the driver will restart the flush in the VSYNC end interrupt by software
-    lcd_ll_enable_auto_next_frame(LCD_CAM, false);
+    lcd_ll_enable_auto_next_frame(&LCD_CAM, false);
     // trigger interrupt on the end of frame
-    lcd_ll_enable_interrupt(LCD_CAM, LCD_LL_EVENT_VSYNC_END, true);
+    lcd_ll_enable_interrupt(&LCD_CAM, LCD_LL_EVENT_VSYNC_END, true);
     // enable intr
-    esp_intr_enable(rgb_panel->intr);
+    esp_intr_enable(self->intr);
 
     self->config.data_width = 16;
     self->config.hsync_gpio_num = common_hal_mcu_pin_number(hsync);
@@ -165,8 +234,6 @@ void common_hal_dotclockframebuffer_framebuffer_construct(dotclockframebuffer_fr
         claim_and_pinmux(blue[i], j, &self->used_pins_mask);
     }
     self->config.disp_gpio_num = -1;
-
-    mp_raise_NotImplementedError(NULL);
 }
 
 
@@ -201,7 +268,8 @@ mp_int_t common_hal_dotclockframebuffer_framebuffer_get_height(dotclockframebuff
 }
 
 mp_int_t common_hal_dotclockframebuffer_framebuffer_get_frequency(dotclockframebuffer_framebuffer_obj_t *self) {
-    return self->frequency;
+    return self->frame_count++;
+    // return self->frequency;
 }
 
 mp_int_t common_hal_dotclockframebuffer_framebuffer_get_refresh_rate(dotclockframebuffer_framebuffer_obj_t *self) {
@@ -211,4 +279,28 @@ mp_int_t common_hal_dotclockframebuffer_framebuffer_get_refresh_rate(dotclockfra
         self->timing.v_res + self->timing.vsync_back_porch + self->timing.vsync_front_porch;
     uint32_t clocks_per_frame = clocks_per_line * lines_per_frame;
     return self->frequency / clocks_per_frame;
+}
+
+IRAM_ATTR static void lcd_rgb_panel_start_transmission(dotclockframebuffer_framebuffer_obj_t *self) {
+    // reset FIFO of DMA and LCD, in case there remains old frame data
+    gdma_reset(self->dma_channel);
+    lcd_ll_stop(&LCD_CAM);
+    lcd_ll_fifo_reset(&LCD_CAM);
+    gdma_start(self->dma_channel, (intptr_t)self->dma_nodes);
+    // delay 1us is sufficient for DMA to pass data to LCD FIFO
+    // in fact, this is only needed when LCD pixel clock is set too high
+    mp_hal_delay_us(1);
+    // start LCD engine
+    lcd_ll_start(&LCD_CAM);
+}
+
+IRAM_ATTR static void lcd_default_isr_handler(void *self_in) {
+    dotclockframebuffer_framebuffer_obj_t *self = self_in;
+
+    uint32_t intr_status = lcd_ll_get_interrupt_status(&LCD_CAM);
+    lcd_ll_clear_interrupt_status(&LCD_CAM, intr_status);
+    if (intr_status & LCD_LL_EVENT_VSYNC_END) {
+        self->frame_count++;
+        lcd_rgb_panel_start_transmission(self);
+    }
 }

@@ -31,6 +31,7 @@
 #include "soc/soc_caps.h"
 #include "esp_private/gdma.h"
 #include "hal/dma_types.h"
+#include "components/esp_hw_support/include/esp_intr_alloc.h"
 
 typedef struct {
     unsigned int pclk_hz;           /*!< Frequency of pixel clock */
@@ -62,7 +63,7 @@ typedef struct {
     int pclk_gpio_num;            /*!< GPIO used for PCLK signal */
     int data_gpio_nums[SOC_LCD_RGB_DATA_WIDTH]; /*!< GPIOs used for data lines */
     int disp_gpio_num; /*!< GPIO used for display control signal, set to -1 if it's not used */
-    void *user_ctx; /*!< User data which would be passed to on_frame_trans_done's user_ctx */
+    // void *user_ctx; /*!< User data which would be passed to on_frame_trans_done's user_ctx */
     struct {
         unsigned int disp_active_low : 1; /*!< If this flag is enabled, a low level of display control signal can turn the screen on; vice versa */
         unsigned int relax_on_idle : 1;   /*!< If this flag is enabled, the host won't refresh the LCD if nothing changed in host's frame buffer (this is useful for LCD with built-in GRAM) */
@@ -80,4 +81,7 @@ typedef struct dotclockframebuffer_framebuffer_obj {
     gdma_channel_handle_t dma_channel;
     size_t n_dma_nodes;
     dma_descriptor_t *dma_nodes;
+    intr_handle_t intr;
+    uint16_t *fb;
+    volatile int32_t frame_count;
 } dotclockframebuffer_framebuffer_obj_t;

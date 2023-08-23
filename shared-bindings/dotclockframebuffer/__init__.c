@@ -48,4 +48,4 @@ const mp_obj_module_t dotclockframebuffer_module = {
     .globals = (mp_obj_dict_t *)&dotclockframebuffer_module_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_dotclockframebuffer, dotclockframebuffer_module, CIRCUITPY_DOTCLOCKFRAMEBUFFER);
+MP_REGISTER_MODULE(MP_QSTR_dotclockframebuffer, dotclockframebuffer_module);
