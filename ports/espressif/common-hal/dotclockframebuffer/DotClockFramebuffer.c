@@ -85,6 +85,7 @@ typedef struct
 #define SAY(fmt, ...) (mp_printf(&mp_plat_print, "%s:%d: [%8u] " fmt "\n", __FILE__, __LINE__, (unsigned int)supervisor_ticks_ms32(),##__VA_ARGS__), mp_hal_delay_ms(100), (void)0)
 #define VAL(fmt, arg) (SAY(#arg "=" fmt, arg))
 
+#include "py/objarray.h"
 #include "shared-bindings/dotclockframebuffer/DotClockFramebuffer.h"
 #include "common-hal/dotclockframebuffer/DotClockFramebuffer.h"
 #include "bindings/espidf/__init__.h"
@@ -223,7 +224,7 @@ void common_hal_dotclockframebuffer_framebuffer_construct(dotclockframebuffer_fr
     self->bufinfo.buf = _rgb_panel->fb;
     HERE();
     self->bufinfo.len = 2 * width * height;
-
+    self->bufinfo.typecode = 'H' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW;
 
     memset(self->bufinfo.buf, 0xaa, width * height);
     HERE();
@@ -248,7 +249,8 @@ void common_hal_dotclockframebuffer_framebuffer_deinit(dotclockframebuffer_frame
     HERE();
     self->used_pins_mask = 0;
     HERE();
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(self->panel_handle));
+    esp_lcd_panel_del(self->panel_handle);
+    HERE();
 }
 
 bool common_hal_dotclockframebuffer_framebuffer_deinitialized(dotclockframebuffer_framebuffer_obj_t *self) {

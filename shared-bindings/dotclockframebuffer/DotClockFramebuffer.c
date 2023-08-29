@@ -300,6 +300,7 @@ STATIC MP_DEFINE_CONST_DICT(dotclockframebuffer_framebuffer_locals_dict, dotcloc
 
 const mp_obj_type_t dotclockframebuffer_framebuffer_type = {
     { &mp_type_type },
+    .flags = MP_TYPE_FLAG_EXTENDED,
     .name = MP_QSTR_DotClockFramebuffer,
     .make_new = dotclockframebuffer_framebuffer_make_new,
     .locals_dict = (mp_obj_dict_t *)&dotclockframebuffer_framebuffer_locals_dict,
