@@ -28,6 +28,12 @@
 
 #include "py/obj.h"
 
+#include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_rgb.h"
+#include "esp_lcd_panel_vendor.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_lcd_panel_interface.h"
+
 #include "soc/soc_caps.h"
 #include "esp_private/gdma.h"
 #include "hal/dma_types.h"
