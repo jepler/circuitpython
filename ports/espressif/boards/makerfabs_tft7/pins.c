@@ -46,14 +46,40 @@ STATIC const mp_rom_map_elem_t tft_table[] = {
     { MP_ROM_QSTR(MP_QSTR_red), MP_ROM_PTR(&tft_r_pins) },
     { MP_ROM_QSTR(MP_QSTR_green), MP_ROM_PTR(&tft_g_pins) },
     { MP_ROM_QSTR(MP_QSTR_blue), MP_ROM_PTR(&tft_b_pins) },
-    { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_INT(9000000) },
 };
 MP_DEFINE_CONST_DICT(tft_dict, tft_table);
+
+#if 0
+Arduino_RPi_DPI_RGBPanel *gfx = new Arduino_RPi_DPI_RGBPanel(
+    bus,
+    800 /* width */, 0 /* hsync_polarity */, 210 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
+    480 /* height */, 0 /* vsync_polarity */, 22 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
+    1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
+#endif
+
+STATIC const mp_rom_map_elem_t timings800_table[] = {
+    { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_INT(16000000) },
+    { MP_ROM_QSTR(MP_QSTR_width), MP_ROM_INT(800) },
+    { MP_ROM_QSTR(MP_QSTR_height), MP_ROM_INT(480) },
+    { MP_ROM_QSTR(MP_QSTR_hsync_pulse_width), MP_ROM_INT(30) },
+    { MP_ROM_QSTR(MP_QSTR_hsync_front_porch), MP_ROM_INT(210) },
+    { MP_ROM_QSTR(MP_QSTR_hsync_back_porch), MP_ROM_INT(16) },
+    { MP_ROM_QSTR(MP_QSTR_hsync_idle_low), MP_ROM_FALSE },
+    { MP_ROM_QSTR(MP_QSTR_vsync_pulse_width), MP_ROM_INT(13) },
+    { MP_ROM_QSTR(MP_QSTR_vsync_front_porch), MP_ROM_INT(22) },
+    { MP_ROM_QSTR(MP_QSTR_vsync_back_porch), MP_ROM_INT(10) },
+    { MP_ROM_QSTR(MP_QSTR_vsync_idle_low), MP_ROM_FALSE },
+    { MP_ROM_QSTR(MP_QSTR_de_active_high), MP_ROM_FALSE },
+    { MP_ROM_QSTR(MP_QSTR_pclk_active_high), MP_ROM_FALSE },
+    { MP_ROM_QSTR(MP_QSTR_pclk_idle_high), MP_ROM_FALSE },
+};
+MP_DEFINE_CONST_DICT(timings800_dict, timings800_table);
 
 STATIC const mp_rom_map_elem_t board_module_globals_table[] = {
     CIRCUITPYTHON_BOARD_DICT_STANDARD_ITEMS
 
     { MP_ROM_QSTR(MP_QSTR_TFT), MP_ROM_PTR(&tft_dict) },
+    { MP_ROM_QSTR(MP_QSTR_TIMINGS800), MP_ROM_PTR(&timings800_dict) },
     { MP_ROM_QSTR(MP_QSTR_BACKLIGHT), MP_ROM_PTR(&pin_GPIO10) },
 
     { MP_ROM_QSTR(MP_QSTR_I2S_SCK), MP_ROM_PTR(&pin_GPIO20) },
