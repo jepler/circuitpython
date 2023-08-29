@@ -104,7 +104,7 @@ STATIC mp_obj_t dotclockframebuffer_framebuffer_make_new(const mp_obj_type_t *ty
            ARG_frequency, ARG_width, ARG_height,
            ARG_hsync_pulse_width, ARG_hsync_back_porch, ARG_hsync_front_porch, ARG_hsync_idle_low,
            ARG_vsync_pulse_width, ARG_vsync_back_porch, ARG_vsync_front_porch, ARG_vsync_idle_low,
-           ARG_de_idle_high, ARG_pclk_active_high, ARG_pclk_idle_high,};
+           ARG_de_idle_high, ARG_pclk_active_high, ARG_pclk_idle_high, };
 
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_de, MP_ARG_OBJ | MP_ARG_KW_ONLY | MP_ARG_REQUIRED, {.u_obj = mp_const_none } },
@@ -149,11 +149,13 @@ STATIC mp_obj_t dotclockframebuffer_framebuffer_make_new(const mp_obj_type_t *ty
     validate_list_is_free_pins(MP_QSTR_green, green_pins, (mp_int_t)MP_ARRAY_SIZE(green_pins), args[ARG_green].u_obj, &num_green);
     validate_list_is_free_pins(MP_QSTR_blue, blue_pins, (mp_int_t)MP_ARRAY_SIZE(blue_pins), args[ARG_blue].u_obj, &num_blue);
 
+    mp_printf(&mp_plat_print, "#red=%d #green=%d #blue=%d\n", num_red, num_green, num_blue);
+
     dotclockframebuffer_framebuffer_obj_t *self = &allocate_display_bus_or_raise()->dotclock;
     self->base.type = &dotclockframebuffer_framebuffer_type;
 
     common_hal_dotclockframebuffer_framebuffer_construct(
-        self, de, vsync, hsync, dclk, red_pins, num_red, blue_pins, num_blue, green_pins, num_green,
+        self, de, vsync, hsync, dclk, red_pins, num_red, green_pins, num_green, blue_pins, num_blue,
         args[ARG_frequency].u_int, args[ARG_width].u_int, args[ARG_height].u_int,
         args[ARG_hsync_pulse_width].u_int, args[ARG_hsync_back_porch].u_int, args[ARG_hsync_front_porch].u_int, args[ARG_hsync_idle_low].u_bool,
         args[ARG_vsync_pulse_width].u_int, args[ARG_vsync_back_porch].u_int, args[ARG_vsync_front_porch].u_int, args[ARG_vsync_idle_low].u_bool,
