@@ -28,11 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_BINDINGS_DIGITALIO_DRIVEMODE_H
 
 #include "py/obj.h"
-
-typedef enum {
-    DRIVE_MODE_PUSH_PULL,
-    DRIVE_MODE_OPEN_DRAIN
-} digitalio_drive_mode_t;
+#include "shared-bindings/AbstractPin.h"
 
 typedef struct {
     mp_obj_base_t base;

@@ -28,11 +28,8 @@
 #define MICROPY_INCLUDED_SHARED_BINDINGS_DIGITALIO_DIRECTION_H
 
 #include "py/obj.h"
+#include "shared-bindings/AbstractPin.h"
 
-typedef enum {
-    DIRECTION_INPUT,
-    DIRECTION_OUTPUT
-} digitalio_direction_t;
 typedef struct {
     mp_obj_base_t base;
 } digitalio_direction_obj_t;

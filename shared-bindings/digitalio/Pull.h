@@ -28,12 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_BINDINGS_DIGITALIO_PULL_H
 
 #include "py/obj.h"
-
-typedef enum _digitalio_pull_t {
-    PULL_NONE,
-    PULL_UP,
-    PULL_DOWN
-} digitalio_pull_t;
+#include "shared-bindings/AbstractPin.h"
 
 extern const mp_obj_type_t digitalio_pull_type;
 
