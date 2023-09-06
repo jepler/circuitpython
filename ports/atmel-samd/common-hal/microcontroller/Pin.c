@@ -213,3 +213,26 @@ mcu_pin_function_t *mcu_find_pin_function(mcu_pin_function_t *table, const mcu_p
     }
     mp_raise_ValueError_varg(translate("Invalid %q pin"), name);
 }
+
+volatile uint32_t *common_hal_mcu_pin_get_reg(const mcu_pin_obj_t *self, digitalinout_reg_op_t op, uint32_t *mask) {
+    const uint8_t pin = self->number;
+    int port = GPIO_PORT(pin);
+
+    *mask = 1u << GPIO_PIN(pin);
+
+
+    switch (op) {
+        case DIGITALINOUT_REG_READ:
+            return (volatile uint32_t *)&PORT->Group[port].IN.reg;
+        case DIGITALINOUT_REG_WRITE:
+            return &PORT->Group[port].OUT.reg;
+        case DIGITALINOUT_REG_SET:
+            return &PORT->Group[port].OUTSET.reg;
+        case DIGITALINOUT_REG_RESET:
+            return &PORT->Group[port].OUTCLR.reg;
+        case DIGITALINOUT_REG_TOGGLE:
+            return &PORT->Group[port].OUTTGL.reg;
+        default:
+            return NULL;
+    }
+}

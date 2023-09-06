@@ -140,3 +140,24 @@ void common_hal_mcu_pin_claim(const mcu_pin_obj_t *pin) {
 void common_hal_mcu_pin_reset_number(uint8_t pin_no) {
     reset_pin_number(pin_no);
 }
+
+volatile uint32_t *common_hal_mcu_pin_get_reg(const mcu_pin_obj_t *self, digitalinout_reg_op_t op, uint32_t *mask) {
+    const uint8_t pin = self->number;
+
+    *mask = 1u << pin;
+
+    switch (op) {
+        case DIGITALINOUT_REG_READ:
+            return (volatile uint32_t *)&sio_hw->gpio_in;
+        case DIGITALINOUT_REG_WRITE:
+            return &sio_hw->gpio_out;
+        case DIGITALINOUT_REG_SET:
+            return &sio_hw->gpio_set;
+        case DIGITALINOUT_REG_RESET:
+            return &sio_hw->gpio_clr;
+        case DIGITALINOUT_REG_TOGGLE:
+            return &sio_hw->gpio_togl;
+        default:
+            return NULL;
+    }
+}

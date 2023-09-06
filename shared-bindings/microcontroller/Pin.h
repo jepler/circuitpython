@@ -30,6 +30,14 @@
 #include "common-hal/microcontroller/Pin.h"
 #include "py/obj.h"
 
+typedef enum {
+    DIGITALINOUT_REG_READ,
+    DIGITALINOUT_REG_WRITE,
+    DIGITALINOUT_REG_SET,
+    DIGITALINOUT_REG_RESET,
+    DIGITALINOUT_REG_TOGGLE,
+} digitalinout_reg_op_t;
+
 // Type object used in Python. Should be shared between ports.
 extern const mp_obj_type_t mcu_pin_type;
 
@@ -57,6 +65,8 @@ void common_hal_mcu_pin_claim_number(uint8_t pin_no);
 void common_hal_mcu_pin_reset_number(uint8_t pin_no);
 
 void shared_bindings_microcontroller_pin_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind);
+
+volatile uint32_t *common_hal_mcu_pin_get_reg(const mcu_pin_obj_t *self, digitalinout_reg_op_t op, uint32_t *mask);
 
 #define COMMON_HAL_MCU_NO_PIN ((uint8_t)0xff)
 

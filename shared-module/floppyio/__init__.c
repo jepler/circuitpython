@@ -29,7 +29,7 @@
 #include "shared-bindings/time/__init__.h"
 #include "shared-bindings/floppyio/__init__.h"
 #include "common-hal/floppyio/__init__.h"
-#include "shared-bindings/digitalio/DigitalInOut.h"
+#include "shared-bindings/microcontroller/Pin.h"
 
 #ifndef T2_5
 #define T2_5 (FLOPPYIO_SAMPLERATE * 5 / 2 / 1000000)
@@ -44,10 +44,10 @@
 __attribute__((optimize("O3")))
 int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index) {
     uint32_t index_mask;
-    volatile uint32_t *index_port = common_hal_digitalio_digitalinout_get_reg(index, DIGITALINOUT_REG_READ, &index_mask);
+    volatile uint32_t *index_port = common_hal_mcu_pin_get_reg(index->pin, DIGITALINOUT_REG_READ, &index_mask);
 
     uint32_t data_mask;
-    volatile uint32_t *data_port = common_hal_digitalio_digitalinout_get_reg(data, DIGITALINOUT_REG_READ, &data_mask);
+    volatile uint32_t *data_port = common_hal_mcu_pin_get_reg(data->pin, DIGITALINOUT_REG_READ, &data_mask);
 
 #undef READ_INDEX
 #undef READ_DATA
@@ -98,8 +98,8 @@ int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalin
 
 int common_hal_floppyio_mfm_readinto(void *buf, size_t n_sectors, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index) {
     mfm_io_t io;
-    io.index_port = common_hal_digitalio_digitalinout_get_reg(index, DIGITALINOUT_REG_READ, &io.index_mask);
-    io.data_port = common_hal_digitalio_digitalinout_get_reg(data, DIGITALINOUT_REG_READ, &io.data_mask);
+    io.index_port = common_hal_mcu_pin_get_reg(index->pin, DIGITALINOUT_REG_READ, &io.index_mask);
+    io.data_port = common_hal_mcu_pin_get_reg(data->pin, DIGITALINOUT_REG_READ, &io.data_mask);
 
     common_hal_mcu_disable_interrupts();
     uint8_t validity[n_sectors];
