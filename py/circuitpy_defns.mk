@@ -545,7 +545,8 @@ SRC_BINDINGS_ENUMS += \
 endif
 
 SRC_BINDINGS_ENUMS += \
-	util.c
+	util.c \
+	AbstractPin.c
 
 SRC_SHARED_MODULE_ALL = \
 	_bleio/Address.c \
