@@ -105,7 +105,7 @@ void common_hal_displayio_epaperdisplay_construct(displayio_epaperdisplay_obj_t 
     self->two_byte_sequence_length = two_byte_sequence_length;
     if (busy_pin != NULL) {
         self->busy.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->busy, busy_pin);
+        common_hal_digitalio_digitalinout_construct(&self->busy, MP_OBJ_FROM_PTR(busy_pin));
         common_hal_never_reset_pin(busy_pin);
     }
 

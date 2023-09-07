@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_SHARED_MODULE_BITBANGIO_I2C_H
 #define MICROPY_INCLUDED_SHARED_MODULE_BITBANGIO_I2C_H
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 #include "py/obj.h"
 

@@ -54,13 +54,13 @@ const uint16_t neopixel_program[] = {
     0xa442
 };
 
-void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout, uint8_t *pixels, uint32_t num_bytes) {
+void common_hal_neopixel_write(const mcu_pin_obj_t *pin, uint8_t *pixels, uint32_t num_bytes) {
     // Set everything up.
     rp2pio_statemachine_obj_t state_machine;
 
     // TODO: Cache the state machine after we create it once. We'll need a way to
     // change the pins then though.
-    uint32_t pins_we_use = 1 << digitalinout->pin->number;
+    uint32_t pins_we_use = 1 << pin->number;
     bool ok = rp2pio_statemachine_construct(&state_machine,
         neopixel_program, sizeof(neopixel_program) / sizeof(neopixel_program[0]),
         12800000, // 12.8MHz, to get appropriate sub-bit times in PIO program.
@@ -69,7 +69,7 @@ void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout,
         NULL, 1, // in
         0, 0, // in pulls
         NULL, 1, // set
-        digitalinout->pin, 1, // sideset
+        pin, 1, // sideset
         0, pins_we_use, // initial pin state
         NULL, // jump pin
         pins_we_use, true, false,
@@ -98,8 +98,9 @@ void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *digitalinout,
     rp2pio_statemachine_deinit(&state_machine, true);
 
     // Reset the pin and release it from the PIO
-    gpio_init(digitalinout->pin->number);
-    common_hal_digitalio_digitalinout_switch_to_output((digitalio_digitalinout_obj_t *)digitalinout, false, DRIVE_MODE_PUSH_PULL);
+    gpio_init(pin->number);
+    common_hal_mcu_pin_switch_to_output(pin, DRIVE_MODE_PUSH_PULL);
+    common_hal_mcu_pin_set_value(pin, false);
 
     // Update the next start to +2 ticks. This ensures we give it at least 300us.
     next_start_raw_ticks = port_get_raw_ticks(NULL) + 2;

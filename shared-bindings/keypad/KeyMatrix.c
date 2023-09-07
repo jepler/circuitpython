@@ -85,6 +85,15 @@
 //|         """
 //|         ...
 
+STATIC void validate_no_duplicates(mp_set_t *seen, mp_obj_t pins[], size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        if (mp_set_lookup(seen, pins[i], MP_MAP_LOOKUP) != MP_OBJ_NULL) {
+            mp_raise_TypeError_varg(translate("Duplicate pin %q"), abstract_pin_get_name(pins[i]));
+        }
+        mp_set_lookup(seen, pins[i], MP_MAP_LOOKUP_ADD_IF_NOT_FOUND);
+    }
+}
+
 STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if CIRCUITPY_KEYPAD_KEYMATRIX
     keypad_keymatrix_obj_t *self = mp_obj_malloc(keypad_keymatrix_obj_t, &keypad_keymatrix_type);
@@ -99,35 +108,20 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_obj_t row_pins = args[ARG_row_pins].u_obj;
-    // mp_obj_len() will be >= 0.
-    const size_t num_row_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(row_pins));
-
-    mp_obj_t column_pins = args[ARG_column_pins].u_obj;
-    const size_t num_column_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(column_pins));
-
     const mp_float_t interval =
         mp_arg_validate_obj_float_non_negative(args[ARG_interval].u_obj, 0.020f, MP_QSTR_interval);
     const size_t max_events = (size_t)mp_arg_validate_int_min(args[ARG_max_events].u_int, 1, MP_QSTR_max_events);
 
-    const mcu_pin_obj_t *row_pins_array[num_row_pins];
-    const mcu_pin_obj_t *column_pins_array[num_column_pins];
+    mp_obj_t *column_pins, *row_pins;
+    size_t num_row_pins = mp_arg_validate_list_is_free_abstract_pins(MP_QSTR_row_pins, args[ARG_row_pins].u_obj, &row_pins);
+    size_t num_column_pins = mp_arg_validate_list_is_free_abstract_pins(MP_QSTR_column_pins, args[ARG_column_pins].u_obj, &column_pins);
 
-    validate_no_duplicate_pins_2(row_pins, column_pins, MP_QSTR_row_pins, MP_QSTR_column_pins);
+    mp_set_t seen;
+    mp_set_init(&seen, num_row_pins + num_column_pins);
+    validate_no_duplicates(&seen, row_pins, num_row_pins);
+    validate_no_duplicates(&seen, column_pins, num_column_pins);
 
-    for (size_t row = 0; row < num_row_pins; row++) {
-        const mcu_pin_obj_t *pin =
-            validate_obj_is_free_pin(mp_obj_subscr(row_pins, MP_OBJ_NEW_SMALL_INT(row), MP_OBJ_SENTINEL), MP_QSTR_pin);
-        row_pins_array[row] = pin;
-    }
-
-    for (size_t column = 0; column < num_column_pins; column++) {
-        const mcu_pin_obj_t *pin =
-            validate_obj_is_free_pin(mp_obj_subscr(column_pins, MP_OBJ_NEW_SMALL_INT(column), MP_OBJ_SENTINEL), MP_QSTR_pin);
-        column_pins_array[column] = pin;
-    }
-
-    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins_array, num_column_pins, column_pins_array, args[ARG_columns_to_anodes].u_bool, interval, max_events);
+    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins, num_column_pins, column_pins, args[ARG_columns_to_anodes].u_bool, interval, max_events);
     return MP_OBJ_FROM_PTR(self);
     #else
     mp_raise_NotImplementedError_varg(translate("%q"), MP_QSTR_KeyMatrix);

@@ -433,8 +433,6 @@ SRC_COMMON_HAL_ALL = \
 	canio/__init__.c \
 	countio/Counter.c \
 	countio/__init__.c \
-	digitalio/DigitalInOut.c \
-	digitalio/__init__.c \
 	dualbank/__init__.c \
 	frequencyio/FrequencyIn.c \
 	frequencyio/__init__.c \
@@ -586,6 +584,7 @@ SRC_SHARED_MODULE_ALL = \
 	canio/Match.c \
 	canio/Message.c \
 	canio/RemoteTransmissionRequest.c \
+	digitalio/DigitalInOut.c \
 	displayio/Bitmap.c \
 	displayio/ColorConverter.c \
 	displayio/Display.c \

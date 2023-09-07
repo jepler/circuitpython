@@ -73,7 +73,7 @@ void common_hal_touchio_touchin_construct(touchio_touchin_obj_t *self, const mcu
     common_hal_mcu_pin_claim(pin);
     self->digitalinout = mp_obj_malloc(digitalio_digitalinout_obj_t, &digitalio_digitalinout_type);
 
-    common_hal_digitalio_digitalinout_construct(self->digitalinout, pin);
+    common_hal_digitalio_digitalinout_construct(self->digitalinout, MP_OBJ_FROM_PTR(pin));
 
     uint16_t raw_reading = get_raw_reading(self);
     if (raw_reading == TIMEOUT_TICKS) {

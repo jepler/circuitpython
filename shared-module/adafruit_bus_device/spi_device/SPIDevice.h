@@ -29,7 +29,7 @@
 
 #include "py/obj.h"
 #include "common-hal/busio/SPI.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 typedef struct {
     mp_obj_base_t base;

@@ -34,7 +34,7 @@
 void common_hal_onewireio_onewire_construct(onewireio_onewire_obj_t *self,
     const mcu_pin_obj_t *pin) {
     self->pin.base.type = &digitalio_digitalinout_type;
-    common_hal_digitalio_digitalinout_construct(&self->pin, pin);
+    common_hal_digitalio_digitalinout_construct(&self->pin, MP_OBJ_FROM_PTR(pin));
 }
 
 bool common_hal_onewireio_onewire_deinited(onewireio_onewire_obj_t *self) {

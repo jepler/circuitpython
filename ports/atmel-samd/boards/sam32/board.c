@@ -30,7 +30,7 @@
 #include "supervisor/board.h"
 #include "py/mpconfig.h"
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "shared-bindings/neopixel_write/__init__.h"
 

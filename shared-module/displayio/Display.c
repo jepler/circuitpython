@@ -116,7 +116,7 @@ void common_hal_displayio_display_construct(displayio_display_obj_t *self,
         pwmout_result_t result = common_hal_pwmio_pwmout_construct(&self->backlight_pwm, backlight_pin, 0, backlight_pwm_frequency, false);
         if (result != PWMOUT_OK) {
             self->backlight_inout.base.type = &digitalio_digitalinout_type;
-            common_hal_digitalio_digitalinout_construct(&self->backlight_inout, backlight_pin);
+            common_hal_digitalio_digitalinout_construct(&self->backlight_inout, MP_OBJ_FROM_PTR(backlight_pin));
             common_hal_never_reset_pin(backlight_pin);
         } else {
             self->backlight_pwm.base.type = &pwmio_pwmout_type;

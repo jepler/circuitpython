@@ -161,3 +161,73 @@ volatile uint32_t *common_hal_mcu_pin_get_reg(const mcu_pin_obj_t *self, digital
             return NULL;
     }
 }
+
+static uint32_t is_open_drain;
+#define SET_OPEN_DRAIN(i) (is_open_drain |= (1u << i))
+#define CLEAR_OPEN_DRAIN(i) (is_open_drain &= ~(1u << i))
+#define IS_OPEN_DRAIN(i) (is_open_drain & (1u << i))
+
+static uint32_t is_input;
+#define SET_INPUT(i) (is_input |= (1u << i))
+#define CLEAR_INPUT(i) (is_input &= ~(1u << i))
+#define IS_INPUT(i) (is_input & (1u << i))
+#define IS_OUTPUT(i) (!IS_INPUT(i))
+
+void common_hal_mcu_pin_set_value(const mcu_pin_obj_t *self, bool value) {
+    const uint8_t number = self->number;
+    if (IS_OPEN_DRAIN(number) && value) {
+        // If true and open-drain, set the direction -before- setting
+        // the self value, to to avoid a high glitch on the self before
+        // switching from output to input for open-drain.
+        gpio_set_dir(number, GPIO_IN);
+        gpio_put(number, value);
+    } else {
+        // Otherwise set the direction -after- setting the self value,
+        // to avoid a glitch which might occur if the old value was
+        // different and the self was previously set to input.
+        gpio_put(number, value);
+        gpio_set_dir(number, GPIO_OUT);
+    }
+}
+
+bool common_hal_mcu_pin_get_value(const mcu_pin_obj_t *self) {
+    return gpio_get(self->number);
+}
+
+digitalio_pull_t common_hal_mcu_pin_get_pull(const mcu_pin_obj_t *self) {
+    uint32_t number = self->number;
+    if (IS_INPUT(number)) {
+        mp_raise_AttributeError(translate("Cannot get pull while in output mode"));
+    }
+    if (gpio_is_pulled_up(number)) {
+        return PULL_UP;
+    }
+    if (gpio_is_pulled_down(number)) {
+        return PULL_DOWN;
+    }
+    return PULL_NONE;
+}
+digitalio_drive_mode_t common_hal_mcu_pin_get_drive_mode(const mcu_pin_obj_t *self) {
+    return IS_OPEN_DRAIN(self->number) ? DRIVE_MODE_OPEN_DRAIN : DRIVE_MODE_PUSH_PULL;
+}
+digitalinout_result_t common_hal_mcu_pin_switch_to_input(const mcu_pin_obj_t *self, digitalio_pull_t pull) {
+    uint32_t number = self->number;
+    gpio_set_pulls(number, pull == PULL_UP, pull == PULL_DOWN);
+    gpio_set_dir(number, GPIO_IN);
+    return DIGITALINOUT_OK;
+}
+
+digitalinout_result_t common_hal_mcu_pin_switch_to_output(const mcu_pin_obj_t *self, digitalio_drive_mode_t drive_mode) {
+    uint32_t number = self->number;
+    gpio_disable_pulls(number);
+    // Turn on "strong" self driving (more current available).
+    hw_write_masked(&padsbank0_hw->io[number],
+        PADS_BANK0_GPIO0_DRIVE_VALUE_12MA << PADS_BANK0_GPIO0_DRIVE_LSB,
+            PADS_BANK0_GPIO0_DRIVE_BITS);
+    if (drive_mode == DRIVE_MODE_OPEN_DRAIN) {
+        SET_OPEN_DRAIN(number);
+    } else {
+        CLEAR_OPEN_DRAIN(number);
+    }
+    return DIGITALINOUT_OK;
+}

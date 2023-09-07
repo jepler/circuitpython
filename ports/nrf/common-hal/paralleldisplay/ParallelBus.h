@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_NRF_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 #define MICROPY_INCLUDED_NRF_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 typedef struct {
     mp_obj_base_t base;

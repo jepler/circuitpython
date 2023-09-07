@@ -191,9 +191,7 @@ void status_led_init() {
     }
 
     #elif defined(MICROPY_HW_LED_STATUS)
-    common_hal_digitalio_digitalinout_construct(&single_color_led, MICROPY_HW_LED_STATUS);
-    common_hal_digitalio_digitalinout_switch_to_output(
-        &single_color_led, MICROPY_HW_LED_STATUS_INVERTED == 0, DRIVE_MODE_PUSH_PULL);
+    abstract_pin_switch_to_output(MP_OBJ_FROM_PTR(MICROPY_HW_LED_STATUS), MICROPY_HW_LED_STATUS_INVERTED == 0, DRIVE_MODE_PUSH_PULL);
     #endif
 
     #if CIRCUITPY_DIGITALIO && CIRCUITPY_STATUS_LED

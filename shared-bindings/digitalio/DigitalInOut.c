@@ -68,10 +68,6 @@ STATIC void check_result(digitalinout_result_t result) {
     }
 }
 
-MP_WEAK const mcu_pin_obj_t *common_hal_digitalio_validate_pin(mp_obj_t obj) {
-    return validate_obj_is_free_pin(obj, MP_QSTR_pin);
-}
-
 //| class DigitalInOut:
 //|     """Digital input and output
 //|
@@ -92,7 +88,7 @@ STATIC mp_obj_t digitalio_digitalinout_make_new(const mp_obj_type_t *type,
 
     digitalio_digitalinout_obj_t *self = mp_obj_malloc(digitalio_digitalinout_obj_t, &digitalio_digitalinout_type);
 
-    const mcu_pin_obj_t *pin = common_hal_digitalio_validate_pin(args[0]);
+    mp_obj_t pin = mp_arg_validate_free_abstract_pin(args[0], MP_QSTR_pin);
     common_hal_digitalio_digitalinout_construct(self, pin);
 
     return MP_OBJ_FROM_PTR(self);

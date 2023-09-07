@@ -44,7 +44,7 @@ static keypad_scanner_funcs_t shiftregisterkeys_funcs = {
     .get_key_count = shiftregisterkeys_get_key_count,
 };
 
-void common_hal_keypad_shiftregisterkeys_construct(keypad_shiftregisterkeys_obj_t *self, const mcu_pin_obj_t *clock_pin, mp_uint_t num_data_pins, const mcu_pin_obj_t *data_pins[], const mcu_pin_obj_t *latch_pin, bool value_to_latch, mp_uint_t num_key_counts, size_t key_counts[], bool value_when_pressed, mp_float_t interval, size_t max_events) {
+void common_hal_keypad_shiftregisterkeys_construct(keypad_shiftregisterkeys_obj_t *self, mp_obj_t clock_pin, size_t num_data_pins, const mp_obj_t data_pins[], mp_obj_t latch_pin, bool value_to_latch, size_t num_key_counts, size_t key_counts[], bool value_when_pressed, mp_float_t interval, size_t max_events) {
 
     digitalio_digitalinout_obj_t *clock =
         mp_obj_malloc(digitalio_digitalinout_obj_t, &digitalio_digitalinout_type);

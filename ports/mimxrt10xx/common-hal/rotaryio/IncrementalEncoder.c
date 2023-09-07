@@ -25,7 +25,7 @@
  * THE SOFTWARE.
  */
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "common-hal/rotaryio/IncrementalEncoder.h"
 #include "shared-module/rotaryio/IncrementalEncoder.h"
 #include "shared-bindings/microcontroller/Pin.h"

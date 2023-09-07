@@ -101,24 +101,14 @@ STATIC mp_obj_t keypad_keys_make_new(const mp_obj_type_t *type, size_t n_args, s
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_obj_t pins = args[ARG_pins].u_obj;
-    validate_no_duplicate_pins(pins, MP_QSTR_row_pins);
-    // mp_obj_len() will be >= 0.
-    const size_t num_pins = (size_t)MP_OBJ_SMALL_INT_VALUE(mp_obj_len(pins));
-
+    mp_obj_t *pins;
+    const size_t num_pins = mp_arg_validate_list_is_free_abstract_pins(MP_QSTR_pins, args[ARG_pins].u_obj, &pins);
     const bool value_when_pressed = args[ARG_value_when_pressed].u_bool;
     const mp_float_t interval =
         mp_arg_validate_obj_float_non_negative(args[ARG_interval].u_obj, 0.020f, MP_QSTR_interval);
     const size_t max_events = (size_t)mp_arg_validate_int_min(args[ARG_max_events].u_int, 1, MP_QSTR_max_events);
 
-    const mcu_pin_obj_t *pins_array[num_pins];
-
-    for (mp_uint_t i = 0; i < num_pins; i++) {
-        pins_array[i] =
-            validate_obj_is_free_pin(mp_obj_subscr(pins, MP_OBJ_NEW_SMALL_INT(i), MP_OBJ_SENTINEL), MP_QSTR_pin);
-    }
-
-    common_hal_keypad_keys_construct(self, num_pins, pins_array, value_when_pressed, args[ARG_pull].u_bool, interval, max_events);
+    common_hal_keypad_keys_construct(self, num_pins, pins, value_when_pressed, args[ARG_pull].u_bool, interval, max_events);
 
     return MP_OBJ_FROM_PTR(self);
     #else

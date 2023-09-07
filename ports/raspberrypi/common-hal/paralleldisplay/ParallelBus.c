@@ -60,17 +60,17 @@ void common_hal_paralleldisplay_parallelbus_construct(paralleldisplay_parallelbu
     }
 
     self->command.base.type = &digitalio_digitalinout_type;
-    common_hal_digitalio_digitalinout_construct(&self->command, command);
+    common_hal_digitalio_digitalinout_construct(&self->command, MP_OBJ_FROM_PTR(command));
     common_hal_digitalio_digitalinout_switch_to_output(&self->command, true, DRIVE_MODE_PUSH_PULL);
 
     self->chip_select.base.type = &digitalio_digitalinout_type;
-    common_hal_digitalio_digitalinout_construct(&self->chip_select, chip_select);
+    common_hal_digitalio_digitalinout_construct(&self->chip_select, MP_OBJ_FROM_PTR(chip_select));
     common_hal_digitalio_digitalinout_switch_to_output(&self->chip_select, true, DRIVE_MODE_PUSH_PULL);
 
     self->read.base.type = &mp_type_NoneType;
     if (read != NULL) {
         self->read.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->read, read);
+        common_hal_digitalio_digitalinout_construct(&self->read, MP_OBJ_FROM_PTR(read));
         common_hal_digitalio_digitalinout_switch_to_output(&self->read, true, DRIVE_MODE_PUSH_PULL);
         never_reset_pin_number(read->number);
     }
@@ -81,7 +81,7 @@ void common_hal_paralleldisplay_parallelbus_construct(paralleldisplay_parallelbu
     self->reset.base.type = &mp_type_NoneType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->reset, reset);
+        common_hal_digitalio_digitalinout_construct(&self->reset, MP_OBJ_FROM_PTR(reset));
         common_hal_digitalio_digitalinout_switch_to_output(&self->reset, true, DRIVE_MODE_PUSH_PULL);
         never_reset_pin_number(reset->number);
         common_hal_paralleldisplay_parallelbus_reset(self);
@@ -124,14 +124,14 @@ void common_hal_paralleldisplay_parallelbus_deinit(paralleldisplay_parallelbus_o
         reset_pin_number(self->data0_pin + i);
     }
 
-    reset_pin_number(self->command.pin->number);
-    reset_pin_number(self->chip_select.pin->number);
+    common_hal_digitalio_digitalinout_deinit(&self->command);
+    common_hal_digitalio_digitalinout_deinit(&self->chip_select);
     reset_pin_number(self->write);
     if (self->read.base.type != &mp_type_NoneType) {
-        reset_pin_number(self->read.pin->number);
+        common_hal_digitalio_digitalinout_deinit(&self->read);
     }
     if (self->reset.base.type != &mp_type_NoneType) {
-        reset_pin_number(self->reset.pin->number);
+        common_hal_digitalio_digitalinout_deinit(&self->reset);
     }
 }
 

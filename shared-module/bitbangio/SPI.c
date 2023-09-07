@@ -37,15 +37,15 @@
 #define MAX_BAUDRATE (common_hal_mcu_get_clock_frequency() / 48)
 
 void shared_module_bitbangio_spi_construct(bitbangio_spi_obj_t *self,
-    const mcu_pin_obj_t *clock, const mcu_pin_obj_t *mosi,
-    const mcu_pin_obj_t *miso) {
+    mp_obj_t clock, mp_obj_t mosi,
+    mp_obj_t miso) {
     digitalinout_result_t result = common_hal_digitalio_digitalinout_construct(&self->clock, clock);
     if (result != DIGITALINOUT_OK) {
         mp_raise_ValueError_varg(translate("%q init failed"), MP_QSTR_clock);
     }
     common_hal_digitalio_digitalinout_switch_to_output(&self->clock, self->polarity == 1, DRIVE_MODE_PUSH_PULL);
 
-    if (mosi != NULL) {
+    if (mosi != MP_OBJ_NULL) {
         result = common_hal_digitalio_digitalinout_construct(&self->mosi, mosi);
         if (result != DIGITALINOUT_OK) {
             common_hal_digitalio_digitalinout_deinit(&self->clock);
@@ -55,7 +55,7 @@ void shared_module_bitbangio_spi_construct(bitbangio_spi_obj_t *self,
         common_hal_digitalio_digitalinout_switch_to_output(&self->mosi, false, DRIVE_MODE_PUSH_PULL);
     }
 
-    if (miso != NULL) {
+    if (miso != MP_OBJ_NULL) {
         // Starts out as input by default, no need to change.
         result = common_hal_digitalio_digitalinout_construct(&self->miso, miso);
         if (result != DIGITALINOUT_OK) {

@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 int common_hal_floppyio_flux_readinto(void *buf, size_t len, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index);
 int common_hal_floppyio_mfm_readinto(void *buf, size_t n_sector, digitalio_digitalinout_obj_t *data, digitalio_digitalinout_obj_t *index);

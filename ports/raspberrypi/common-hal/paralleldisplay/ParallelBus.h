@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_RASPBERRYPI_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 #define MICROPY_INCLUDED_RASPBERRYPI_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "bindings/rp2pio/StateMachine.h"
 #include "common-hal/rp2pio/StateMachine.h"
 

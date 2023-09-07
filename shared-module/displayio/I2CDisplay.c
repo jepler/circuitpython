@@ -45,7 +45,7 @@ void common_hal_displayio_i2cdisplay_construct(displayio_i2cdisplay_obj_t *self,
     self->reset.base.type = &mp_type_NoneType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->reset, reset);
+        common_hal_digitalio_digitalinout_construct(&self->reset, MP_OBJ_FROM_PTR(reset));
         common_hal_digitalio_digitalinout_switch_to_output(&self->reset, true, DRIVE_MODE_PUSH_PULL);
         common_hal_never_reset_pin(reset);
         common_hal_displayio_i2cdisplay_reset(self);

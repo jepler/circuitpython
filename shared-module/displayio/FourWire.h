@@ -28,7 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_FOURWIRE_H
 
 #include "common-hal/busio/SPI.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "shared-module/displayio/Group.h"
 
 typedef struct {

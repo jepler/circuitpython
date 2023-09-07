@@ -43,7 +43,7 @@
 #include "bindings/espulp/ULPAlarm.h"
 #endif
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 #include "supervisor/port.h"
 #include "supervisor/shared/workflow.h"

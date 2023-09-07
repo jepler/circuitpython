@@ -51,20 +51,20 @@ void common_hal_displayio_fourwire_construct(displayio_fourwire_obj_t *self,
     self->polarity = polarity;
     self->phase = phase;
 
-    common_hal_digitalio_digitalinout_construct(&self->chip_select, chip_select);
+    common_hal_digitalio_digitalinout_construct(&self->chip_select, MP_OBJ_FROM_PTR(chip_select));
     common_hal_digitalio_digitalinout_switch_to_output(&self->chip_select, true, DRIVE_MODE_PUSH_PULL);
 
     self->command.base.type = &mp_type_NoneType;
     if (command != NULL) {
         self->command.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->command, command);
+        common_hal_digitalio_digitalinout_construct(&self->command, MP_OBJ_FROM_PTR(command));
         common_hal_digitalio_digitalinout_switch_to_output(&self->command, true, DRIVE_MODE_PUSH_PULL);
         common_hal_never_reset_pin(command);
     }
     self->reset.base.type = &mp_type_NoneType;
     if (reset != NULL) {
         self->reset.base.type = &digitalio_digitalinout_type;
-        common_hal_digitalio_digitalinout_construct(&self->reset, reset);
+        common_hal_digitalio_digitalinout_construct(&self->reset, MP_OBJ_FROM_PTR(reset));
         common_hal_digitalio_digitalinout_switch_to_output(&self->reset, true, DRIVE_MODE_PUSH_PULL);
         common_hal_never_reset_pin(reset);
         common_hal_displayio_fourwire_reset(self);

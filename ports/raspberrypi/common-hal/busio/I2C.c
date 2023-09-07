@@ -113,7 +113,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
     //
     // Do not use the default supplied clock stretching timeout here.
     // It is too short for some devices. Use the busio timeout instead.
-    shared_module_bitbangio_i2c_construct(&self->bitbangio_i2c, scl, sda,
+    shared_module_bitbangio_i2c_construct(&self->bitbangio_i2c, MP_OBJ_FROM_PTR(scl), MP_OBJ_FROM_PTR(sda),
         frequency, BUS_TIMEOUT_US);
 
     self->baudrate = i2c_init(self->peripheral, frequency);

@@ -83,6 +83,70 @@ void shared_bindings_microcontroller_pin_print(const mp_print_t *print, mp_obj_t
     }
 }
 
+STATIC digitalinout_result_t mcu_pin_switch_to_input(mp_obj_t self_in, digitalio_pull_t pull) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_switch_to_input(self, pull);
+}
+
+STATIC digitalinout_result_t mcu_pin_switch_to_output(mp_obj_t self_in, digitalio_drive_mode_t drive_mode) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_switch_to_output(self, drive_mode);
+}
+
+STATIC void mcu_pin_set_value(mp_obj_t self_in, bool value) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    common_hal_mcu_pin_set_value(self, value);
+}
+
+STATIC bool mcu_pin_get_value(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_get_value(self);
+}
+
+STATIC digitalio_pull_t mcu_pin_get_pull(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_get_pull(self);
+}
+
+STATIC digitalio_drive_mode_t mcu_pin_get_drive_mode(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_get_drive_mode(self);
+}
+
+STATIC bool mcu_pin_get_free(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_mcu_pin_is_free(self);
+}
+
+STATIC void mcu_pin_claim(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    common_hal_mcu_pin_claim(self);
+}
+
+STATIC void mcu_pin_never_reset(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_never_reset_pin(self);
+}
+
+STATIC void mcu_pin_reset(mp_obj_t self_in) {
+    mcu_pin_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return common_hal_reset_pin(self);
+}
+
+STATIC const circuitpython_pin_p_t mcu_pin_proto = {
+    MP_PROTO_IMPLEMENT(MP_QSTR_Pin)
+    .switch_to_input = mcu_pin_switch_to_input,
+    .switch_to_output = mcu_pin_switch_to_output,
+    .set_value = mcu_pin_set_value,
+    .get_value = mcu_pin_get_value,
+    .get_pull = mcu_pin_get_pull,
+    .get_drive_mode = mcu_pin_get_drive_mode,
+    .get_free = mcu_pin_get_free,
+    .claim = mcu_pin_claim,
+    .never_reset = mcu_pin_never_reset,
+    .reset = mcu_pin_reset,
+};
+
 const mp_obj_type_t mcu_pin_type = {
     { &mp_type_type },
     .flags = MP_TYPE_FLAG_EXTENDED,
@@ -90,6 +154,7 @@ const mp_obj_type_t mcu_pin_type = {
     .print = shared_bindings_microcontroller_pin_print,
     MP_TYPE_EXTENDED_FIELDS(
         .unary_op = mp_generic_unary_op,
+        .protocol = &mcu_pin_proto,
         )
 };
 

@@ -28,7 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_BINDINGS_DIGITALIO_DIGITALINOUT_H
 
 #include "common-hal/microcontroller/Pin.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "shared-bindings/AbstractPin.h"
 #include "shared-bindings/digitalio/Direction.h"
 #include "shared-bindings/digitalio/DriveMode.h"
@@ -36,8 +36,7 @@
 
 extern const mp_obj_type_t digitalio_digitalinout_type;
 
-const mcu_pin_obj_t *common_hal_digitalio_validate_pin(mp_obj_t obj);
-digitalinout_result_t common_hal_digitalio_digitalinout_construct(digitalio_digitalinout_obj_t *self, const mcu_pin_obj_t *pin);
+digitalinout_result_t common_hal_digitalio_digitalinout_construct(digitalio_digitalinout_obj_t *self, mp_obj_t abstract_pin);
 void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t *self);
 bool common_hal_digitalio_digitalinout_deinited(digitalio_digitalinout_obj_t *self);
 digitalinout_result_t common_hal_digitalio_digitalinout_switch_to_input(digitalio_digitalinout_obj_t *self, digitalio_pull_t pull);

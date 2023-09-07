@@ -28,7 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_MODULE_DISPLAYIO_I2CDISPLAY_H
 
 #include "common-hal/busio/I2C.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 typedef struct {
     mp_obj_base_t base;

@@ -27,7 +27,7 @@
 #ifndef MICROPY_INCLUDED_ESPRESSIF_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 #define MICROPY_INCLUDED_ESPRESSIF_COMMON_HAL_PARALLELDISPLAY_PARALLELBUS_H
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "i2s_lcd_driver.h"
 
 typedef struct {

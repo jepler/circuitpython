@@ -28,6 +28,7 @@
 #define MICROPY_INCLUDED_SHARED_BINDINGS_MICROCONTROLLER_PIN_H
 
 #include "common-hal/microcontroller/Pin.h"
+#include "shared-bindings/AbstractPin.h"
 #include "py/obj.h"
 
 typedef enum {
@@ -63,6 +64,12 @@ uint8_t common_hal_mcu_pin_number(const mcu_pin_obj_t *pin);
 void common_hal_mcu_pin_claim(const mcu_pin_obj_t *pin);
 void common_hal_mcu_pin_claim_number(uint8_t pin_no);
 void common_hal_mcu_pin_reset_number(uint8_t pin_no);
+void common_hal_mcu_pin_set_value(const mcu_pin_obj_t *pin, bool value);
+bool common_hal_mcu_pin_get_value(const mcu_pin_obj_t *pin);
+digitalio_pull_t common_hal_mcu_pin_get_pull(const mcu_pin_obj_t *pin);
+digitalio_drive_mode_t common_hal_mcu_pin_get_drive_mode(const mcu_pin_obj_t *pin);
+digitalinout_result_t common_hal_mcu_pin_switch_to_input(const mcu_pin_obj_t *pin, digitalio_pull_t pull);
+digitalinout_result_t common_hal_mcu_pin_switch_to_output(const mcu_pin_obj_t *pin, digitalio_drive_mode_t drive_mode);
 
 void shared_bindings_microcontroller_pin_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind);
 

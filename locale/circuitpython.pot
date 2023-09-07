@@ -133,7 +133,7 @@ msgstr ""
 #: ports/mimxrt10xx/common-hal/usb_host/Port.c
 #: ports/raspberrypi/common-hal/picodvi/Framebuffer.c
 #: ports/raspberrypi/common-hal/rp2pio/StateMachine.c
-#: ports/raspberrypi/common-hal/usb_host/Port.c
+#: ports/raspberrypi/common-hal/usb_host/Port.c shared-bindings/AbstractPin.c
 #: shared-bindings/digitalio/DigitalInOut.c
 #: shared-bindings/microcontroller/Pin.c
 msgid "%q in use"
@@ -222,7 +222,8 @@ msgstr ""
 msgid "%q must be of type %q or %q, not %q"
 msgstr ""
 
-#: py/argcheck.c py/objstrunicode.c shared-module/synthio/__init__.c
+#: py/argcheck.c py/objstrunicode.c shared-bindings/AbstractPin.c
+#: shared-module/synthio/__init__.c
 msgid "%q must be of type %q, not %q"
 msgstr ""
 
@@ -764,7 +765,7 @@ msgstr ""
 #: ports/atmel-samd/common-hal/digitalio/DigitalInOut.c
 #: ports/mimxrt10xx/common-hal/digitalio/DigitalInOut.c
 #: ports/nrf/common-hal/digitalio/DigitalInOut.c
-#: ports/raspberrypi/common-hal/digitalio/DigitalInOut.c
+#: ports/raspberrypi/common-hal/microcontroller/Pin.c
 msgid "Cannot get pull while in output mode"
 msgstr ""
 
@@ -933,6 +934,10 @@ msgstr ""
 
 #: shared-bindings/digitalio/DigitalInOut.c
 msgid "Drive mode not used when direction is input."
+msgstr ""
+
+#: shared-bindings/keypad/KeyMatrix.c
+msgid "Duplicate pin %q"
 msgstr ""
 
 #: py/obj.c

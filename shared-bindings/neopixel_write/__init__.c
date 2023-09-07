@@ -120,10 +120,13 @@ STATIC mp_obj_t neopixel_write_neopixel_write_(mp_obj_t digitalinout_obj, mp_obj
     // Check to see if the NeoPixel has been deinited before writing to it.
     check_for_deinit(digitalinout_obj);
 
+    // and it has to be a real microcontorller pin
+    const mcu_pin_obj_t *pin = mp_arg_validate_type(digitalinout->pin, &mcu_pin_type, MP_QSTR_pin);
+
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(buf, &bufinfo, MP_BUFFER_READ);
     // Call platform's neopixel write function with provided buffer and options.
-    common_hal_neopixel_write(digitalinout, (uint8_t *)bufinfo.buf, bufinfo.len);
+    common_hal_neopixel_write(pin, (uint8_t *)bufinfo.buf, bufinfo.len);
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(neopixel_write_neopixel_write_obj, neopixel_write_neopixel_write_);

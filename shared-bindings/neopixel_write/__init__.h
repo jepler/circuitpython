@@ -30,8 +30,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-bindings/microcontroller/Pin.h"
 
-extern void common_hal_neopixel_write(const digitalio_digitalinout_obj_t *gpio, uint8_t *pixels, uint32_t numBytes);
+extern void common_hal_neopixel_write(const mcu_pin_obj_t *gpio, uint8_t *pixels, uint32_t numBytes);
 
 #endif  // MICROPY_INCLUDED_SHARED_BINDINGS_NEOPIXEL_WRITE_H

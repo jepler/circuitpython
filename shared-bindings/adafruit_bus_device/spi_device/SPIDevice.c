@@ -28,7 +28,7 @@
 #include "shared-bindings/adafruit_bus_device/spi_device/SPIDevice.h"
 #include "shared-bindings/util.h"
 #include "shared-module/adafruit_bus_device/spi_device/SPIDevice.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 
 

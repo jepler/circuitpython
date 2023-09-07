@@ -30,7 +30,7 @@
 #include "py/obj.h"
 #include "py/objtuple.h"
 
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 #include "shared-module/keypad/__init__.h"
 #include "shared-module/keypad/EventQueue.h"
 

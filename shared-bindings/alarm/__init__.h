@@ -30,7 +30,7 @@
 #include "py/obj.h"
 
 #include "common-hal/alarm/__init__.h"
-#include "common-hal/digitalio/DigitalInOut.h"
+#include "shared-module/digitalio/DigitalInOut.h"
 
 // Light sleep fully self-contained and does not exit user code. It will return
 // the same alarm object that was originally passed in, unlike deep sleep, which
