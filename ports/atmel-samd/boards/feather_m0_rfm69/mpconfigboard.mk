@@ -23,5 +23,8 @@ CIRCUITPY_TOUCHIO = 0
 CIRCUITPY_USB_MIDI = 0
 CIRCUITPY_USB_HID = 0
 
+# Board doesn't have enough flash space to support localization
+CIRCUITPY_LOCALIZE = 0
+
 # Include these Python libraries in firmware.
 FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_RFM69

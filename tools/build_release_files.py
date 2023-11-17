@@ -19,10 +19,6 @@ from shared_bindings_matrix import get_settings_from_makefile
 for port in build_info.SUPPORTED_PORTS:
     result = subprocess.run("rm -rf ../ports/{port}/build*".format(port=port), shell=True)
 
-PARALLEL = "-j 4"
-if "GITHUB_ACTION" in os.environ:
-    PARALLEL = "-j 2"
-
 all_boards = build_info.get_board_mapping()
 build_boards = list(all_boards.keys())
 if "BOARDS" in os.environ:
@@ -36,6 +32,8 @@ LANGUAGE_FIRST = "en_US"
 LANGUAGE_THRESHOLD = 10 * 1024
 
 languages = build_info.get_languages()
+languages.remove(LANGUAGE_FIRST)
+languages.insert(0, LANGUAGE_FIRST)
 
 all_languages = build_info.get_languages(list_all=True)
 
@@ -50,8 +48,9 @@ for board in build_boards:
     board_info = all_boards[board]
     board_settings = get_settings_from_makefile("../ports/" + board_info["port"], board)
 
-    languages.remove(LANGUAGE_FIRST)
-    languages.insert(0, LANGUAGE_FIRST)
+    localize = int(board_settings["CIRCUITPY_LOCALIZE"])
+    board_languages = languages if localize else ["en_US"]
+    print(f"{board}: Building languages:", ", ".join(board_languages))
 
     for language in languages:
         bin_directory = "../bin/{board}/{language}".format(board=board, language=language)

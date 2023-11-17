@@ -185,10 +185,10 @@ def print_active_user():
     response = github.get("/user")
     if response.ok:
         user = response.json()["login"]
-        print("Logged in as {}".format(user))
+        print("Logged in as {}".format(user), file=sys.stderr)
         return user
     else:
-        print("Not logged in")
+        print("Not logged in", file=sys.stderr)
     return None
 
 
@@ -237,13 +237,16 @@ def generate_download_info():
                 board_info = board_mapping[board_id]
                 for alias in [board_id] + board_info["aliases"]:
                     alias_info = board_mapping[alias]
+                    board_languages = (
+                        "languages" if support_matrix[alias]["localize"] else ["en_US"]
+                    )
                     if alias not in current_info:
                         changes["new_boards"].append(alias)
                         current_info[alias] = {"downloads": 0, "versions": []}
                     new_version = {
                         "stable": new_stable,
                         "version": new_tag,
-                        "languages": languages,
+                        "languages": board_languages,
                         # add modules, extensions, frozen_libraries explicitly
                         "modules": support_matrix[alias]["modules"],
                         "extensions": support_matrix[alias]["extensions"],
@@ -264,7 +267,7 @@ def generate_download_info():
 
 
 if __name__ == "__main__":
-    if "RELEASE_TAG" in os.environ and os.environ["RELEASE_TAG"]:
+    if os.environ.get("RELEASE_TAG") or os.environ.get("DEBUG"):
         generate_download_info()
     else:
         print("skipping website update because this isn't a tag")

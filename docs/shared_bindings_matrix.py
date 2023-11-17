@@ -174,7 +174,7 @@ def get_settings_from_makefile(port_dir, board_name):
     This list must explicitly include any setting queried by tools/ci_set_matrix.py.
     """
     contents = subprocess.run(
-        ["make", "-C", port_dir, "-f", "Makefile", f"BOARD={board_name}", "print-CFLAGS", "print-CIRCUITPY_BUILD_EXTENSIONS", "print-FROZEN_MPY_DIRS", "print-SRC_PATTERNS", "print-SRC_SUPERVISOR"],
+        ["make", "-C", port_dir, "-f", "Makefile", f"BOARD={board_name}", "print-CFLAGS", "print-CIRCUITPY_BUILD_EXTENSIONS", "print-CIRCUITPY_LOCALIZE", "print-FROZEN_MPY_DIRS", "print-SRC_PATTERNS", "print-SRC_SUPERVISOR"],
         encoding="utf-8",
         errors="replace",
         stdout=subprocess.PIPE,
@@ -328,6 +328,7 @@ def support_matrix_by_board(use_branded_name=True, withurl=True):
         else:
             raise OSError(f"Board extensions undefined: {board_name}.")
 
+
         frozen_modules = []
         if "FROZEN_MPY_DIRS" in settings:
             frozen_modules = frozen_modules_from_dirs(
@@ -344,6 +345,7 @@ def support_matrix_by_board(use_branded_name=True, withurl=True):
                     "modules": board_modules,
                     "frozen_libraries": frozen_modules,
                     "extensions": board_extensions,
+                    "localize": int(settings["CIRCUITPY_LOCALIZE"])
                 },
             )
         ]
@@ -361,6 +363,7 @@ def support_matrix_by_board(use_branded_name=True, withurl=True):
                             "modules": board_modules,
                             "frozen_libraries": frozen_modules,
                             "extensions": board_extensions,
+                            "localize": int(settings["CIRCUITPY_LOCALIZE"])
                         },
                     )
                 )

@@ -52,6 +52,11 @@ CFLAGS += -DCIRCUITPY=$(CIRCUITPY)
 CIRCUITPY_FULL_BUILD ?= 1
 CFLAGS += -DCIRCUITPY_FULL_BUILD=$(CIRCUITPY_FULL_BUILD)
 
+# Smaller builds may not have enough room for non-English translations. This
+# flag stops the CI from building them. It does NOT appear in CFLAGS and cannot
+# be tested by the C preprocessor.
+CIRCUITPY_LOCALIZE ?= 1
+
 # By default, aggressively reduce the size of in-flash messages, at the cost of
 # increased build time
 CIRCUITPY_MESSAGE_COMPRESSION_LEVEL ?= 9
