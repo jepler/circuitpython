@@ -38,6 +38,7 @@ typedef struct {
     KEYPAD_SCANNER_COMMON_FIELDS;
     mp_obj_tuple_t *row_digitalinouts;
     mp_obj_tuple_t *column_digitalinouts;
+    mp_obj_tuple_t *row_addresses;
     bool columns_to_anodes;
 } keypad_keymatrix_obj_t;
 

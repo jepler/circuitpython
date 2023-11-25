@@ -34,6 +34,18 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/util.h"
 
+// Convert None and false to NULL, and any sequence type to a pointer to a tuple
+static mp_obj_tuple_t *handle_row_address(mp_obj_t arg, size_t n_row_pins) {
+    if (arg == MP_ROM_NONE || arg == MP_ROM_FALSE) {
+        return NULL;
+    }
+    if (arg == MP_ROM_TRUE) {
+        mp_obj_t n_address = MP_OBJ_NEW_SMALL_INT(1 << n_row_pins);
+        arg = MP_OBJ_TYPE_GET_SLOT(&mp_type_range, make_new)(&mp_type_range, 1, 0, &n_address);
+    }
+    return MP_OBJ_TYPE_GET_SLOT(&mp_type_tuple, make_new)(&mp_type_tuple, 1, 0, &arg);
+}
+
 //| class KeyMatrix:
 //|     """Manage a 2D matrix of keys with row and column pins.
 //|
@@ -59,6 +71,7 @@
 //|         columns_to_anodes: bool = True,
 //|         interval: float = 0.020,
 //|         max_events: int = 64,
+//|         row_address: Sequence[int] | bool | None = None,
 //|     ) -> None:
 //|         """
 //|         Create a `Keys` object that will scan the key matrix attached to the given row and column pins.
@@ -82,19 +95,26 @@
 //|           maximum number of key transition events that are saved.
 //|           Must be >= 1.
 //|           If a new event arrives when the queue is full, the oldest event is discarded.
+//|         :param int row_address: If True, row pins are treated as address pins, selecting
+//|           one address and then reading out a set of values on the column pins.
+//|           If a list of integers is given, row pins are used in address mode, but only
+//|           the listed addresses are used.
+//|           Must be >= 1.
+//|           If a new event arrives when the queue is full, the oldest event is discarded.
 //|         """
 //|         ...
 
 STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if CIRCUITPY_KEYPAD_KEYMATRIX
     keypad_keymatrix_obj_t *self = mp_obj_malloc(keypad_keymatrix_obj_t, &keypad_keymatrix_type);
-    enum { ARG_row_pins, ARG_column_pins, ARG_columns_to_anodes, ARG_interval, ARG_max_events };
+    enum { ARG_row_pins, ARG_column_pins, ARG_columns_to_anodes, ARG_interval, ARG_max_events, ARG_row_address };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_row_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_column_pins, MP_ARG_REQUIRED | MP_ARG_OBJ },
         { MP_QSTR_columns_to_anodes, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = true} },
         { MP_QSTR_interval, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
         { MP_QSTR_max_events, MP_ARG_KW_ONLY | MP_ARG_INT, {.u_int = 64} },
+        { MP_QSTR_row_address, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
     };
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
@@ -127,7 +147,8 @@ STATIC mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
         column_pins_array[column] = pin;
     }
 
-    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins_array, num_column_pins, column_pins_array, args[ARG_columns_to_anodes].u_bool, interval, max_events);
+    mp_obj_t row_address = handle_row_address(args[ARG_row_address].u_obj, num_row_pins);
+    common_hal_keypad_keymatrix_construct(self, num_row_pins, row_pins_array, num_column_pins, column_pins_array, args[ARG_columns_to_anodes].u_bool, interval, max_events, row_address);
     return MP_OBJ_FROM_PTR(self);
     #else
     mp_raise_NotImplementedError_varg(MP_ERROR_TEXT("%q"), MP_QSTR_KeyMatrix);

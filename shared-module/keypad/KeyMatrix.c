@@ -49,7 +49,7 @@ static mp_uint_t row_column_to_key_number(keypad_keymatrix_obj_t *self, mp_uint_
     return row * self->column_digitalinouts->len + column;
 }
 
-void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint_t num_row_pins, const mcu_pin_obj_t *row_pins[], mp_uint_t num_column_pins, const mcu_pin_obj_t *column_pins[], bool columns_to_anodes, mp_float_t interval, size_t max_events) {
+void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint_t num_row_pins, const mcu_pin_obj_t *row_pins[], mp_uint_t num_column_pins, const mcu_pin_obj_t *column_pins[], bool columns_to_anodes, mp_float_t interval, size_t max_events, mp_obj_tuple_t *row_addresses) {
 
     mp_obj_t row_dios[num_row_pins];
     for (size_t row = 0; row < num_row_pins; row++) {
@@ -60,6 +60,18 @@ void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint
         row_dios[row] = dio;
     }
     self->row_digitalinouts = mp_obj_new_tuple(num_row_pins, row_dios);
+    if (row_addresses) {
+        for (size_t i = 0; i < row_addresses->len; i++) {
+            mp_arg_validate_int_max(mp_obj_get_int(row_addresses->items[i]), (1u << num_row_pins) - 1, MP_QSTR_row_addresses);
+        }
+        // ensure each address pin is set to the expected value for the first scan
+        mp_int_t quiescent_value = (MP_OBJ_SMALL_INT_VALUE(row_addresses->items[row_addresses->len - 1]));
+        for (size_t i = 0; i < num_row_pins; i++) {
+            digitalio_digitalinout_obj_t *dio = row_dios[i];
+            common_hal_digitalio_digitalinout_switch_to_output(dio, (quiescent_value >> i) & 1, DRIVE_MODE_PUSH_PULL);
+        }
+
+    }
 
     mp_obj_t column_dios[num_column_pins];
     for (size_t column = 0; column < num_column_pins; column++) {
@@ -78,6 +90,8 @@ void common_hal_keypad_keymatrix_construct(keypad_keymatrix_obj_t *self, mp_uint
     self->columns_to_anodes = columns_to_anodes;
     self->funcs = &keymatrix_funcs;
 
+    self->row_addresses = row_addresses;
+
     keypad_construct_common((keypad_scanner_obj_t *)self, interval, max_events);
 }
 
@@ -89,7 +103,7 @@ void common_hal_keypad_keymatrix_deinit(keypad_keymatrix_obj_t *self) {
     // Remove self from the list of active keypad scanners first.
     keypad_deregister_scanner((keypad_scanner_obj_t *)self);
 
-    for (size_t row = 0; row < common_hal_keypad_keymatrix_get_row_count(self); row++) {
+    for (size_t row = 0; row < common_hal_keypad_keymatrix_get_row_pin_count(self); row++) {
         common_hal_digitalio_digitalinout_deinit(self->row_digitalinouts->items[row]);
     }
     self->row_digitalinouts = MP_ROM_NONE;
@@ -101,8 +115,16 @@ void common_hal_keypad_keymatrix_deinit(keypad_keymatrix_obj_t *self) {
     common_hal_keypad_deinit_core(self);
 }
 
-size_t common_hal_keypad_keymatrix_get_row_count(keypad_keymatrix_obj_t *self) {
+size_t common_hal_keypad_keymatrix_get_row_pin_count(keypad_keymatrix_obj_t *self) {
     return self->row_digitalinouts->len;
+}
+
+size_t common_hal_keypad_keymatrix_get_row_count(keypad_keymatrix_obj_t *self) {
+    if (self->row_addresses) {
+        return self->row_addresses->len;
+    } else {
+        return self->row_digitalinouts->len;
+    }
 }
 
 size_t common_hal_keypad_keymatrix_get_column_count(keypad_keymatrix_obj_t *self) {
@@ -124,36 +146,38 @@ static size_t keymatrix_get_key_count(void *self_in) {
     return common_hal_keypad_keymatrix_get_column_count(self) * common_hal_keypad_keymatrix_get_row_count(self);
 }
 
-static void keymatrix_scan_now(void *self_in, mp_obj_t timestamp) {
-    keypad_keymatrix_obj_t *self = self_in;
+static void scan_one_row(keypad_keymatrix_obj_t *self, mp_obj_t timestamp, mp_uint_t row) {
+    for (size_t column = 0; column < common_hal_keypad_keymatrix_get_column_count(self); column++) {
+        mp_uint_t key_number = row_column_to_key_number(self, row, column);
+        const bool previous = self->currently_pressed[key_number];
+        self->previously_pressed[key_number] = previous;
 
+        // Get the current state, by reading whether the column got pulled to the row value or not.
+        // If low and columns_to_anodes is true, the key is pressed.
+        // If high and columns_to_anodes is false, the key is pressed.
+        const bool current =
+            common_hal_digitalio_digitalinout_get_value(self->column_digitalinouts->items[column]) !=
+            self->columns_to_anodes;
+        self->currently_pressed[key_number] = current;
+
+        // Record any transitions.
+        if (previous != current) {
+            keypad_eventqueue_record(self->events, key_number, current, timestamp);
+        }
+    }
+}
+
+static void keymatrix_scan_by_row(keypad_keymatrix_obj_t *self, mp_obj_t timestamp) {
     // On entry, all pins are set to inputs with a pull-up or pull-down,
     // depending on the diode orientation.
-    for (size_t row = 0; row < common_hal_keypad_keymatrix_get_row_count(self); row++) {
+    for (size_t row = 0; row < common_hal_keypad_keymatrix_get_row_pin_count(self); row++) {
         // Switch this row to an output and set level appropriately
         // Set low if columns_to_anodes is true, else set high.
         digitalio_digitalinout_obj_t *row_dio = self->row_digitalinouts->items[row];
         common_hal_digitalio_digitalinout_switch_to_output(
             row_dio, !self->columns_to_anodes, DRIVE_MODE_PUSH_PULL);
 
-        for (size_t column = 0; column < common_hal_keypad_keymatrix_get_column_count(self); column++) {
-            mp_uint_t key_number = row_column_to_key_number(self, row, column);
-            const bool previous = self->currently_pressed[key_number];
-            self->previously_pressed[key_number] = previous;
-
-            // Get the current state, by reading whether the column got pulled to the row value or not.
-            // If low and columns_to_anodes is true, the key is pressed.
-            // If high and columns_to_anodes is false, the key is pressed.
-            const bool current =
-                common_hal_digitalio_digitalinout_get_value(self->column_digitalinouts->items[column]) !=
-                self->columns_to_anodes;
-            self->currently_pressed[key_number] = current;
-
-            // Record any transitions.
-            if (previous != current) {
-                keypad_eventqueue_record(self->events, key_number, current, timestamp);
-            }
-        }
+        scan_one_row(self, timestamp, row);
 
         // Done with this row. Set its pin to its resting pull value briefly to shorten the time it takes
         // to switch values. Just switching to an input with a (relatively weak) pullup/pulldown
@@ -162,5 +186,40 @@ static void keymatrix_scan_now(void *self_in, mp_obj_t timestamp) {
         // Switch the row back to an input, pulled appropriately
         common_hal_digitalio_digitalinout_switch_to_input(
             row_dio, self->columns_to_anodes ? PULL_UP : PULL_DOWN);
+    }
+}
+
+static void keymatrix_scan_by_address(keypad_keymatrix_obj_t *self, mp_obj_t timestamp) {
+    // On entry, all row (address) pins are set to outputs with the last address, and
+    // column pins are set to inputs with a pull-up or pull-down,
+    // depending on the diode orientation.
+    mp_obj_tuple_t *row_addresses = self->row_addresses;
+    mp_uint_t last_address = MP_OBJ_SMALL_INT_VALUE(row_addresses->items[row_addresses->len - 1]);
+    for (size_t i = 0; i < common_hal_keypad_keymatrix_get_row_count(self); i++) {
+        mp_uint_t this_address = MP_OBJ_SMALL_INT_VALUE(row_addresses->items[i]);
+        mp_uint_t changes = this_address ^ last_address; // xor determines what pins changed
+        last_address = this_address;
+
+        // Change each address pin to the new address value
+        for (size_t j = 0; j < common_hal_keypad_keymatrix_get_row_pin_count(self); j++) {
+            digitalio_digitalinout_obj_t *dio = self->row_digitalinouts->items[j];
+            if ((changes >> j) & 1) {
+                common_hal_digitalio_digitalinout_set_value(dio, (this_address >> j) & 1);
+            }
+        }
+
+        // TODO: is a delay after address setting needed?
+
+        scan_one_row(self, timestamp, i);
+    }
+}
+
+static void keymatrix_scan_now(void *self_in, mp_obj_t timestamp) {
+    keypad_keymatrix_obj_t *self = self_in;
+
+    if (self->row_addresses) {
+        keymatrix_scan_by_address(self, timestamp);
+    } else {
+        keymatrix_scan_by_row(self, timestamp);
     }
 }
