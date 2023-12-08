@@ -42,15 +42,20 @@ enable-if-all=$(firstword $(sort $(1) 1))
 # of CIRCUITPY_AUDIOCORE and CIRCUITPY_AUDIOMP3 below are typical of how
 # any/all are expected to be used.
 
+define _configurable
+$(1) ?= $(2)
+CFLAGS += -D$(1)=$$($1)
+configurables +=$(1)
+endef
+configurable=$(eval $(call _configurable,$(1),$(2)))
+
 # Always on. Present here to help generate documentation module support matrix for "builtins".
-CIRCUITPY = 1
-CFLAGS += -DCIRCUITPY=$(CIRCUITPY)
+$(call configurable,CIRCUITPY,1)
 
 # Smaller builds can be forced for resource constrained chips (typically SAMD21s
 # without external flash) by setting CIRCUITPY_FULL_BUILD=0. Avoid using this
 # for merely incomplete ports, as it changes settings in other files.
-CIRCUITPY_FULL_BUILD ?= 1
-CFLAGS += -DCIRCUITPY_FULL_BUILD=$(CIRCUITPY_FULL_BUILD)
+$(call configurable,CIRCUITPY_FULL_BUILD,1)
 
 # By default, aggressively reduce the size of in-flash messages, at the cost of
 # increased build time
