@@ -83,3 +83,12 @@ try:
     exec(r"'\U0000000'")
 except SyntaxError:
     print("SyntaxError")
+
+# CIRCUITPY-CHANGE
+# Properly formed integer literals
+print(eval("00"))
+# badly formed hex escape sequences
+try:
+    eval("01")
+except SyntaxError:
+    print("SyntaxError")

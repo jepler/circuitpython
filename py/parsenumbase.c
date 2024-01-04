@@ -27,6 +27,17 @@
 #include "py/mpconfig.h"
 #include "py/misc.h"
 #include "py/parsenumbase.h"
+#include "py/runtime.h"
+
+// CIRCUITPY-CHANGE: throw for a literal like "01" but not for "00".
+static bool is_all_zeros(const char *str, size_t len) {
+    while (len-- && unichar_isdigit(*str)) {
+        if (*str++ != '0') {
+            return false;
+        }
+    }
+    return true;
+}
 
 // find real radix base, and strip preceding '0x', '0o' and '0b'
 // puts base in *base, and returns number of bytes to skip the prefix
@@ -49,6 +60,9 @@ size_t mp_parse_num_base(const char *str, size_t len, int *base) {
                 *base = 10;
             }
             p -= 2;
+            if (!is_all_zeros(str, len)) {
+                *base = -1; // CIRCUITPY-CHANGE: base -1 indicates error
+            }
         }
     } else if (*base == 8 && c == '0') {
         c = *(p++);

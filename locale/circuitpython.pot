@@ -3370,6 +3370,12 @@ msgstr ""
 msgid "label redefined"
 msgstr ""
 
+#: py/parsenum.c
+msgid ""
+"leading zeros in decimal integer literals are not permitted; use an 0o "
+"prefix for octal integers"
+msgstr ""
+
 #: shared-bindings/audiomixer/MixerVoice.c
 msgid "level must be between 0 and 1"
 msgstr ""

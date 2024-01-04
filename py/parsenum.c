@@ -79,6 +79,16 @@ mp_obj_t mp_parse_num_integer(const char *restrict str_, size_t len, int base, m
     // string should be an integer number
     mp_int_t int_val = 0;
     const byte *restrict str_val_start = str;
+    // CIRCUITPY-CHANGE: test if we got an invalid leading-zero number
+    if (base == -1) {
+        #if MICROPY_ERROR_REPORTING <= MICROPY_ERROR_REPORTING_TERSE
+        goto value_error;
+        #else
+        mp_obj_t exc = mp_obj_new_exception_msg(&mp_type_ValueError,
+            MP_ERROR_TEXT("leading zeros in decimal integer literals are not permitted; use an 0o prefix for octal integers"));
+        raise_exc(exc, lex);
+        #endif
+    }
     for (; str < top; str++) {
         // get next digit as a value
         mp_uint_t dig = *str;
