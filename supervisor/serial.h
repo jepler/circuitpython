@@ -58,7 +58,7 @@ bool serial_display_write_disable(bool disabled);
 void port_serial_early_init(void);
 void port_serial_init(void);
 bool port_serial_connected(void);
-char port_serial_read(void);
+int port_serial_read(void);
 bool port_serial_bytes_available(void);
 void port_serial_write_substring(const char *text, uint32_t length);
 

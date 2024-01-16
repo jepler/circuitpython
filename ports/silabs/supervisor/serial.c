@@ -128,7 +128,7 @@ bool port_serial_connected(void) {
 }
 
 // Get a characters from ring buffer
-char port_serial_read(void) {
+int port_serial_read(void) {
     int data;
 
     CORE_DECLARE_IRQ_STATE;

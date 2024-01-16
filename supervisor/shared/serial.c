@@ -117,7 +117,7 @@ MP_WEAK bool port_serial_connected(void) {
     return false;
 }
 
-MP_WEAK char port_serial_read(void) {
+MP_WEAK int port_serial_read(void) {
     return -1;
 }
 

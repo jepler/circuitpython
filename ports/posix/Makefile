@@ -1,0 +1,100 @@
+# This file is part of the MicroPython project, http://micropython.org/
+#
+# The MIT License (MIT)
+#
+# SPDX-FileCopyrightText: Copyright (c) 2019 Dan Halbert for Adafruit Industries
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+BOARD = default
+
+CIRCUITPY_ANALOGIO = 0
+CIRCUITPY_BUSDEVICE = 0
+CIRCUITPY_AUDIOBUSIO = 0
+CIRCUITPY_AUDIOIO = 0
+CIRCUITPY_BUSIO = 0
+CIRCUITPY_BITBANGIO = 0
+CIRCUITPY_BLEIO_HCI = 0
+CIRCUITPY_TOUCHIO = 0
+CIRCUITPY_KEYPAD = 0
+CIRCUITPY_SDCARDIO = 0
+CIRCUITPY_COUNTIO = 0
+CIRCUITPY_DIGITALIO = 0
+CIRCUITPY_DISPLAYIO = 0
+CIRCUITPY_FREQUENCYIO = 0
+CIRCUITPY_I2CTARGET = 0
+CIRCUITPY_MICROCONTROLLER = 0
+CIRCUITPY_NEOPIXEL_WRITE = 0
+CIRCUITPY_NVM = 0
+CIRCUITPY_PULSEIO = 0
+CIRCUITPY_PWMIO = 0
+CIRCUITPY_ROTARYIO = 0
+CIRCUITPY_RTC = 0
+CIRCUITPY_USB = 0
+INTERNAL_FLASH_FILESYSTEM = 1
+LONGINT_IMPL = MPZ
+USB_NUM_ENDPOINT_PAIRS = 0
+include ../../py/circuitpy_mkenv.mk
+
+CROSS_COMPILE =
+
+CHIP_VARIANT = fnord
+
+INC += -I. \
+       -I../.. \
+       -I../lib/mp-readline \
+       -I../shared/timeutils \
+       -I$(BUILD)
+
+CFLAGS += -ggdb3 -Og
+
+CFLAGS += $(INC) -Wall -Werror -std=gnu11 $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT) -Werror=missing-prototypes
+
+SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
+                          $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
+                          $(addprefix common-hal/, $(SRC_COMMON_HAL))
+
+SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE_INTERNAL))
+
+# There may be duplicates between SRC_COMMON_HAL_EXPANDED and SRC_SHARED_MODULE_EXPANDED,
+# because a few modules have files both in common-hal/ and shared-module/.
+# Doing a $(sort ...) removes duplicates as part of sorting.
+SRC_COMMON_HAL_SHARED_MODULE_EXPANDED = $(sort $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED))
+
+SRC_C += shared/runtime/gchelper_generic.c
+
+OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
+
+SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED) $(SRC_CIRCUITPY_COMMON)
+# Sources that only hold QSTRs after pre-processing.
+SRC_QSTR_PREPROCESSOR +=
+
+all: $(BUILD)/circuitpython
+
+$(BUILD)/circuitpython: $(OBJ)
+	$(STEPECHO) "LINK $@"
+	$(Q)echo $(OBJ) > $(BUILD)/firmware.objs
+	$(Q)$(CC) -o $@ $(LDFLAGS) @$(BUILD)/firmware.objs -Wl,--start-group $(LIBS) -Wl,--end-group -lm
+
+include $(TOP)/py/mkrules.mk

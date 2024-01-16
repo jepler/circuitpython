@@ -38,7 +38,6 @@
 
 #include "shared-bindings/adafruit_pixelbuf/PixelBuf.h"
 #include "shared-module/adafruit_pixelbuf/PixelBuf.h"
-#include "shared-bindings/digitalio/DigitalInOut.h"
 
 #if CIRCUITPY_ULAB
 #include "extmod/ulab/code/ndarray.h"

@@ -56,7 +56,7 @@ bool port_serial_connected(void) {
     return true;
 }
 
-char port_serial_read(void) {
+int port_serial_read(void) {
     #if CPY_STM32F4
     uint8_t data;
     HAL_UART_Receive(&huart2, &data, 1, 500);

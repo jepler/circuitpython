@@ -594,7 +594,7 @@ CIRCUITPY_USB_VENDOR ?= 0
 CFLAGS += -DCIRCUITPY_USB_VENDOR=$(CIRCUITPY_USB_VENDOR)
 
 ifndef USB_NUM_ENDPOINT_PAIRS
-$(error "USB_NUM_ENDPOINT_PAIRS (number of USB endpoint pairs)must be defined")
+$(error "USB_NUM_ENDPOINT_PAIRS (number of USB endpoint pairs) must be defined")
 endif
 CFLAGS += -DUSB_NUM_ENDPOINT_PAIRS=$(USB_NUM_ENDPOINT_PAIRS)
 

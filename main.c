@@ -42,6 +42,7 @@
 
 #include "shared/readline/readline.h"
 #include "shared/runtime/pyexec.h"
+#include "shared/runtime/gchelper.h"
 
 #include "background.h"
 #include "mpconfigboard.h"
@@ -1128,8 +1129,7 @@ int __attribute__((used)) main(void) {
 void gc_collect(void) {
     gc_collect_start();
 
-    mp_uint_t regs[10];
-    mp_uint_t sp = cpu_get_regs_and_sp(regs);
+    gc_helper_collect_regs_and_stack();
 
     // This collects root pointers from the VFS mount table. Some of them may
     // have lost their references in the VM even though they are mounted.
@@ -1163,9 +1163,6 @@ void gc_collect(void) {
     common_hal_wifi_gc_collect();
     #endif
 
-    // This naively collects all object references from an approximate stack
-    // range.
-    gc_collect_root((void **)sp, ((mp_uint_t)port_stack_get_top() - sp) / sizeof(mp_uint_t));
     gc_collect_end();
 }
 
@@ -1192,6 +1189,7 @@ static void NORETURN __fatal_error(const char *msg) {
     }
 }
 
+void __assert_func(const char *file, int line, const char *func, const char *expr);
 void MP_WEAK __assert_func(const char *file, int line, const char *func, const char *expr) {
     mp_printf(&mp_plat_print, "Assertion '%s' failed, at file %s:%d\n", expr, file, line);
     __fatal_error("Assertion failed");
