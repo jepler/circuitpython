@@ -44,3 +44,5 @@ jobs:
       with:
         name: patch
         path: ~/pre-commit.patch
+    - uses: pre-commit-ci/lite-action@v1.0.1
+      if: always()
