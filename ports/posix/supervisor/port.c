@@ -1,5 +1,8 @@
+#include <fcntl.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -10,6 +13,7 @@
 #include "shared-bindings/microcontroller/Processor.h"
 #include "shared-bindings/microcontroller/ResetReason.h"
 #include "shared-bindings/supervisor/Runtime.h"
+#include "shared/runtime/interrupt_char.h"
 #include "supervisor/flash.h"
 #include "supervisor/port.h"
 #include "supervisor/serial.h"
@@ -79,24 +83,46 @@ void port_background_task(void) {
 }
 
 
+static void *flash_ptr;
 void supervisor_flash_init(void) {
+    int ffd = open("CIRCUITPY.IMG", O_RDWR | O_CREAT, 0666 /* minus bits in umask */);
+    size_t flash_size = supervisor_flash_get_block_size() * supervisor_flash_get_block_count();
+    posix_fallocate(ffd, 0, flash_size);
+    flash_ptr = mmap(NULL, flash_size, PROT_READ | PROT_WRITE, MAP_SHARED, ffd, 0);
 }
 uint32_t supervisor_flash_get_block_size(void) {
     return 512;
 }
 uint32_t supervisor_flash_get_block_count(void) {
-    return 0;
+    return 1024;
 }
 mp_uint_t supervisor_flash_read_blocks(uint8_t *dest, uint32_t block_num, uint32_t num_blocks) {
-    return 1;                                                                                              /* error */
+    if (!flash_ptr) {
+        return 1; /* error */
+    }
+    if (block_num >= supervisor_flash_get_block_count()) {
+        return 1; /* error */
+    }
+    memcpy(dest, flash_ptr + block_num * supervisor_flash_get_block_size(), supervisor_flash_get_block_size() * num_blocks);
+    return 0;
 }
 mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t block_num, uint32_t num_blocks) {
-    return 1;                                                                                                    /* error */
+    if (!flash_ptr) {
+        return 1; /* error */
+    }
+    if (block_num >= supervisor_flash_get_block_count()) {
+        return 1; /* error */
+    }
+    memcpy(flash_ptr + block_num * supervisor_flash_get_block_size(), src, supervisor_flash_get_block_size() * num_blocks);
+    return 0;
 }
 
 
 void port_internal_flash_flush(void) {
+    size_t flash_size = supervisor_flash_get_block_size() * supervisor_flash_get_block_count();
+    msync(flash_ptr, flash_size, MS_ASYNC | MS_INVALIDATE);
 }
+
 void supervisor_flash_release_cache(void) {
 }
 
@@ -187,6 +213,8 @@ int port_serial_read(void) {
     int ret = read(0, &c, 1);
     if (ret == 0) {
         c = 4; // EOF, ctrl-D
+    } else if (c == '\x1c' && isatty(0)) {
+        raise(SIGQUIT);
     } else if (c == '\n') {
         c = '\r';
     }
