@@ -990,7 +990,7 @@ STATIC int run_repl(safe_mode_t safe_mode) {
     return exit_code;
 }
 
-int __attribute__((used)) main(void) {
+static void circuitpy_init(void) {
 
     // initialise the cpu and peripherals
     set_safe_mode(port_init());
@@ -1060,6 +1060,10 @@ int __attribute__((used)) main(void) {
 
     // displays init after filesystem, since they could share the flash SPI
     board_init();
+}
+
+STATIC void circuitpy_main(void) {
+    circuitpy_init();
 
     mp_hal_stdout_tx_str(line_clear);
 
@@ -1123,6 +1127,11 @@ int __attribute__((used)) main(void) {
         #endif
     }
     mp_deinit();
+}
+
+int __attribute__((used, weak)) main(void) {
+    circuitpy_init();
+    circuitpy_main();
     return 0;
 }
 
