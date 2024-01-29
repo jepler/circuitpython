@@ -4,6 +4,7 @@
 #define MICROPY_PY_SYS_PLATFORM                     "posix"
 #define MICROPY_HW_BOARD_NAME "posix"
 
+#define MICROPY_USE_READLINE (1)
 #define MICROPY_GCREGS_SETJMP (0)
 
 #if defined(__i386__)
@@ -23,4 +24,8 @@
 #else
 #define MICROPY_HW_MCU_NAME "idk"
 // #warning "No native NLR support for this arch, using setjmp implementation"
+#endif
+
+#ifndef MICROPY_PY_SYS_PATH_DEFAULT
+#define MICROPY_PY_SYS_PATH_DEFAULT ".frozen:~/.micropython/lib:/usr/lib/micropython"
 #endif

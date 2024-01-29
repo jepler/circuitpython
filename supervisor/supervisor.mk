@@ -1,4 +1,5 @@
 SRC_SUPERVISOR = \
+	cmdline.c \
 	main.c \
 	lib/tlsf/tlsf.c \
 	supervisor/port.c \

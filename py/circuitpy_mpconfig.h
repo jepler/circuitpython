@@ -96,7 +96,7 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define MP_PLAT_ALLOC_HEAP(size) port_malloc(size, false)
 #define MP_PLAT_FREE_HEAP(ptr) port_free(ptr)
 #include "supervisor/port_heap.h"
-#define MICROPY_HELPER_LEXER_UNIX        (0)
+#define MICROPY_HELPER_LEXER_UNIX        (CIRCUITPY_COMMAND_LINE_WORKFLOW)
 #define MICROPY_HELPER_REPL              (1)
 #define MICROPY_KBD_EXCEPTION            (1)
 #define MICROPY_MEM_STATS                (0)
@@ -187,8 +187,14 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define FILESYSTEM_BLOCK_SIZE       (512)
 
 #define MICROPY_VFS                 (1)
-#define MICROPY_VFS_FAT             (MICROPY_VFS)
-#define MICROPY_READER_VFS          (MICROPY_VFS)
+#if CIRCUITPY_COMMAND_LINE_WORKFLOW
+#define MICROPY_VFS_POSIX           (1)
+#define MICROPY_READER_VFS          (0)
+#define MICROPY_READER_POSIX        (1)
+#else
+#define MICROPY_VFS_FAT             (1)
+#define MICROPY_READER_VFS          (1)
+#endif
 
 // type definitions for the specific machine
 

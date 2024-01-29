@@ -44,6 +44,7 @@
 #include "shared/runtime/pyexec.h"
 #include "shared/runtime/gchelper.h"
 
+#include "main.h"
 #include "background.h"
 #include "mpconfigboard.h"
 #include "supervisor/background_callback.h"
@@ -990,7 +991,7 @@ STATIC int run_repl(safe_mode_t safe_mode) {
     return exit_code;
 }
 
-static void circuitpy_init(void) {
+void circuitpy_init(void) {
 
     // initialise the cpu and peripherals
     set_safe_mode(port_init());
@@ -1027,6 +1028,7 @@ static void circuitpy_init(void) {
     supervisor_bluetooth_init();
     #endif
 
+    #if !MICROPY_VFS_POSIX
     #if !INTERNAL_FLASH_FILESYSTEM
     // Set up anything that might need to get done before we try to use SPI flash
     // This is needed for some boards where flash relies on GPIO setup to work
@@ -1042,6 +1044,7 @@ static void circuitpy_init(void) {
     if (!filesystem_init(get_safe_mode() == SAFE_MODE_NONE, false)) {
         set_safe_mode(SAFE_MODE_NO_CIRCUITPY);
     }
+    #endif
 
     #if CIRCUITPY_ALARM
     // Record which alarm woke us up, if any.
@@ -1062,7 +1065,7 @@ static void circuitpy_init(void) {
     board_init();
 }
 
-STATIC void circuitpy_main(void) {
+void circuitpy_main(void) {
     circuitpy_init();
 
     mp_hal_stdout_tx_str(line_clear);
@@ -1129,11 +1132,14 @@ STATIC void circuitpy_main(void) {
     mp_deinit();
 }
 
-int __attribute__((used, weak)) main(void) {
+#if !CIRCUITPY_COMMAND_LINE_WORKFLOW
+// otherwise, main() lives in cmdline.c */
+int __attribute__((used)) main(void) {
     circuitpy_init();
     circuitpy_main();
     return 0;
 }
+#endif
 
 void gc_collect(void) {
     gc_collect_start();

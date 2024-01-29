@@ -17,10 +17,11 @@
 #include "supervisor/flash.h"
 #include "supervisor/port.h"
 #include "supervisor/serial.h"
+#include "mphalport.h"
 
 static struct termios orig_termios;
 
-STATIC void mp_hal_stdio_mode_raw(void) {
+void mp_hal_stdio_mode_raw(void) {
     // save and set terminal settings
     tcgetattr(0, &orig_termios);
     static struct termios termios;
@@ -33,7 +34,7 @@ STATIC void mp_hal_stdio_mode_raw(void) {
     tcsetattr(0, TCSAFLUSH, &termios);
 }
 
-STATIC void mp_hal_stdio_mode_orig(void) {
+void mp_hal_stdio_mode_orig(void) {
     // restore terminal settings
     tcsetattr(0, TCSAFLUSH, &orig_termios);
 }

@@ -32,6 +32,7 @@
 #include "py/mperrno.h"
 #include "py/mphal.h"
 
+#if !MICROPY_VFS_POSIX
 // TODO make stdin, stdout and stderr writable objects so they can
 // be changed by Python code.  This requires some changes, as these
 // objects are in a read-only module (py/modsys.c).
@@ -163,4 +164,5 @@ STATIC MP_DEFINE_CONST_OBJ_TYPE(
     );
 
 STATIC const sys_stdio_obj_t stdio_buffer_obj = {{&stdio_buffer_obj_type}, .fd = 0}; // fd unused
+#endif
 #endif
