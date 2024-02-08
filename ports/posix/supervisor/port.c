@@ -71,8 +71,6 @@ safe_mode_t port_init(void) {
     #pragma GCC diagnostic ignored "-Wdangling-pointer"
     _stack_top = &dummy;
     #pragma GCC diagnostic pop
-    mp_hal_stdio_mode_raw();
-    atexit(mp_hal_stdio_mode_orig);
     return SAFE_MODE_NONE;
 }
 

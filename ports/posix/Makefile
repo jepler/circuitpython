@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-BOARD = default
+CIRCUITPY_PORT_NO_BOARD = 1
 
 CIRCUITPY_ANALOGIO = 0
 CIRCUITPY_BUSDEVICE = 0
@@ -92,9 +92,9 @@ SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_M
 # Sources that only hold QSTRs after pre-processing.
 SRC_QSTR_PREPROCESSOR +=
 
-all: $(BUILD)/circuitpython
+all: circuitpython
 
-$(BUILD)/circuitpython: $(OBJ)
+circuitpython: $(OBJ)
 	$(STEPECHO) "LINK $@"
 	$(Q)echo $(OBJ) > $(BUILD)/firmware.objs
 	$(Q)$(CC) -o $@ $(LDFLAGS) @$(BUILD)/firmware.objs -Wl,--start-group $(LIBS) -Wl,--end-group -lm

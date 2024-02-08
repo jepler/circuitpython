@@ -24,16 +24,22 @@
 
 # Common Makefile items that can be shared across CircuitPython ports.
 
+CIRCUITPY_PORT_NO_BOARD ?= 0
+
+ifeq ($(CIRCUITPY_PORT_NO_BOARD),0)
 ALL_BOARDS_IN_PORT := $(patsubst boards/%/mpconfigboard.mk,%,$(wildcard boards/*/mpconfigboard.mk))
 # An incorrect BOARD might have been specified, so check against the list.
 # There is deliberately no space after the :=
 VALID_BOARD :=$(filter $(BOARD),$(ALL_BOARDS_IN_PORT))
 
-# If the flash PORT is not given, use the default /dev/tty.SLAB_USBtoUART.
-PORT ?= /dev/tty.SLAB_USBtoUART
-
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
+else
+BUILD ?= build
+endif
+
+# If the flash PORT is not given, use the default /dev/tty.SLAB_USBtoUART.
+PORT ?= /dev/tty.SLAB_USBtoUART
 
 # First makefile with targets. Defines the default target.
 include ../../py/mkenv.mk
@@ -48,6 +54,12 @@ include mpconfigport.mk
 
 # Also board-specific. Skip if the rule requested is not board-specific.
 ifneq ($(VALID_BOARD),)
+# CircuitPython-specific
+include $(TOP)/py/circuitpy_mpconfig.mk
+endif
+
+# Also include if the port does not use the board abstraction (POSIX port)
+ifeq ($(CIRCUITPY_PORT_NO_BOARD),1)
 # CircuitPython-specific
 include $(TOP)/py/circuitpy_mpconfig.mk
 endif
