@@ -170,7 +170,7 @@ STATIC uint8_t *_allocate_memory(safe_mode_t safe_mode, const char *env_key, siz
 }
 #endif
 
-STATIC void start_mp(safe_mode_t safe_mode) {
+void start_mp(safe_mode_t safe_mode) {
     supervisor_workflow_reset();
 
     // Stack limit should be less than real stack size, so we have a chance

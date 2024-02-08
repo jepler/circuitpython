@@ -26,5 +26,8 @@
 
 #pragma once
 
+#include "supervisor/shared/safe_mode.h"
+
 void circuitpy_init(void);
 void circuitpy_main(void);
+void start_mp(safe_mode_t safe_mode);

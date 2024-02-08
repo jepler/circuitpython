@@ -187,14 +187,11 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define FILESYSTEM_BLOCK_SIZE       (512)
 
 #define MICROPY_VFS                 (1)
-#if CIRCUITPY_COMMAND_LINE_WORKFLOW
-#define MICROPY_VFS_POSIX           (1)
-#define MICROPY_READER_VFS          (0)
-#define MICROPY_READER_POSIX        (1)
-#else
-#define MICROPY_VFS_FAT             (1)
 #define MICROPY_READER_VFS          (1)
-#endif
+#define MICROPY_VFS_POSIX           (CIRCUITPY_COMMAND_LINE_WORKFLOW)
+#define MICROPY_VFS_FAT             (1)
+#define MICROPY_READER_POSIX        (MICROPY_VFS_POSIX)
+#define MICROPY_USE_READLINE_HISTORY (CIRCUITPY_COMMAND_LINE_WORKFLOW)
 
 // type definitions for the specific machine
 
