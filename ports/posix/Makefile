@@ -73,12 +73,13 @@ circuitpython: $(OBJ)
 include $(TOP)/py/mkrules.mk
 
 TEST_ARGS ?=
+.PHONY: test
 test: circuitpython
+	$(STEPECHO) "TEST $(TEST_ARGS)"
 	$(eval DIRNAME=ports/$(notdir $(CURDIR)))
-	cd $(TOP)/tests; \
+	$(Q)cd $(TOP)/tests; \
 	./run-tests.py --clean-failures; \
-	if ! MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS); then \
-		./run-tests.py --print-failures; \
+	MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS)
 		exit 1; \
 	fi
 
