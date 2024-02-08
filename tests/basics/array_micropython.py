@@ -1,7 +1,8 @@
 # test MicroPython-specific features of array.array
 try:
     import array
-except ImportError:
+    array.array('O')
+except Exception:
     print("SKIP")
     raise SystemExit
 

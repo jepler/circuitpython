@@ -1,6 +1,7 @@
 #pragma once
 
-#include "py/circuitpy_mpconfig.h"
+#define CIRCUITPY_PYSTACK_SIZE 16384
+
 #define MICROPY_PY_SYS_PLATFORM                     "posix"
 #define MICROPY_HW_BOARD_NAME "posix"
 
@@ -29,3 +30,5 @@
 #ifndef MICROPY_PY_SYS_PATH_DEFAULT
 #define MICROPY_PY_SYS_PATH_DEFAULT ".frozen:~/.micropython/lib:/usr/lib/micropython"
 #endif
+
+#include "py/circuitpy_mpconfig.h"

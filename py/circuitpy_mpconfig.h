@@ -236,7 +236,9 @@ typedef long mp_off_t;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // board-specific definitions, which control and may override definitions below.
+#if !CIRCUITPY_PORT_NO_BOARD
 #include "mpconfigboard.h"
+#endif
 
 // Turning off FULL_BUILD removes some functionality to reduce flash size on tiny SAMD21s
 #define MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG (CIRCUITPY_FULL_BUILD)
@@ -267,7 +269,7 @@ typedef long mp_off_t;
 #define MICROPY_PY_RE_MATCH_SPAN_START_END   (CIRCUITPY_RE)
 #define MICROPY_PY_RE_SUB                    (CIRCUITPY_RE)
 
-#define CIRCUITPY_MICROPYTHON_ADVANCED        (0)
+#define CIRCUITPY_MICROPYTHON_ADVANCED        (CIRCUITPY_COMMAND_LINE_WORKFLOW)
 
 #ifndef MICROPY_FATFS_EXFAT
 #define MICROPY_FATFS_EXFAT           (CIRCUITPY_FULL_BUILD)

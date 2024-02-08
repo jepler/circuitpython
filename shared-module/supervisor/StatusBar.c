@@ -40,6 +40,7 @@ bool shared_module_supervisor_status_bar_get_console(supervisor_status_bar_obj_t
 }
 
 void shared_module_supervisor_status_bar_set_console(supervisor_status_bar_obj_t *self, bool enabled) {
+    #if CIRCUITPY_STATUS_BAR
     if (self->console == enabled) {
         // Do nothing if not changing the state.
         return;
@@ -54,6 +55,7 @@ void shared_module_supervisor_status_bar_set_console(supervisor_status_bar_obj_t
 
     // Update may be ignored.
     supervisor_status_bar_update();
+    #endif
 }
 
 bool shared_module_supervisor_status_bar_get_display(supervisor_status_bar_obj_t *self) {

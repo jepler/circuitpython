@@ -22,35 +22,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-CIRCUITPY_PORT_NO_BOARD = 1
-
-CIRCUITPY_ANALOGIO = 0
-CIRCUITPY_BUSDEVICE = 0
-CIRCUITPY_AUDIOBUSIO = 0
-CIRCUITPY_AUDIOIO = 0
-CIRCUITPY_BUSIO = 0
-CIRCUITPY_BITBANGIO = 0
-CIRCUITPY_BLEIO_HCI = 0
-CIRCUITPY_COMMAND_LINE_WORKFLOW = 1
-CIRCUITPY_TOUCHIO = 0
-CIRCUITPY_KEYPAD = 0
-CIRCUITPY_SDCARDIO = 0
-CIRCUITPY_COUNTIO = 0
-CIRCUITPY_DIGITALIO = 0
-CIRCUITPY_DISPLAYIO = 0
-CIRCUITPY_FREQUENCYIO = 0
-CIRCUITPY_I2CTARGET = 0
-CIRCUITPY_MICROCONTROLLER = 0
-CIRCUITPY_NEOPIXEL_WRITE = 0
-CIRCUITPY_NVM = 0
-CIRCUITPY_PULSEIO = 0
-CIRCUITPY_PWMIO = 0
-CIRCUITPY_ROTARYIO = 0
-CIRCUITPY_RTC = 0
-CIRCUITPY_USB = 0
-INTERNAL_FLASH_FILESYSTEM = 1
-LONGINT_IMPL = MPZ
-USB_NUM_ENDPOINT_PAIRS = 0
 include ../../py/circuitpy_mkenv.mk
 
 CROSS_COMPILE =
@@ -100,3 +71,17 @@ circuitpython: $(OBJ)
 	$(Q)$(CC) -o $@ $(LDFLAGS) @$(BUILD)/firmware.objs -Wl,--start-group $(LIBS) -Wl,--end-group -lm
 
 include $(TOP)/py/mkrules.mk
+
+TEST_ARGS ?=
+test: circuitpython
+	$(eval DIRNAME=ports/$(notdir $(CURDIR)))
+	cd $(TOP)/tests; \
+	./run-tests.py --clean-failures; \
+	if ! MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS); then \
+		./run-tests.py --print-failures; \
+		exit 1; \
+	fi
+
+.PHONY: print-failures clean-failures
+print-failures clean-failures:
+	../../tests/run-tests.py --$@

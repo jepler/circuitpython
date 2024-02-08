@@ -46,7 +46,6 @@
 
 #include "main.h"
 #include "background.h"
-#include "mpconfigboard.h"
 #include "supervisor/background_callback.h"
 #include "supervisor/board.h"
 #include "supervisor/cpu.h"
@@ -1010,7 +1009,9 @@ void circuitpy_init(void) {
 
     // Start the debug serial
     serial_early_init();
+    #if !CIRCUITPY_COMMAND_LINE_WORKFLOW
     mp_hal_stdout_tx_str(line_clear);
+    #endif
 
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (get_safe_mode() == SAFE_MODE_NONE) {
