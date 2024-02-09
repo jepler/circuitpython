@@ -22,11 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+CIRCUITPY_PORT_NO_BOARD = 1
+
 include ../../py/circuitpy_mkenv.mk
 
 CROSS_COMPILE =
-
-CHIP_VARIANT = fnord
 
 INC += -I. \
        -I../.. \
