@@ -80,8 +80,15 @@ test: circuitpython
 	$(Q)cd $(TOP)/tests; \
 	./run-tests.py --clean-failures; \
 	MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS)
-		exit 1; \
-	fi
+
+.PHONY: testd-%
+testd-%:
+	$(Q)$(MAKE) TEST_ARGS="-d $*" test
+
+.PHONY: test-%
+test-%:
+	$(Q)$(MAKE) TEST_ARGS="$*.py" test
+
 
 .PHONY: print-failures clean-failures
 print-failures clean-failures:
