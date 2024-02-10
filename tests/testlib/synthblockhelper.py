@@ -11,7 +11,7 @@ sine = array.array("h", [int(32767 * sin(i * 2 * pi / 600)) for i in range(600)]
 
 def print_result(*blocks):
     for i in range(48000 / 256):
-        print(*lfo_tick(*blocks))
+        print(*("%.4f" % v for v in lfo_tick(*blocks)))
 
 
 def mathop_test(kind):
