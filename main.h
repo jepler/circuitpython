@@ -28,6 +28,7 @@
 
 #include "supervisor/shared/safe_mode.h"
 
+extern int *address_of_argc;
 void circuitpy_init(void);
 void circuitpy_main(void);
 void start_mp(safe_mode_t safe_mode);

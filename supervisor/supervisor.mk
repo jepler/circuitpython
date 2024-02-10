@@ -14,7 +14,6 @@ SRC_SUPERVISOR = \
 	supervisor/shared/reload.c \
 	supervisor/shared/safe_mode.c \
 	supervisor/shared/serial.c \
-	supervisor/shared/stack.c \
 	supervisor/shared/status_leds.c \
 	supervisor/shared/tick.c \
 	supervisor/shared/traceback.c \
@@ -22,6 +21,11 @@ SRC_SUPERVISOR = \
 	supervisor/shared/workflow.c \
 	supervisor/stub/misc.c \
 
+ifeq ($(CIRCUITPY_STACK_CHECK),0)
+SRC_SUPERVISOR += supervisor/stub/stack.c
+else
+SRC_SUPERVISOR += supervisor/shared/stack.c
+endif
 # For tlsf
 CFLAGS += -D_DEBUG=0
 

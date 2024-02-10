@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/resource.h>
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
@@ -18,6 +19,7 @@
 #include "supervisor/port.h"
 #include "supervisor/serial.h"
 #include "mphalport.h"
+#include "main.h"
 
 static struct termios orig_termios;
 
@@ -57,21 +59,37 @@ void common_hal_mcu_disable_interrupts(void) {
 void common_hal_mcu_enable_interrupts(void) {
 }
 
-static uint32_t *_stack_top;
+static uint32_t *_stack_top, *_stack_limit;
+#if defined(__has_include) && __has_include(<pthread.h>)
+#include <pthread.h>
+int pthread_getattr_np(pthread_t thread, pthread_attr_t *attr);
+safe_mode_t port_init(void) {
+    pthread_attr_t attr;
+    pthread_getattr_np(pthread_self(), &attr);
+    void *stackaddr;
+    size_t stacksize;
+    pthread_attr_getstack(&attr, &stackaddr, &stacksize);
+    _stack_top = (uint32_t *)((char *)stackaddr + stacksize);
+    _stack_limit = (uint32_t *)stackaddr;
+    pthread_attr_destroy(&attr);
+    return SAFE_MODE_NONE;
+}
+#else
+safe_mode_t port_init(void) {
+    intptr_t pagesize = (intptr_t)sysconf(_SC_PAGESIZE);
+    _stack_top = (uint32_t *)(((intptr_t)address_of_argc + pagesize - 1) & ~(pagesize - 1));
+    struct rlimit lim;
+    getrlimit(RLIMIT_STACK, &lim);
+    _stack_limit = _stack_top - lim.rlim_cur / sizeof(uint32_t);
+    return SAFE_MODE_NONE;
+}
+#endif
+
 uint32_t *port_stack_get_limit(void) {
-    return _stack_top - 40000 * sizeof(void *) / 4;
+    return _stack_limit;
 }
 uint32_t *port_stack_get_top(void) {
     return _stack_top;
-}
-
-safe_mode_t port_init(void) {
-    uint32_t dummy;
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdangling-pointer"
-    _stack_top = &dummy;
-    #pragma GCC diagnostic pop
-    return SAFE_MODE_NONE;
 }
 
 void reset_port(void) {
@@ -119,7 +137,9 @@ mp_uint_t supervisor_flash_write_blocks(const uint8_t *src, uint32_t block_num, 
 
 void port_internal_flash_flush(void) {
     size_t flash_size = supervisor_flash_get_block_size() * supervisor_flash_get_block_count();
-    msync(flash_ptr, flash_size, MS_ASYNC | MS_INVALIDATE);
+    if (flash_ptr) {
+        msync(flash_ptr, flash_size, MS_ASYNC | MS_INVALIDATE);
+    }
 }
 
 void supervisor_flash_release_cache(void) {
