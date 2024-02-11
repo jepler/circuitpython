@@ -87,7 +87,7 @@ testd-%:
 
 .PHONY: test-%
 test-%:
-	$(Q)$(MAKE) TEST_ARGS="$*.py" test
+	$(Q)$(MAKE) TEST_ARGS="*/$*.py" test
 
 
 .PHONY: print-failures clean-failures
