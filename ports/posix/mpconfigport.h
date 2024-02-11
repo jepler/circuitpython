@@ -5,6 +5,7 @@
 #define MICROPY_PY_SYS_PLATFORM                     "posix"
 #define MICROPY_HW_BOARD_NAME "posix"
 
+#define MICROPY_OBJ_REPR (MICROPY_OBJ_REPR_A)
 #define MICROPY_USE_READLINE (1)
 #define MICROPY_GCREGS_SETJMP (0)
 
