@@ -13,6 +13,9 @@
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/microcontroller/Processor.h"
 #include "shared-bindings/microcontroller/ResetReason.h"
+#if CIRCUITPY_RTC
+#include "shared-bindings/rtc/__init__.h"
+#endif
 #include "shared-bindings/supervisor/Runtime.h"
 #include "shared/runtime/interrupt_char.h"
 #include "supervisor/flash.h"
@@ -45,7 +48,7 @@ void mp_hal_stdio_mode_orig(void) {
 uint64_t port_get_raw_ticks(uint8_t *subticks_out) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    uint64_t subticks = (uint64_t)ts.tv_nsec * 30517 /*30517.578*/;
+    uint64_t subticks = ((uint64_t)ts.tv_nsec * 140737) >> 32;
     int result = ts.tv_sec * 1024 + subticks / 32;
     if (subticks_out) {
         *subticks_out = subticks % 32;
@@ -93,6 +96,9 @@ uint32_t *port_stack_get_top(void) {
 }
 
 void reset_port(void) {
+    #if CIRCUITPY_RTC
+    rtc_reset();
+    #endif
 }
 void port_idle_until_interrupt(void) {
 }
