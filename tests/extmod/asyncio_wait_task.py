@@ -9,12 +9,8 @@ except ImportError:
 
 import time
 
-if hasattr(time, "ticks_ms"):
-    ticks = time.ticks_ms
-    ticks_diff = time.ticks_diff
-else:
-    ticks = lambda: int(time.time() * 1000)
-    ticks_diff = lambda t1, t0: t1 - t0
+from adafruit_ticks import ticks_diff
+from adafruit_ticks import ticks_ms as ticks
 
 
 async def task(t):
