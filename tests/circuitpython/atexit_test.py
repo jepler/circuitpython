@@ -14,7 +14,7 @@ def skip_at_exit():
 
 @atexit.register
 def do_at_exit(*args, **kwargs):
-    print("done at exit:", args, kwargs)
+    print("done at exit:", args, sorted(kwargs.items()))
 
 
 atexit.unregister(skip_at_exit)
