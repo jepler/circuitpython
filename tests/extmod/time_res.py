@@ -2,7 +2,9 @@
 
 try:
     import time
-except ImportError:
+
+    time.ticks_ms
+except (ImportError, AttributeError):
     print("SKIP")
     raise SystemExit
 
