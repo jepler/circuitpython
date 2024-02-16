@@ -191,7 +191,7 @@ static const mp_obj_t members[] = { &supervisor_blinka_sprite };
 static const mp_obj_t members[] = {};
 #endif
 #endif
-mp_obj_list_t splash_children = {
+static const mp_obj_list_t splash_children = {
     .base = {.type = &mp_type_list },
     .alloc = MP_ARRAY_SIZE(members),
     .len = MP_ARRAY_SIZE(members),
@@ -203,7 +203,7 @@ displayio_group_t circuitpython_splash = {
     .x = 0,
     .y = 0,
     .scale = 2,
-    .members = &splash_children,
+    .members = (mp_obj_list_t *)&splash_children,
     .item_removed = false,
     .in_group = false,
     .hidden = false,
