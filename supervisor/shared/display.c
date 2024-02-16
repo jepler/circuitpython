@@ -180,22 +180,22 @@ bool supervisor_terminal_started(void) {
 
 #if CIRCUITPY_TERMINALIO
 #if CIRCUITPY_REPL_LOGO
-mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_blinka_sprite, &supervisor_terminal_status_bar_text_grid, };
+static const mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_blinka_sprite, &supervisor_terminal_status_bar_text_grid, };
 #else
-mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_terminal_status_bar_text_grid, };
+static const mp_obj_t members[] = { &supervisor_terminal_scroll_area_text_grid, &supervisor_terminal_status_bar_text_grid, };
 #endif
 #else
 #if CIRCUITPY_REPL_LOGO
-mp_obj_t members[] = { &supervisor_blinka_sprite };
+static const mp_obj_t members[] = { &supervisor_blinka_sprite };
 #else
-mp_obj_t members[] = {};
+static const mp_obj_t members[] = {};
 #endif
 #endif
 mp_obj_list_t splash_children = {
     .base = {.type = &mp_type_list },
     .alloc = MP_ARRAY_SIZE(members),
     .len = MP_ARRAY_SIZE(members),
-    .items = members,
+    .items = (mp_obj_t *)members,
 };
 
 displayio_group_t circuitpython_splash = {
