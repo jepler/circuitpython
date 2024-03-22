@@ -34,6 +34,7 @@
 #include "shared-bindings/busio/I2C.h"
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/busio/UART.h"
+#include "shared-bindings/util.h"
 #endif
 
 #if CIRCUITPY_DISPLAYIO
@@ -73,7 +74,7 @@ mp_obj_t common_hal_board_get_i2c(const mp_int_t instance) {
 
 mp_obj_t common_hal_board_create_i2c(const mp_int_t instance) {
     const mp_obj_t singleton = common_hal_board_get_i2c(instance);
-    if (singleton != NULL && !common_hal_busio_i2c_deinited(singleton)) {
+    if (singleton != NULL && !OBJ_IS_DEINITIALIZED(singleton)) {
         return singleton;
     }
 

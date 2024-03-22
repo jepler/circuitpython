@@ -32,6 +32,7 @@
 #include "shared-bindings/microcontroller/__init__.h"
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/bitbangio/I2C.h"
+#include "shared-bindings/util.h"
 
 #include "src/rp2_common/hardware_gpio/include/hardware/gpio.h"
 
@@ -127,14 +128,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
     gpio_set_function(self->sda_pin, GPIO_FUNC_I2C);
 }
 
-bool common_hal_busio_i2c_deinited(busio_i2c_obj_t *self) {
-    return self->sda_pin == NO_PIN;
-}
-
 void common_hal_busio_i2c_deinit(busio_i2c_obj_t *self) {
-    if (common_hal_busio_i2c_deinited(self)) {
-        return;
-    }
     never_reset_i2c[i2c_hw_index(self->peripheral)] = false;
 
     i2c_deinit(self->peripheral);
@@ -143,6 +137,8 @@ void common_hal_busio_i2c_deinit(busio_i2c_obj_t *self) {
     reset_pin_number(self->scl_pin);
     self->sda_pin = NO_PIN;
     self->scl_pin = NO_PIN;
+
+    MARK_PTR_DEINITIALIZED(self);
 }
 
 bool common_hal_busio_i2c_probe(busio_i2c_obj_t *self, uint8_t addr) {
