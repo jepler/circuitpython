@@ -24,6 +24,7 @@
  * THE SOFTWARE.
  */
 
+#include "py/gc.h"
 #include "py/runtime.h"
 
 #include "shared-bindings/util.h"
@@ -52,4 +53,30 @@ void properties_construct_helper(mp_obj_t self_in, const mp_arg_t *args, const m
             mp_store_attr(self_in, args[i].qst, vals[i].u_obj);
         }
     }
+}
+
+static void deinited_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
+    raise_deinited_error();
+}
+
+static mp_obj_t deinited_unary_op(mp_unary_op_t op, mp_obj_t unused) {
+    if (op == MP_UNARY_OP_BOOL) {
+        return mp_const_false;
+    }
+
+    raise_deinited_error();
+}
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    mp_type_DeinitedType,
+    MP_QSTR_Deinited,
+    MP_TYPE_FLAG_HAS_SPECIAL_ACCESSORS,
+    unary_op, deinited_unary_op,
+    attr, deinited_attr);
+
+void mark_ptr_deinitialized(mp_obj_base_t *ptr) {
+    if (gc_alloc_possible() && gc_nbytes(ptr)) {
+        gc_realloc(ptr, sizeof(mp_obj_base_t), false); // shrink allocation if possible
+    }
+    ptr->type = &mp_type_DeinitedType;
 }

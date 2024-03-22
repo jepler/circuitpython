@@ -29,6 +29,12 @@
 #include "py/mpprint.h"
 #include "py/runtime.h"
 
-void raise_deinited_error(void);
+void raise_deinited_error(void) NORETURN;
+void mark_ptr_deinitialized(mp_obj_base_t *ptr);
+extern const mp_obj_type_t mp_type_DeinitedType;
+#define MARK_PTR_DEINITIALIZED(ptr) (mark_ptr_deinitialized(&(ptr)->base))
+#define PTR_IS_DEINITIALIZED(ptr) ((ptr)->base.type == &mp_type_DeinitedType)
+#define OBJ_IS_DEINITIALIZED(obj) (mp_obj_get_type((obj)) == &mp_type_DeinitedType)
+
 void properties_print_helper(const mp_print_t *print, mp_obj_t self_in, const mp_arg_t *properties, size_t n_properties);
 void properties_construct_helper(mp_obj_t self_in, const mp_arg_t *args, const mp_arg_val_t *vals, size_t n_properties);
