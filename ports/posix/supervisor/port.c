@@ -73,7 +73,7 @@ safe_mode_t port_init(void) {
     size_t stacksize;
     pthread_attr_getstack(&attr, &stackaddr, &stacksize);
     _stack_top = (uint32_t *)((char *)stackaddr + stacksize);
-    _stack_limit = (uint32_t *)stackaddr;
+    _stack_limit = (uint32_t *)stackaddr + 4096;
     pthread_attr_destroy(&attr);
     return SAFE_MODE_NONE;
 }
