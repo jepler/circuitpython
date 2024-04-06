@@ -681,6 +681,8 @@ else
 $(error LONGINT_IMPL set to surprising value: "$(LONGINT_IMPL)")
 endif
 
+CIRCUITPY_FLOAT_IMPL ?= float
+
 PREPROCESS_FROZEN_MODULES = PYTHONPATH=$(TOP)/tools/python-semver $(TOP)/tools/preprocess_frozen_modules.py
 ifneq ($(FROZEN_MPY_DIRS),)
 $(BUILD)/frozen_mpy: $(FROZEN_MPY_DIRS)

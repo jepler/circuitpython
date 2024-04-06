@@ -97,7 +97,6 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define MICROPY_EPOCH_IS_1970            (1)
 #define MICROPY_ERROR_REPORTING          (MICROPY_ERROR_REPORTING_NORMAL)
 #define MICROPY_FLOAT_HIGH_QUALITY_HASH  (0)
-#define MICROPY_FLOAT_IMPL               (MICROPY_FLOAT_IMPL_FLOAT)
 #define MICROPY_GC_ALLOC_THRESHOLD       (0)
 #define MICROPY_GC_SPLIT_HEAP            (1)
 #define MICROPY_GC_SPLIT_HEAP_AUTO       (1)

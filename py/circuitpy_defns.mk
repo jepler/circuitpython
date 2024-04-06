@@ -28,7 +28,6 @@
 # Common compile warnings.
 
 BASE_CFLAGS = \
-	-fsingle-precision-constant \
 	-fno-strict-aliasing \
 	-Wdouble-promotion \
 	-Wimplicit-fallthrough=2 \
@@ -53,6 +52,12 @@ BASE_CFLAGS = \
 	-DCIRCUITPY_SAFE_RESTART_WORD=0xDEADBEEF \
 	-DCIRCUITPY_BOARD_ID="\"$(BOARD)\"" \
 	--param max-inline-insns-single=500
+
+ifeq ($(CIRCUITPY_FLOAT_IMPL),float)
+BASE_CFLAGS += -fsingle-precision-constant -DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_FLOAT
+else
+BASE_CFLAGS += -fno-single-precision-constant -DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_DOUBLE
+endif
 
 #        Use these flags to debug build times and header includes.
 #        -ftime-report
