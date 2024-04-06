@@ -72,7 +72,7 @@ circuitpython: $(OBJ)
 
 include $(TOP)/py/mkrules.mk
 
-TEST_SHOW_FAILURES ?= true
+TEST_SHOW_FAILURES ?= false
 TEST_ARGS ?=
 .PHONY: test
 test: circuitpython
@@ -87,6 +87,10 @@ test: circuitpython
 		fi; \
 		echo $?; \
 	fi
+
+.PHONY: vtest%
+vtest%:
+	$(Q)$(MAKE) TEST_SHOW_FAILURES=true "test$*"
 
 .PHONY: testd-%
 testd-%:
