@@ -31,6 +31,7 @@
 #include "py/obj.h"
 #include "py/runtime.h"
 #include "shared-bindings/random/__init__.h"
+#include "shared-bindings/os/__init__.h"
 
 //| """pseudo-random numbers and choices
 //|
@@ -53,12 +54,19 @@
 //|     `random` will return deterministic results afterwards."""
 //|     ...
 //|
-STATIC mp_obj_t random_seed(mp_obj_t seed_in) {
-    mp_uint_t seed = mp_obj_get_int_truncated(seed_in);
+STATIC mp_obj_t random_seed(size_t n_args, const mp_obj_t *args) {
+    mp_uint_t seed;
+    if (n_args == 0 || args[0] == mp_const_none) {
+        if (!common_hal_os_urandom((uint8_t *)&seed, sizeof(seed))) {
+            mp_raise_NotImplementedError(MP_ERROR_TEXT("No hardware random available"));
+        }
+    } else {
+        seed = mp_obj_get_int_truncated(args[0]);
+    }
     shared_modules_random_seed(seed);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(random_seed_obj, random_seed);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(random_seed_obj, 0, 1, random_seed);
 
 //| def getrandbits(k: int) -> int:
 //|     """Returns an integer with *k* random bits."""
