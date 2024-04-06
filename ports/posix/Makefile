@@ -72,6 +72,7 @@ circuitpython: $(OBJ)
 
 include $(TOP)/py/mkrules.mk
 
+TEST_SHOW_FAILURES ?= true
 TEST_ARGS ?=
 .PHONY: test
 test: circuitpython
@@ -79,7 +80,13 @@ test: circuitpython
 	$(eval DIRNAME=ports/$(notdir $(CURDIR)))
 	$(Q)cd $(TOP)/tests; \
 	./run-tests.py --clean-failures; \
-	MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS)
+	if ! MICROPY_MICROPYTHON=../$(DIRNAME)/circuitpython ./run-tests.py $(TEST_ARGS); then \
+		exitstatus=$?; \
+		if $(TEST_SHOW_FAILURES); then \
+			./run-tests.py --print-failures; \
+		fi; \
+		echo $?; \
+	fi
 
 .PHONY: testd-%
 testd-%:

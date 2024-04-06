@@ -28,8 +28,30 @@
 // #warning "No native NLR support for this arch, using setjmp implementation"
 #endif
 
+// Configure which emitter to use for this target.
+#if !defined(MICROPY_EMIT_X64) && defined(__x86_64__)
+    #define MICROPY_EMIT_X64        (1)
+#endif
+#if !defined(MICROPY_EMIT_X86) && defined(__i386__)
+    #define MICROPY_EMIT_X86        (1)
+#endif
+#if !defined(MICROPY_EMIT_THUMB) && defined(__thumb2__)
+    #define MICROPY_EMIT_THUMB      (1)
+    #define MICROPY_MAKE_POINTER_CALLABLE(p) ((void *)((mp_uint_t)(p) | 1))
+#endif
+// Some compilers define __thumb2__ and __arm__ at the same time, let
+// autodetected thumb2 emitter have priority.
+#if !defined(MICROPY_EMIT_ARM) && defined(__arm__) && !defined(__thumb2__)
+    #define MICROPY_EMIT_ARM        (1)
+#endif
+
 #ifndef MICROPY_PY_SYS_PATH_DEFAULT
 #define MICROPY_PY_SYS_PATH_DEFAULT ".frozen:~/.micropython/lib:/usr/lib/micropython"
 #endif
+
+#define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN (1)
+#define MICROPY_PY_MICROPYTHON_MEM_INFO (1)
+#define MICROPY_MEM_STATS (1)
+#define MICROPY_MALLOC_USES_ALLOCATED_SIZE (1)
 
 #include "py/circuitpy_mpconfig.h"

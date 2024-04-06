@@ -33,7 +33,7 @@ static atexit_callback_t *callback = NULL;
 
 void atexit_reset(void) {
     callback_len = 0;
-    m_free(callback);
+    gc_free(callback);
     callback = NULL;
 }
 
@@ -50,7 +50,7 @@ void shared_module_atexit_register(mp_obj_t *func, size_t n_args, const mp_obj_t
         .n_pos = 0,
         .n_kw = 0,
         .func = func,
-        .args = (n_args + n_kw_args) ? m_malloc((n_args + (n_kw_args * 2)) * sizeof(mp_obj_t)) : NULL
+        .args = (n_args + n_kw_args) ? gc_alloc((n_args + (n_kw_args * 2)) * sizeof(mp_obj_t), 0) : NULL
     };
     for (; cb.n_pos < n_args; cb.n_pos++) {
         cb.args[cb.n_pos] = pos_args[cb.n_pos];
@@ -59,7 +59,7 @@ void shared_module_atexit_register(mp_obj_t *func, size_t n_args, const mp_obj_t
         cb.args[i] = kw_args->table[cb.n_kw].key;
         cb.args[i += 1] = kw_args->table[cb.n_kw].value;
     }
-    callback = (atexit_callback_t *)m_realloc(callback, (callback_len + 1) * sizeof(cb));
+    callback = (atexit_callback_t *)gc_realloc(callback, (callback_len + 1) * sizeof(cb), true);
     callback[callback_len++] = cb;
 }
 

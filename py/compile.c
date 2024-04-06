@@ -370,6 +370,7 @@ STATIC void compile_delete_id(compiler_t *comp, qstr qst) {
         #if NEED_METHOD_TABLE
         mp_emit_common_id_op(comp->emit, &comp->emit_method_table->delete_id, comp->scope_cur, qst);
         #else
+        #error !NEED_METHOD_TABLE
         mp_emit_common_id_op(comp->emit, &mp_emit_bc_method_table_delete_id_ops, comp->scope_cur, qst);
         #endif
     }

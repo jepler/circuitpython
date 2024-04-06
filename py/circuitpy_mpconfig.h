@@ -75,11 +75,19 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define MICROPY_COMP_CONST               (1)
 #define MICROPY_COMP_DOUBLE_TUPLE_ASSIGN (1)
 #define MICROPY_COMP_MODULE_CONST        (1)
+#if !defined(MICROPY_COMP_TRIPLE_TUPLE_ASSIGN)
 #define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN (0)
-#define MICROPY_DEBUG_PRINTERS           (0)
+#endif
+#define MICROPY_DEBUG_PRINTERS           (CIRCUITPY_COMMAND_LINE_WORKFLOW)
+#if !defined(MICROPY_EMIT_INLINE_THUMB)
 #define MICROPY_EMIT_INLINE_THUMB        (CIRCUITPY_ENABLE_MPY_NATIVE)
+#endif
+#if !defined(MICROPY_EMIT_THUMB)
 #define MICROPY_EMIT_THUMB               (CIRCUITPY_ENABLE_MPY_NATIVE)
+#endif
+#if !defined(MICROPY_EMIT_X64)
 #define MICROPY_EMIT_X64                 (0)
+#endif
 #define MICROPY_ENABLE_DOC_STRING        (0)
 #define MICROPY_ENABLE_FINALISER         (1)
 #define MICROPY_ENABLE_GC                (1)
@@ -99,7 +107,9 @@ extern void common_hal_mcu_enable_interrupts(void);
 #define MICROPY_HELPER_LEXER_UNIX        (CIRCUITPY_COMMAND_LINE_WORKFLOW)
 #define MICROPY_HELPER_REPL              (1)
 #define MICROPY_KBD_EXCEPTION            (1)
+#if !defined(MICROPY_MEM_STATS)
 #define MICROPY_MEM_STATS                (0)
+#endif
 #define MICROPY_MODULE_BUILTIN_INIT      (1)
 #define MICROPY_MODULE_BUILTIN_SUBPACKAGES (1)
 #define MICROPY_NONSTANDARD_TYPECODES    (0)
@@ -147,7 +157,9 @@ extern void common_hal_mcu_enable_interrupts(void);
 // In extmod
 #define MICROPY_PY_JSON                 (CIRCUITPY_JSON)
 #define MICROPY_PY_MATH                  (0)
+#if !defined(MICROPY_PY_MICROPYTHON_MEM_INFO)
 #define MICROPY_PY_MICROPYTHON_MEM_INFO  (0)
+#endif
 // Supplanted by shared-bindings/random
 #define MICROPY_PY_RANDOM               (0)
 #define MICROPY_PY_RANDOM_EXTRA_FUNCS   (0)

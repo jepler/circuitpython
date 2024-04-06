@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include "py/mperrno.h"
+#include "py/gc.h"
 #include "py/runtime.h"
 
 static uint32_t read_word(uint16_t *bmp_header, uint16_t index) {
@@ -100,7 +101,7 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
             uint16_t palette_size = number_of_colors * sizeof(uint32_t);
             uint16_t palette_offset = 0xe + header_size;
 
-            uint32_t *palette_data = m_malloc(palette_size);
+            uint32_t *palette_data = gc_alloc(palette_size, 0);
 
             f_rewind(&self->file->fp);
             f_lseek(&self->file->fp, palette_offset);
@@ -115,7 +116,7 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
             for (uint16_t i = 0; i < number_of_colors; i++) {
                 common_hal_displayio_palette_set_color(palette, i, palette_data[i]);
             }
-            m_free(palette_data);
+            gc_free(palette_data);
         } else {
             common_hal_displayio_palette_set_color(palette, 0, 0x0);
             common_hal_displayio_palette_set_color(palette, 1, 0xffffff);
