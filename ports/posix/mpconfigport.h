@@ -54,4 +54,7 @@
 #define MICROPY_MEM_STATS (1)
 #define MICROPY_MALLOC_USES_ALLOCATED_SIZE (1)
 
+// Allow exception details in low-memory conditions.
+#define MICROPY_ENABLE_EMERGENCY_EXCEPTION_BUF (1)
+#define MICROPY_EMERGENCY_EXCEPTION_BUF_SIZE (256)
 #include "py/circuitpy_mpconfig.h"
