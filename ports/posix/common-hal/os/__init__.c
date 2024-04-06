@@ -10,7 +10,7 @@ bool common_hal_os_urandom(uint8_t *buffer, mp_uint_t length) {
     if (random_fd == -1) {
         random_fd = open("/dev/urandom", O_RDONLY);
     }
-    ssize_t result = read(random_fd, &buffer, length);
+    ssize_t result = read(random_fd, buffer, length);
     return result != -1 && result == (ssize_t)length;
 }
 
