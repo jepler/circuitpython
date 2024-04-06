@@ -917,7 +917,7 @@ the last matching regex is used:
         for exp in glob(os.path.join(args.result_dir, "*.exp")):
             testbase = exp[:-4]
             print()
-            print("FAILURE {0}".format(testbase))
+            print("FAILURE {0}".format(testbase), flush=True)
             os.system("{0} {1}.exp {1}.out".format(DIFF, testbase))
 
         sys.exit(0)
