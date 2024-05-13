@@ -179,7 +179,7 @@ STATIC size_t _xfer(tuh_xfer_t *xfer, mp_int_t timeout) {
     _xfer_result = 0xff;
     xfer->complete_cb = _transfer_done_cb;
     if (!tuh_edpt_xfer(xfer)) {
-        mp_raise_usb_core_USBError(NULL);
+        mp_raise_usb_core_USBError(MP_ERROR_TEXT("tuh_edpt_xfer() failed"));
     }
     uint32_t start_time = supervisor_ticks_ms32();
     while ((timeout == 0 || supervisor_ticks_ms32() - start_time < (uint32_t)timeout) &&
@@ -259,7 +259,7 @@ STATIC bool _open_endpoint(usb_core_device_obj_t *self, mp_int_t endpoint) {
 
 mp_int_t common_hal_usb_core_device_write(usb_core_device_obj_t *self, mp_int_t endpoint, const uint8_t *buffer, mp_int_t len, mp_int_t timeout) {
     if (!_open_endpoint(self, endpoint)) {
-        mp_raise_usb_core_USBError(NULL);
+        mp_raise_usb_core_USBError(MP_ERROR_TEXT("not an open endpoint"));
     }
     tuh_xfer_t xfer;
     xfer.daddr = self->device_number;
@@ -271,7 +271,7 @@ mp_int_t common_hal_usb_core_device_write(usb_core_device_obj_t *self, mp_int_t 
 
 mp_int_t common_hal_usb_core_device_read(usb_core_device_obj_t *self, mp_int_t endpoint, uint8_t *buffer, mp_int_t len, mp_int_t timeout) {
     if (!_open_endpoint(self, endpoint)) {
-        mp_raise_usb_core_USBError(NULL);
+        mp_raise_usb_core_USBError(MP_ERROR_TEXT("not an open endpoint"));
     }
     tuh_xfer_t xfer;
     xfer.daddr = self->device_number;
@@ -305,7 +305,7 @@ mp_int_t common_hal_usb_core_device_ctrl_transfer(usb_core_device_obj_t *self,
     _xfer_result = 0xff;
 
     if (!tuh_control_xfer(&xfer)) {
-        mp_raise_usb_core_USBError(NULL);
+        mp_raise_usb_core_USBError(MP_ERROR_TEXT("tuh_control_xfer failed"));
     }
     uint32_t start_time = supervisor_ticks_ms32();
     while ((timeout == 0 || supervisor_ticks_ms32() - start_time < (uint32_t)timeout) &&
