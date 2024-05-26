@@ -76,7 +76,6 @@ void synthio_synth_parse_envelope(uint16_t *envelope_sustain_index, mp_buffer_in
 
 bool synthio_span_change_note(synthio_synth_t *synth, mp_obj_t old_note, mp_obj_t new_note);
 
-void synthio_envelope_step(synthio_envelope_definition_t *definition, synthio_envelope_state_t *state, int n_samples);
 void synthio_envelope_definition_set(synthio_envelope_definition_t *envelope, mp_obj_t obj, uint32_t sample_rate);
 
 uint64_t synthio_frequency_convert_float_to_scaled(mp_float_t frequency_hz);

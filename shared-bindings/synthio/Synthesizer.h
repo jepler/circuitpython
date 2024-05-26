@@ -26,3 +26,4 @@ void common_hal_synthio_synthesizer_release_all(synthio_synthesizer_obj_t *self)
 mp_obj_t common_hal_synthio_synthesizer_get_pressed_notes(synthio_synthesizer_obj_t *self);
 mp_obj_t common_hal_synthio_synthesizer_get_blocks(synthio_synthesizer_obj_t *self);
 envelope_state_e common_hal_synthio_synthesizer_note_info(synthio_synthesizer_obj_t *self, mp_obj_t note, mp_float_t *vol_out);
+void common_hal_synthio_synthesizer_change_impl(synthio_synthesizer_obj_t *self, mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args);

@@ -22,6 +22,54 @@
 //| """A sequence of notes, which can each be integer MIDI note numbers or `Note` objects"""
 //| NoteOrNoteSequence = Union[int, Note, NoteSequence]
 //| """A note or sequence of notes"""
+//| ChangeKWArgs: dict[str, Any]
+//| """A value suitable for using with ``synth.change(**change_kwargs)``"""
+//| ActionSequence: Sequence[Union[ChangeArguments, float]]
+//| """A list of changes and delays to produce a sequential effect
+//|
+//| Before generating a block of audio, the synthesizer will first perform any actions
+//| specified in an active ActionSequence.
+//|
+//| If an element is a float, then the synthesizer delays this long before following the
+//| subsequent instructions. This duration may be rounded (up or down) so that it is a
+//| multiple of the synthesizer block size (usually 256 samples).
+//|
+//| Otherwise, it must be a dict that is appropriate for passing to
+//| ``synth.change(**change_kwargs)``. This allows anything that can be done with ``change``,
+//| including pressing & releasing notes, triggering LFOs, and so on.
+//|
+//| Usually the sequence will be an alternation of changes & delays, but this is not required.
+//|
+//| For example, given a suitable definition of ``laser_note`` and ``laser_lfo``,
+//| this sequence will play a laser sound for around 3/10 of a second:
+//|
+//|  .. code-block:: py
+//|
+//|     laser = [
+//|        {"press":laser_note, "retrigger":laser_lfo},
+//|        0.3,
+//|        {"release":laser_note}
+//|     ]
+//|
+//|  .. note ::
+//|
+//|     If a sequence re-triggers itself, the effect is undefined. (A defined way to
+//|     loop a sequence is an area for future improvement)
+//|
+//|  .. note ::
+//|
+//|     If a sequence element is not of the appropriate type, the effect is undefined
+//|     (currently in most cases an error message is printed and the sequence stops,
+//|     though this error cannot be caught). In particular, the behavior where an
+//|     instruction sequence is a nested list is undefined behavior.
+//|
+//|  .. note ::
+//|
+//|     A maximum number of action sequences may be active at one time on a synthesizer.
+//|     Currently this is the same as ``max_polyphony``.
+//| """
+//| ActionSequenceOrSequences: Union[ActionSequence, Sequence[ActionSequence]]
+//| """`Synthesizer.change` can accept a single ActionSequence or a list of them."""
 //| LFOOrLFOSequence = Union["LFO", Sequence["LFO"]]
 //| """An LFO or a sequence of LFOs"""
 //|
@@ -106,9 +154,11 @@ static MP_DEFINE_CONST_FUN_OBJ_2(synthio_synthesizer_release_obj, synthio_synthe
 //|         self,
 //|         release: NoteOrNoteSequence = (),
 //|         press: NoteOrNoteSequence = (),
-//|         retrigger=LFOOrLFOSequence,
+//|         retrigger: LFOOrLFOSequence = (),
+//|         start: ActionSequenceOrSequences = (),
+//|         stop: ActionSequenceOrSequences = (),
 //|     ) -> None:
-//|         """Start notes, stop them, and/or re-trigger some LFOs.
+//|         """Perform a number of synthesizer actions (e.g., pressing & releasing notes) at once
 //|
 //|         The changes all happen atomically with respect to output generation.
 //|
@@ -127,21 +177,9 @@ static MP_DEFINE_CONST_FUN_OBJ_2(synthio_synthesizer_release_obj, synthio_synthe
 //|         :param ActionSequenceOrSequences start: Any sequence of ActionSequences
 //|         :param ActionSequenceOrSequences stop: Any sequence of ActionSequences"""
 static mp_obj_t synthio_synthesizer_change(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    enum { ARG_release, ARG_press, ARG_retrigger };
-    static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_release, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
-        { MP_QSTR_press, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
-        { MP_QSTR_retrigger, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
-    };
-
-    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
-
     synthio_synthesizer_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self);
-    common_hal_synthio_synthesizer_release(self, args[ARG_release].u_obj);
-    common_hal_synthio_synthesizer_press(self, args[ARG_press].u_obj);
-    common_hal_synthio_synthesizer_retrigger(self, args[ARG_retrigger].u_obj);
+    common_hal_synthio_synthesizer_change_impl(self, n_args - 1, pos_args + 1, kw_args);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_KW(synthio_synthesizer_change_obj, 1, synthio_synthesizer_change);

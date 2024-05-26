@@ -80,3 +80,29 @@ def synth_test_rms(_gen=None, **kw):
         return func
     else:
         func(_gen)
+
+def synth_test_notes(_gen=None, **kw):
+    kw.setdefault("waveform", sine)
+    kw.setdefault("channel_count", 1)
+    kw.setdefault("sample_rate", 8192)
+
+    def func(gen):
+        synth = Synthesizer(**kw)
+        t = 0
+        dt = 256 / kw["sample_rate"]
+        channel_count = kw["channel_count"]
+        g = gen(synth)
+        blocks = list(next(g))
+        for st in g:
+            nframes = ceil(st / dt)
+            for i in range(nframes):
+                samples = np.frombuffer(get_buffer(synth)[1], dtype=np.int16) / 32768.0
+                rms_values = [rms(samples[i::2]) for i in range(channel_count)]
+                block_values = [b.value for b in blocks]
+                print(t * dt, *(block_values + list(synth.pressed)))
+                t += 1
+
+    if _gen is None:
+        return func
+    else:
+        func(_gen)

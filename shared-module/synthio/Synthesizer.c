@@ -4,6 +4,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+#include <math.h>
+
 #include "py/runtime.h"
 #include "shared-bindings/synthio/LFO.h"
 #include "shared-bindings/synthio/Note.h"
@@ -11,6 +13,9 @@
 #include "shared-module/synthio/Note.h"
 
 
+static void sequence_step(synthio_synthesizer_obj_t *self, mp_int_t dur, mp_int_t sample_rate);
+void sequence_start(synthio_synthesizer_obj_t *self, mp_obj_t arg);
+void sequence_stop(synthio_synthesizer_obj_t *self, mp_obj_t arg);
 
 void common_hal_synthio_synthesizer_construct(synthio_synthesizer_obj_t *self,
     uint32_t sample_rate, int channel_count, mp_obj_t waveform_obj,
@@ -50,6 +55,7 @@ audioio_get_buffer_result_t synthio_synthesizer_get_buffer(synthio_synthesizer_o
     }
     self->synth.span.dur = SYNTHIO_MAX_DUR;
 
+    sequence_step(self, SYNTHIO_MAX_DUR, self->synth.sample_rate);
 
     synthio_synth_synthesize(&self->synth, buffer, buffer_length, single_channel_output ? channel : 0);
 
@@ -178,4 +184,91 @@ envelope_state_e common_hal_synthio_synthesizer_note_info(synthio_synthesizer_ob
 
 mp_obj_t common_hal_synthio_synthesizer_get_blocks(synthio_synthesizer_obj_t *self) {
     return self->blocks;
+}
+
+void common_hal_synthio_synthesizer_change_impl(synthio_synthesizer_obj_t *self, mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_release, ARG_press, ARG_retrigger, ARG_start, ARG_stop };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_release, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
+        { MP_QSTR_press, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
+        { MP_QSTR_retrigger, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
+        { MP_QSTR_start, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
+        { MP_QSTR_stop, MP_ARG_OBJ, {.u_obj = mp_const_empty_tuple } },
+    };
+
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+
+    common_hal_synthio_synthesizer_release(self, args[ARG_release].u_obj);
+    common_hal_synthio_synthesizer_press(self, args[ARG_press].u_obj);
+    common_hal_synthio_synthesizer_retrigger(self, args[ARG_retrigger].u_obj);
+    sequence_start(self, args[ARG_start].u_obj);
+    sequence_stop(self, args[ARG_stop].u_obj);
+}
+
+
+void sequence_start(synthio_synthesizer_obj_t *self, mp_obj_t arg) {
+    sequence_stop(self, arg);
+    for (int chan = 0; chan < CIRCUITPY_SYNTHIO_MAX_CHANNELS; chan++) {
+        if (self->sequence_state[chan].obj == MP_OBJ_NULL) {
+            self->sequence_state[chan].obj = arg;
+            self->sequence_state[chan].iter = mp_getiter(arg, &self->sequence_state[chan].buf);
+            self->sequence_state[chan].dur = 0;
+            break;
+        }
+    }
+}
+
+STATIC void sequence_clear_one(synthio_sequence_state_t *seq) {
+    memset(seq, 0, sizeof(*seq));
+}
+
+void sequence_stop(synthio_synthesizer_obj_t *self, mp_obj_t arg) {
+    for (int chan = 0; chan < CIRCUITPY_SYNTHIO_MAX_CHANNELS; chan++) {
+        if (self->sequence_state[chan].obj == arg) {
+            sequence_clear_one(&self->sequence_state[chan]);
+        }
+    }
+}
+
+STATIC void sequence_step_one(synthio_synthesizer_obj_t *self, synthio_sequence_state_t *seq, mp_int_t dur, mp_int_t sample_rate) {
+    if (seq->dur > dur) {
+        seq->dur -= dur;
+        return;
+    }
+    seq->dur = 0;
+
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        mp_obj_t item;
+        while ((item = mp_iternext(seq->iter)) != MP_OBJ_STOP_ITERATION) {
+            mp_float_t delay;
+            if (mp_obj_get_float_maybe(item, &delay)) {
+                seq->dur = (int32_t)MICROPY_FLOAT_C_FUN(round)(delay * sample_rate);
+                break;
+            } else if (mp_obj_is_dict_or_ordereddict(item)) {
+                mp_obj_dict_t *kw = MP_OBJ_TO_PTR(item);
+                common_hal_synthio_synthesizer_change_impl(self, 0, NULL, &kw->map);
+            } else {
+                mp_raise_TypeError_varg(MP_ERROR_TEXT("%q must be of type %q or %q, not %q"), MP_QSTR_item, MP_QSTR_dict, MP_QSTR_float, mp_obj_get_type(item)->name);
+                sequence_clear_one(seq);
+                break;
+            }
+        }
+        nlr_pop();
+        if (item == MP_OBJ_STOP_ITERATION) {
+            sequence_clear_one(seq);
+        }
+    } else {
+        mp_obj_print_exception(&mp_plat_print, nlr.ret_val);
+        sequence_clear_one(seq);
+    }
+}
+
+STATIC void sequence_step(synthio_synthesizer_obj_t *self, mp_int_t dur, mp_int_t sample_rate) {
+    for (int chan = 0; chan < CIRCUITPY_SYNTHIO_MAX_CHANNELS; chan++) {
+        if (self->sequence_state[chan].obj != MP_OBJ_NULL) {
+            sequence_step_one(self, &self->sequence_state[chan], dur, sample_rate);
+        }
+    }
 }

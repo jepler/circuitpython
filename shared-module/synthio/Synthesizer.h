@@ -12,9 +12,17 @@
 #include "shared-module/synthio/__init__.h"
 
 typedef struct {
+    int32_t dur;
+    mp_obj_t obj;
+    mp_obj_t iter;
+    mp_obj_iter_buf_t buf;
+} synthio_sequence_state_t;
+
+typedef struct {
     mp_obj_base_t base;
     synthio_synth_t synth;
     mp_obj_t blocks;
+    synthio_sequence_state_t sequence_state[CIRCUITPY_SYNTHIO_MAX_CHANNELS];
 } synthio_synthesizer_obj_t;
 
 
