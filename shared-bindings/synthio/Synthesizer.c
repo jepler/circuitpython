@@ -124,9 +124,8 @@ static MP_DEFINE_CONST_FUN_OBJ_2(synthio_synthesizer_release_obj, synthio_synthe
 //|         :param NoteOrNoteSequence release: Any sequence of notes.
 //|         :param NoteOrNoteSequence press: Any sequence of notes.
 //|         :param LFOOrLFOSequence retrigger: Any sequence of LFOs.
-//|
-//|         Note: for compatibility, ``release_then_press`` may be used as an alias
-//|         for this function. This compatibility name will be removed in 9.0."""
+//|         :param ActionSequenceOrSequences start: Any sequence of ActionSequences
+//|         :param ActionSequenceOrSequences stop: Any sequence of ActionSequences"""
 static mp_obj_t synthio_synthesizer_change(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_release, ARG_press, ARG_retrigger };
     static const mp_arg_t allowed_args[] = {
@@ -401,7 +400,6 @@ static const mp_rom_map_elem_t synthio_synthesizer_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_release), MP_ROM_PTR(&synthio_synthesizer_release_obj) },
     { MP_ROM_QSTR(MP_QSTR_release_all), MP_ROM_PTR(&synthio_synthesizer_release_all_obj) },
     { MP_ROM_QSTR(MP_QSTR_change), MP_ROM_PTR(&synthio_synthesizer_change_obj) },
-    { MP_ROM_QSTR(MP_QSTR_release_then_press), MP_ROM_PTR(&synthio_synthesizer_change_obj) },
     { MP_ROM_QSTR(MP_QSTR_release_all_then_press), MP_ROM_PTR(&synthio_synthesizer_release_all_then_press_obj) },
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&synthio_synthesizer_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&default___enter___obj) },
