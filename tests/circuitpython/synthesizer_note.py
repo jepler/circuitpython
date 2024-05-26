@@ -22,7 +22,7 @@ s.press((n91,))
 print(s.pressed)
 dump_samples()
 
-s.release_then_press((n80,))
+s.change((n80,))
 print(s.pressed)
 dump_samples()
 
