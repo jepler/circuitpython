@@ -88,44 +88,6 @@ static NORETURN void mbedtls_raise_error(int err) {
     #endif
 }
 
-// Because ssl_socket_send and ssl_socket_recv_into are callbacks from mbedtls code,
-// it is not OK to exit them by raising an exception (nlr_jump'ing through
-// foreign code is not permitted). Instead, preserve the error number of any OSError
-// and turn anything else into -MP_EINVAL.
-static int call_method_errno(size_t n_args, const mp_obj_t *args) {
-    nlr_buf_t nlr;
-    mp_int_t result = -MP_EINVAL;
-    if (nlr_push(&nlr) == 0) {
-        mp_obj_t obj_result = mp_call_method_n_kw(n_args, 0, args);
-        result = (obj_result == mp_const_none) ? 0 : mp_obj_get_int(obj_result);
-        nlr_pop();
-        return result;
-    } else {
-        mp_obj_t exc = MP_OBJ_FROM_PTR(nlr.ret_val);
-        if (nlr_push(&nlr) == 0) {
-            result = -mp_obj_get_int(mp_load_attr(exc, MP_QSTR_errno));
-            nlr_pop();
-        }
-    }
-    return result;
-}
-
-static int ssl_socket_send(ssl_sslsocket_obj_t *self, const byte *buf, size_t len) {
-    mp_obj_array_t mv;
-    mp_obj_memoryview_init(&mv, 'B', 0, len, (void *)buf);
-
-    self->send_args[2] = MP_OBJ_FROM_PTR(&mv);
-    return call_method_errno(1, self->send_args);
-}
-
-static int ssl_socket_recv_into(ssl_sslsocket_obj_t *self, byte *buf, size_t len) {
-    mp_obj_array_t mv;
-    mp_obj_memoryview_init(&mv, 'B' | MP_OBJ_ARRAY_TYPECODE_FLAG_RW, 0, len, buf);
-
-    self->recv_into_args[2] = MP_OBJ_FROM_PTR(&mv);
-    return call_method_errno(1, self->recv_into_args);
-}
-
 static void ssl_socket_connect(ssl_sslsocket_obj_t *self, mp_obj_t addr_in) {
     self->connect_args[2] = addr_in;
     mp_call_method_n_kw(1, 0, self->connect_args);
@@ -172,31 +134,34 @@ static mp_obj_t ssl_socket_accept(ssl_sslsocket_obj_t *self) {
 
 static int _mbedtls_ssl_send(void *ctx, const byte *buf, size_t len) {
     ssl_sslsocket_obj_t *self = (ssl_sslsocket_obj_t *)ctx;
+    const mp_stream_p_t *stream_p = mp_get_stream_raise(self->sock_obj, MP_STREAM_OP_WRITE);
+    int errcode = 0;
+    mp_uint_t ret = stream_p->write(self->sock_obj, buf, len, &errcode);
+    DEBUG_PRINT("socket_send() -> %d [%d]", ret, errcode);
 
-    mp_int_t out_sz = ssl_socket_send(self, buf, len);
-    DEBUG_PRINT("socket_send() -> %d", out_sz);
-    if (out_sz < 0) {
-        int err = -out_sz;
-        DEBUG_PRINT("sock_stream->write() -> %d nonblocking? %d", out_sz, mp_is_nonblocking_error(err));
-        if (mp_is_nonblocking_error(err)) {
+    if (ret == MP_STREAM_ERROR) {
+        if (mp_is_nonblocking_error(errcode)) {
             return MBEDTLS_ERR_SSL_WANT_WRITE;
         }
+        return errcode;
     }
-    return out_sz;
+    return (int)ret;
 }
 
 static int _mbedtls_ssl_recv(void *ctx, byte *buf, size_t len) {
     ssl_sslsocket_obj_t *self = (ssl_sslsocket_obj_t *)ctx;
 
-    mp_int_t out_sz = ssl_socket_recv_into(self, buf, len);
-    DEBUG_PRINT("socket_recv() -> %d", out_sz);
-    if (out_sz < 0) {
-        int err = -out_sz;
-        if (mp_is_nonblocking_error(err)) {
+    int errcode = 0;
+    const mp_stream_p_t *stream_p = mp_get_stream_raise(self->sock_obj, MP_STREAM_OP_READ);
+    mp_uint_t ret = stream_p->read(self->sock_obj, buf, len, &errcode);
+    DEBUG_PRINT("socket_recv() -> %d [%d]", ret, errcode);
+    if (ret == MP_STREAM_ERROR) {
+        if (mp_is_nonblocking_error(errcode)) {
             return MBEDTLS_ERR_SSL_WANT_READ;
         }
+        return errcode;
     }
-    return out_sz;
+    return (int)ret;
 }
 
 
@@ -229,8 +194,6 @@ ssl_sslsocket_obj_t *common_hal_ssl_sslcontext_wrap_socket(ssl_sslcontext_obj_t 
     mp_load_method(socket, MP_QSTR_close, o->close_args);
     mp_load_method(socket, MP_QSTR_connect, o->connect_args);
     mp_load_method(socket, MP_QSTR_listen, o->listen_args);
-    mp_load_method(socket, MP_QSTR_recv_into, o->recv_into_args);
-    mp_load_method(socket, MP_QSTR_send, o->send_args);
     mp_load_method(socket, MP_QSTR_settimeout, o->settimeout_args);
     mp_load_method(socket, MP_QSTR_setsockopt, o->setsockopt_args);
 

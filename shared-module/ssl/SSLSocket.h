@@ -36,8 +36,6 @@ typedef struct ssl_sslsocket_obj {
     mp_obj_t close_args[2];
     mp_obj_t connect_args[3];
     mp_obj_t listen_args[3];
-    mp_obj_t recv_into_args[3];
-    mp_obj_t send_args[3];
     mp_obj_t setsockopt_args[5];
     mp_obj_t settimeout_args[3];
 } ssl_sslsocket_obj_t;
