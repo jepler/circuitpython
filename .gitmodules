@@ -151,6 +151,12 @@
 	path = ports/espressif/esp-camera
 	url = https://github.com/adafruit/esp32-camera.git
 	branch = circuitpython
+[submodule "ports/espressif/components/esp-zigbee-sdk"]
+	path = ports/espressif/components/esp-zigbee-sdk
+	url = https://github.com/adafruit/components/esp-zigbee-sdk.git
+[submodule "ports/espressif/components/esp-zboss-lib"]
+	path = ports/espressif/components/esp-zboss-lib
+	url = https://github.com/adafruit/components/esp-zboss-lib.git
 [submodule "frozen/Adafruit_CircuitPython_ST7789"]
 	path = frozen/Adafruit_CircuitPython_ST7789
 	url = https://github.com/adafruit/Adafruit_CircuitPython_ST7789

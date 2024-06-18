@@ -13,3 +13,10 @@ CONFIG_LWIP_LOCAL_HOSTNAME="espressif-esp32c6"
 # end of Component config
 
 # end of Espressif IoT Development Framework Configuration
+
+#
+# Zboss
+#
+CONFIG_ZB_ENABLED=y
+CONFIG_ZB_ZCZR=y
+# end of Zboss

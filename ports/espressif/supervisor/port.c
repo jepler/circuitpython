@@ -202,6 +202,11 @@ static void _never_reset_spi_ram_flash(void) {
     #endif // CONFIG_IDF_TARGET_ESP32
 }
 
+#include "zb_vendor_default.h"
+#include "esp_zigbee_core.h"
+#include "zboss_api.h"
+#include "zboss_api_tl.h"
+
 safe_mode_t port_init(void) {
     esp_timer_create_args_t args;
     args.callback = &tick_timer_cb;
@@ -286,7 +291,33 @@ safe_mode_t port_init(void) {
             break;
     }
 
+/* Zigbee configuration */
+#define INSTALLCODE_POLICY_ENABLE       false   /* enable the install code policy for security */
+#define ED_AGING_TIMEOUT                ESP_ZB_ED_AGING_TIMEOUT_64MIN
+#define ED_KEEP_ALIVE                   3000    /* 3000 millisecond */
+#define HA_ESP_LIGHT_ENDPOINT           10      /* esp light bulb device endpoint, used to process light controlling commands */
+#define ESP_ZB_PRIMARY_CHANNEL_MASK     ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK  /* Zigbee primary channel mask use in the example */
+
+#define ESP_ZB_ZED_CONFIG()                                         \
+    {                                                               \
+        .esp_zb_role = ESP_ZB_DEVICE_TYPE_ED,                       \
+        .install_code_policy = INSTALLCODE_POLICY_ENABLE,           \
+        .nwk_cfg.zed_cfg = {                                        \
+            .ed_timeout = ED_AGING_TIMEOUT,                         \
+            .keep_alive = ED_KEEP_ALIVE,                            \
+        },                                                          \
+    }
+
+    esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZED_CONFIG();
+    ESP_LOGE(TAG, "calling esp_zb_init");
+    esp_zb_init(&zb_nwk_cfg);
+    ESP_LOGE(TAG, "esp_zb_init returned");
+
     return SAFE_MODE_NONE;
+}
+
+void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
+    ESP_LOGE(TAG, "esp_zb_app_signal_handler");
 }
 
 void port_heap_init(void) {
