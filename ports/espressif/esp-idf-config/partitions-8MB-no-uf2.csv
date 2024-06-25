@@ -3,6 +3,7 @@
 # partition_table,  data,   table,      0x8000,     4K
 nvs,                data,   nvs,        0x9000,     20K
 otadata,            data,   ota,        0xe000,     8K
-ota_0,              app,    ota_0,      0x10000,    2048K
-ota_1,              app,    ota_1,      0x210000,   2048K
-user_fs,            data,   fat,        0x410000,   4032K
+ota_0,              app,    ota_0,      0x10000,    4096K
+zb_storage, data, fat,      0x410000, 16K,
+zb_fct,     data, fat,      0x414000, 1K,
+user_fs,            data,   fat,        0x418000,   4000K

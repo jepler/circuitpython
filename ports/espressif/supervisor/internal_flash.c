@@ -59,7 +59,7 @@ void supervisor_flash_init(void) {
     }
     _partition[0] = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
         ESP_PARTITION_SUBTYPE_DATA_FAT,
-        NULL);
+        "user_fs");
     #if CIRCUITPY_STORAGE_EXTEND
     _partition[1] = esp_ota_get_next_update_partition(NULL);
     #endif

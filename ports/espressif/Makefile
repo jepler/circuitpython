@@ -416,7 +416,6 @@ endif
 endif
 FLASH_MODE_SDKCONFIG ?= esp-idf-config/sdkconfig-flash-$(CIRCUITPY_ESP_FLASH_MODE).defaults
 FLASH_SPEED_SDKCONFIG ?= esp-idf-config/sdkconfig-flash-$(CIRCUITPY_ESP_FLASH_FREQ).defaults
-
 ifneq ($(CIRCUITPY_ESP_PSRAM_SIZE), 0)
 	PSRAM_SDKCONFIG = esp-idf-config/sdkconfig-psram.defaults
 	PSRAM_SIZE_SDKCONFIG = esp-idf-config/sdkconfig-psram-$(CIRCUITPY_ESP_PSRAM_SIZE).defaults
@@ -546,11 +545,17 @@ ESP_IDF_COMPONENTS_EXPANDED += $(BUILD)/esp-idf/esp-idf/esp-camera/libesp-camera
 #$(error $(ESP_IDF_COMPONENTS_EXPANDED))
 endif
 
+ifneq ($(DEBUG),0)
+DEBUG_SUFFIX=debug.
+else
+# blank
+DEBUG_SUFFIX=
+endif
 CIRCUITPY_ZIGBEE  ?= 1
 ifneq ($(CIRCUITPY_ZIGBEE),0)
-ESP_IDF_COMPONENTS_EXPANDED += components/esp-zboss-lib/lib/$(IDF_TARGET)/libzboss_port.a
-ESP_IDF_COMPONENTS_EXPANDED += components/esp-zboss-lib/lib/$(IDF_TARGET)/libzboss_stack.ed.a
-ESP_IDF_COMPONENTS_EXPANDED += components/esp-zigbee-sdk/components/esp-zigbee-lib/lib/$(IDF_TARGET)/libesp_zb_api_ed.a
+ESP_IDF_COMPONENTS_EXPANDED += components/esp-zboss-lib/lib/$(IDF_TARGET)/libzboss_port.$(DEBUG_SUFFIX)a
+ESP_IDF_COMPONENTS_EXPANDED += components/esp-zboss-lib/lib/$(IDF_TARGET)/libzboss_stack.ed.$(DEBUG_SUFFIX)a
+ESP_IDF_COMPONENTS_EXPANDED += components/esp-zigbee-sdk/components/esp-zigbee-lib/lib/$(IDF_TARGET)/libesp_zb_api_ed.$(DEBUG_SUFFIX)a
 #ESP_IDF_COMPONENTS_EXPANDED += esp-idf/components/ieee802154/lib/$(IDF_TARGET)/lib802154.a
 ESP_IDF_COMPONENTS_EXPANDED += $(BUILD)/esp-idf/esp-idf/ieee802154/libieee802154.a
 $(info components: $(ESP_IDF_COMPONENTS_EXPANDED))
