@@ -359,6 +359,15 @@ SRC_ULP := \
 SRC_C += $(SRC_ULP)
 endif
 
+CFLAGS += -DCIRCUITPY_ZIGBEE=$(CIRCUITPY_ZIGBEE)
+ifneq ($(CIRCUITPY_ZIGBEE),0)
+SRC_ZIGBEE := \
+	$(wildcard common-hal/_zig/*.c) \
+	$(wildcard bindings/_zig/*.c)
+SRC_C += $(SRC_ZIGBEE)
+endif
+
+
 SRC_COMMON_HAL_EXPANDED = \
 	$(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
 	$(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
