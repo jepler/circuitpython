@@ -1,3 +1,18 @@
+// why not from sdkconfig ??
+#define CONFIG_ZB_ZCZR (1)
+#define CONFIG_ZB_ENABLED (1)
+
+#if !defined(NO_QSTR)
+#include "esp_zigbee_core.h"
+#include "zboss_api.h"
+#include "zboss_api_tl.h"
+#include "ha/esp_zigbee_ha_standard.h"
+
+#if !defined ZB_ROUTER_ROLE
+#error define ZB_ROUTER_ROLE to compile
+#endif /* defined ZB_ROUTER_ROLE */
+#endif
+
 #include "esp_check.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -6,14 +21,6 @@
 #include "freertos/task.h"
 
 #include "common-hal/_zig/__init__.h"
-
-#if !defined(NO_QSTR)
-#include "zb_vendor_default.h"
-#include "esp_zigbee_core.h"
-#include "zboss_api.h"
-#include "zboss_api_tl.h"
-#include "ha/esp_zigbee_ha_standard.h"
-#endif
 
 /* Zigbee configuration */
 #define MAX_CHILDREN                    10          /* the max amount of connected devices */
@@ -103,13 +110,17 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
     esp_err_t err_status = signal_struct->esp_err_status;
     esp_zb_app_signal_type_t sig_type = *p_sg_p;
     esp_zb_zdo_signal_device_annce_params_t *dev_annce_params = NULL;
+    ESP_LOGE(TAG, "here sig_type=%d (%s)\n", (int)sig_type, esp_zb_zdo_signal_to_string(sig_type));
     switch (sig_type) {
         case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
             ESP_LOGI(TAG, "Initialize Zigbee stack");
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             break;
         case ESP_ZB_BDB_SIGNAL_DEVICE_FIRST_START:
         case ESP_ZB_BDB_SIGNAL_DEVICE_REBOOT:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             if (err_status == ESP_OK) {
                 ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
                 ESP_LOGI(TAG, "Device started up in %s factory-reset mode", esp_zb_bdb_is_factory_new() ? "" : "non");
@@ -123,9 +134,11 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
             }
             break;
         case ESP_ZB_BDB_SIGNAL_TOUCHLINK_TARGET:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             ESP_LOGI(TAG, "Touchlink target is ready, awaiting commissioning");
             break;
         case ESP_ZB_BDB_SIGNAL_TOUCHLINK_NWK:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             if (err_status == ESP_OK) {
                 esp_zb_ieee_addr_t extended_pan_id;
                 esp_zb_get_extended_pan_id(extended_pan_id);
@@ -137,6 +150,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
             }
             break;
         case ESP_ZB_BDB_SIGNAL_TOUCHLINK_TARGET_FINISHED:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             if (err_status == ESP_OK) {
                 ESP_LOGI(TAG, "Touchlink target commissioning finished");
             } else {
@@ -144,10 +158,12 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
             }
             break;
         case ESP_ZB_ZDO_SIGNAL_DEVICE_ANNCE:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             dev_annce_params = (esp_zb_zdo_signal_device_annce_params_t *)esp_zb_app_signal_get_params(p_sg_p);
             ESP_LOGI(TAG, "New device commissioned or rejoined (short: 0x%04hx)", dev_annce_params->device_short_addr);
             break;
         case ESP_ZB_NWK_SIGNAL_PERMIT_JOIN_STATUS:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             if (err_status == ESP_OK) {
                 if (*(uint8_t *)esp_zb_app_signal_get_params(p_sg_p)) {
                     ESP_LOGI(TAG, "Network(0x%04hx) is open for %d seconds", esp_zb_get_pan_id(), *(uint8_t *)esp_zb_app_signal_get_params(p_sg_p));
@@ -157,6 +173,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
             }
             break;
         default:
+            ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
             ESP_LOGI(TAG, "ZDO signal: %s (0x%x), status: %s", esp_zb_zdo_signal_to_string(sig_type), sig_type, esp_err_to_name(err_status));
             break;
     }
@@ -164,6 +181,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct) {
 
 
 static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message) {
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_err_t ret = ESP_OK;
     bool light_state = 0;
 
@@ -185,6 +203,7 @@ static esp_err_t zb_attribute_handler(const esp_zb_zcl_set_attr_value_message_t 
 }
 
 static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message) {
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_err_t ret = ESP_OK;
     switch (callback_id) {
         case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID:
@@ -198,24 +217,35 @@ static esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id,
 }
 
 static void esp_zb_task(void *pvParameters) {
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     /* Initialize Zigbee stack with Zigbee coordinator config */
     esp_zb_cfg_t zb_nwk_cfg = ESP_ZB_ZR_CONFIG();
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_zb_init(&zb_nwk_cfg);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     esp_zb_set_channel_mask(ESP_ZB_TOUCHLINK_CHANNEL_MASK);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_zb_set_rx_on_when_idle(true);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_zb_zdo_touchlink_target_set_timeout(TOUCHLINK_TARGET_TIMEOUT);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     esp_zb_attribute_list_t *touchlink_cluster = esp_zb_touchlink_commissioning_cluster_create();
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     esp_zb_on_off_light_cfg_t light_cfg = ESP_ZB_DEFAULT_ON_OFF_LIGHT_CONFIG();
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     /* Create a standard HA on-off light cluster list */
     esp_zb_cluster_list_t *cluster_list = esp_zb_on_off_light_clusters_create(&light_cfg);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     /* Add touchlink commissioning cluster */
     esp_zb_cluster_list_add_touchlink_commissioning_cluster(cluster_list, touchlink_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     /* Add created endpoint (cluster_list) to endpoint list */
     esp_zb_endpoint_config_t endpoint_config = {
         .endpoint = HA_ESP_LIGHT_ENDPOINT,
@@ -224,12 +254,17 @@ static void esp_zb_task(void *pvParameters) {
         .app_device_version = 0
     };
     esp_zb_ep_list_add_ep(esp_zb_ep_list, cluster_list, endpoint_config);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     esp_zb_device_register(esp_zb_ep_list);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_zb_core_action_handler_register(zb_action_handler);
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     ESP_ERROR_CHECK(esp_zb_start(false));
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     esp_zb_main_loop_iteration();
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 }
 
 bool common_hal_zig_light_get_power(void) {
@@ -241,9 +276,12 @@ void zig_init(void) {
         .radio_config = ESP_ZB_DEFAULT_RADIO_CONFIG(),
         .host_config = ESP_ZB_DEFAULT_HOST_CONFIG(),
     };
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
     /* Load Zigbee platform config to initialization */
     ESP_ERROR_CHECK(esp_zb_platform_config(&config));
+    ESP_LOGE(TAG, "%s:%d", __FILE__, __LINE__);
 
     xTaskCreate(esp_zb_task, "Zigbee_main", 4096, NULL, 5, NULL);
 }
