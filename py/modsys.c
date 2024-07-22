@@ -302,7 +302,10 @@ STATIC const mp_rom_map_elem_t mp_module_sys_globals_table[] = {
      * Extensions to CPython
      */
 
+    #if MICROPY_PY_SYS_PRINT_EXCEPTION
     { MP_ROM_QSTR(MP_QSTR_print_exception), MP_ROM_PTR(&mp_sys_print_exception_obj) },
+    #endif
+
     #if MICROPY_PY_SYS_ATEXIT
     { MP_ROM_QSTR(MP_QSTR_atexit), MP_ROM_PTR(&mp_sys_atexit_obj) },
     #endif
