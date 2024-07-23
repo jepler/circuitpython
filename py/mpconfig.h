@@ -1480,7 +1480,7 @@ typedef double mp_float_t;
 
 // Whether to provide "sys.print_exception" function (MicroPython extension)
 #ifndef MICROPY_PY_SYS_PRINT_EXCEPTION
-#define MICROPY_PY_SYS_PRINT_EXCEPTION (0)
+#define MICROPY_PY_SYS_PRINT_EXCEPTION (1)
 #endif
 
 // Whether to provide "sys.atexit" function (MicroPython extension)
