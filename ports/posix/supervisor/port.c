@@ -73,9 +73,8 @@ safe_mode_t port_init(void) {
     size_t stacksize;
     pthread_attr_getstack(&attr, &stackaddr, &stacksize);
     // Define a reasonable stack limit to detect stack overflow.
-    stacksize = MIN(40000 * (sizeof(void *) / 4), stacksize);
     _stack_top = (uint32_t *)((char *)stackaddr + stacksize);
-    _stack_limit = (uint32_t *)stackaddr + 4096;
+    _stack_limit = MAX((uint32_t *)stackaddr, _stack_top - 40000 * sizeof(void *) / sizeof(int));
     pthread_attr_destroy(&attr);
     return SAFE_MODE_NONE;
 }
@@ -87,8 +86,8 @@ safe_mode_t port_init(void) {
     getrlimit(RLIMIT_STACK, &lim);
     // Define a reasonable stack limit to detect stack overflow.
     mp_uint_t stack_limit = MIN(lim.rlim_cur, 40000 * (sizeof(void *) / 4));
-    _stack_limit = _stack_top - stack_limit
-        return SAFE_MODE_NONE;
+    _stack_limit = _stack_top - stack_limit;
+    return SAFE_MODE_NONE;
 }
 #endif
 
