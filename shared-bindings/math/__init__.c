@@ -49,13 +49,30 @@ STATIC NORETURN void math_error(void) {
     mp_raise_ValueError(MP_ERROR_TEXT("math domain error"));
 }
 
-#define MATH_FUN_1(py_name, c_name) \
-    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj) { return mp_obj_new_float(MICROPY_FLOAT_C_FUN(c_name)(mp_obj_get_float(x_obj))); } \
-    STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_math_##py_name##_obj, mp_math_##py_name);
+STATIC mp_obj_t math_generic_1(mp_obj_t x_obj, mp_float_t (*f)(mp_float_t)) {
+    mp_float_t x = mp_obj_get_float(x_obj);
+    mp_float_t ans = f(x);
+    if ((isnan(ans) && !isnan(x)) || (isinf(ans) && !isinf(x))) {
+        math_error();
+    }
+    return mp_obj_new_float(ans);
+}
 
-#define MATH_FUN_2(py_name, c_name) \
-    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj, mp_obj_t y_obj) { return mp_obj_new_float(MICROPY_FLOAT_C_FUN(c_name)(mp_obj_get_float(x_obj), mp_obj_get_float(y_obj))); } \
-    STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_math_##py_name##_obj, mp_math_##py_name);
+STATIC mp_obj_t math_generic_2(mp_obj_t x_obj, mp_obj_t y_obj, mp_float_t (*f)(mp_float_t, mp_float_t)) {
+    mp_float_t x = mp_obj_get_float(x_obj);
+    mp_float_t y = mp_obj_get_float(y_obj);
+    mp_float_t ans = f(x, y);
+    if ((isnan(ans) && !isnan(x) && !isnan(y)) || (isinf(ans) && !isinf(x) && !isinf(y))) {
+        math_error();
+    }
+    return mp_obj_new_float(ans);
+}
+
+#define MATH_FUN_1(py_name, c_name) \
+    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj) { \
+        return math_generic_1(x_obj, MICROPY_FLOAT_C_FUN(c_name)); \
+    } \
+    STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_math_##py_name##_obj, mp_math_##py_name);
 
 #define MATH_FUN_1_TO_BOOL(py_name, c_name) \
     STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj) { return mp_obj_new_bool(c_name(mp_obj_get_float(x_obj))); } \
@@ -65,15 +82,17 @@ STATIC NORETURN void math_error(void) {
     STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj) { return mp_obj_new_int_from_float(MICROPY_FLOAT_C_FUN(c_name)(mp_obj_get_float(x_obj))); } \
     STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_math_##py_name##_obj, mp_math_##py_name);
 
-#define MATH_FUN_1_ERRCOND(py_name, c_name, error_condition) \
-    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj) { \
-        mp_float_t x = mp_obj_get_float(x_obj); \
-        if (error_condition) { \
-            math_error(); \
-        } \
-        return mp_obj_new_float(MICROPY_FLOAT_C_FUN(c_name)(x)); \
+#define MATH_FUN_2(py_name, c_name) \
+    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj, mp_obj_t y_obj) { \
+        return math_generic_2(x_obj, y_obj, MICROPY_FLOAT_C_FUN(c_name)); \
     } \
-    STATIC MP_DEFINE_CONST_FUN_OBJ_1(mp_math_##py_name##_obj, mp_math_##py_name);
+    STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_math_##py_name##_obj, mp_math_##py_name);
+
+#define MATH_FUN_2_FLT_INT(py_name, c_name) \
+    STATIC mp_obj_t mp_math_##py_name(mp_obj_t x_obj, mp_obj_t y_obj) { \
+        return mp_obj_new_float(MICROPY_FLOAT_C_FUN(c_name)(mp_obj_get_float(x_obj), mp_obj_get_int(y_obj))); \
+    } \
+    STATIC MP_DEFINE_CONST_FUN_OBJ_2(mp_math_##py_name##_obj, mp_math_##py_name);
 
 #ifdef MP_NEED_LOG2
 // 1.442695040888963407354163704 is 1/_M_LN2
@@ -154,7 +173,7 @@ STATIC NORETURN void math_error(void) {
 //|     """Return ``True`` if ``x`` is not-a-number"""
 //|     ...
 //|
-//| def ldexp(x: float, exp: float) -> float:
+//| def ldexp(x: float, exp: int) -> float:
 //|     """Return ``x * (2**exp)``."""
 //|     ...
 //|
@@ -190,9 +209,22 @@ STATIC NORETURN void math_error(void) {
 //|     """Return an integer, being ``x`` rounded towards 0."""
 //|     ...
 //|
-MATH_FUN_1_ERRCOND(sqrt, sqrt, (x < (mp_float_t)0.0))
+MATH_FUN_1(sqrt, sqrt)
 
+// pow(x, y): returns x to the power of y
+#if MICROPY_PY_MATH_POW_FIX_NAN
+mp_float_t pow_func(mp_float_t x, mp_float_t y) {
+    // pow(base, 0) returns 1 for any base, even when base is NaN
+    // pow(+1, exponent) returns 1 for any exponent, even when exponent is NaN
+    if (x == MICROPY_FLOAT_CONST(1.0) || y == MICROPY_FLOAT_CONST(0.0)) {
+        return MICROPY_FLOAT_CONST(1.0);
+    }
+    return MICROPY_FLOAT_C_FUN(pow)(x, y);
+}
+MATH_FUN_2(pow, pow_func)
+#else
 MATH_FUN_2(pow, pow)
+#endif
 
 MATH_FUN_1(exp, exp)
 #if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
@@ -290,17 +322,40 @@ MATH_FUN_1(asin, asin)
 
 MATH_FUN_1(atan, atan)
 
+// atan2(y, x)
+#if MICROPY_PY_MATH_ATAN2_FIX_INFNAN
+mp_float_t atan2_func(mp_float_t x, mp_float_t y) {
+    if (isinf(x) && isinf(y)) {
+        return copysign(y < 0 ? MP_3_PI_4 : MP_PI_4, x);
+    }
+    return atan2(x, y);
+}
+MATH_FUN_2(atan2, atan2_func)
+#else
 MATH_FUN_2(atan2, atan2)
+#endif
 
 MATH_FUN_1_TO_INT(ceil, ceil)
 
-MATH_FUN_2(copysign, copysign)
+// copysign(x, y)
+STATIC mp_float_t MICROPY_FLOAT_C_FUN(copysign_func)(mp_float_t x, mp_float_t y) {
+    return MICROPY_FLOAT_C_FUN(copysign)(x, y);
+}
+MATH_FUN_2(copysign, copysign_func)
 
 MATH_FUN_1(fabs, fabs)
 
 MATH_FUN_1_TO_INT(floor, floor) // TODO: delegate to x.__floor__() if x is not a float
 
+// fmod(x, y)
+#if MICROPY_PY_MATH_FMOD_FIX_INFNAN
+mp_float_t fmod_func(mp_float_t x, mp_float_t y) {
+    return (!isinf(x) && isinf(y)) ? x : fmod(x, y);
+}
+MATH_FUN_2(fmod, fmod_func)
+#else
 MATH_FUN_2(fmod, fmod)
+#endif
 
 MATH_FUN_1_TO_BOOL(isfinite, isfinite)
 
@@ -310,7 +365,7 @@ MATH_FUN_1_TO_BOOL(isnan, isnan)
 
 MATH_FUN_1_TO_INT(trunc, trunc)
 
-MATH_FUN_2(ldexp, ldexp)
+MATH_FUN_2_FLT_INT(ldexp, ldexp)
 #if MICROPY_PY_MATH_SPECIAL_FUNCTIONS
 
 //| def erf(x: float) -> float:
@@ -349,7 +404,7 @@ MATH_FUN_1(gamma, tgamma)
 //|
 MATH_FUN_1(lgamma, lgamma)
 #endif
-// TODO: factorial, fsum
+// TODO: factorial, fsum, isclose
 
 // Function that takes a variable number of arguments
 
@@ -371,7 +426,7 @@ STATIC mp_obj_t mp_math_log(size_t n_args, const mp_obj_t *args) {
             #pragma GCC diagnostic ignored "-Wfloat-equal"
         } else if (base == (mp_float_t)1.0) {
             #pragma GCC diagnostic pop
-            math_error();
+            mp_raise_ZeroDivisionError();
         }
         return mp_obj_new_float(l / MICROPY_FLOAT_C_FUN(log)(base));
     }
