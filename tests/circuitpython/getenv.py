@@ -1,6 +1,12 @@
 import os
 
-os.umount("/")
+try:
+    from storage import mount, umount, VfsFat
+except ImportError:
+    print("SKIP")
+    raise SystemExit
+
+umount("/")
 
 
 class RAMBlockDevice:
@@ -32,8 +38,8 @@ class RAMBlockDevice:
 
 
 bdev = RAMBlockDevice(64)
-os.VfsFat.mkfs(bdev)
-os.mount(os.VfsFat(bdev), "/")
+VfsFat.mkfs(bdev)
+mount(VfsFat(bdev), "/")
 
 content_good = b"""
 # comment
@@ -82,7 +88,12 @@ for i in range(13):
     run_test(f"key{i}", content_good)
 
 run_test(f"K", b"K = 7\r\n")
-print(getenv_int("K"))
+print(repr(os.getenv_int("K")))
+print(repr(os.getenv_str("K")))
+
+run_test(f"K", b'K = "7"\r\n')
+print(repr(os.getenv_int("K")))
+print(repr(os.getenv_str("K")))
 
 # Test value without trailing newline
 run_test(f"noeol", b"noeol=3")

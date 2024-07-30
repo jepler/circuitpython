@@ -27,8 +27,16 @@ key11 0
 key12 None
 K 7
 7
+An error occurred while retrieving 'K':
+Invalid byte '7'
+None
+K '7'
+An error occurred while retrieving 'K':
+Invalid byte '"'
+None
+'7'
 noeol 3
 key Invalid byte '\n'
 key Invalid byte '"'
-key invalid syntax for integer with base 10: ''
+key invalid syntax for integer with base 10
 key Invalid byte 'EOF'

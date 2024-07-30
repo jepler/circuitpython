@@ -49,7 +49,10 @@
 #include "extmod/vfs_fat.h"
 typedef FIL file_arg;
 STATIC bool open_file(const char *name, file_arg *active_file) {
-    #if defined(UNIX)
+    #if defined(UNIX) || CIRCUITPY_COMMAND_LINE_WORKFLOW
+    if (!gc_alloc_possible()) {
+        return false;
+    }
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         mp_obj_t file_obj = mp_call_function_2(MP_OBJ_FROM_PTR(&mp_builtin_open_obj), mp_obj_new_str(name, strlen(name)), MP_ROM_QSTR(MP_QSTR_rb));

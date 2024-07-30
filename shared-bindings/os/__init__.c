@@ -126,6 +126,28 @@ STATIC mp_obj_t os_getenv(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(os_getenv_obj, 1, os_getenv);
 
+#if CIRCUITPY_COMMAND_LINE_WORKFLOW
+#include "shared-module/os/__init__.h"
+STATIC mp_obj_t os_getenv_int(mp_obj_t var_in) {
+    mp_int_t value;
+    os_getenv_err_t result = common_hal_os_getenv_int(mp_obj_str_get_str(var_in), &value);
+    if (result == 0) {
+        return mp_obj_new_int(value);
+    }
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(os_getenv_int_obj, os_getenv_int);
+STATIC mp_obj_t mod_os_getenv_str(mp_obj_t var_in) {
+    char buf[4096];
+    os_getenv_err_t result = common_hal_os_getenv_str(mp_obj_str_get_str(var_in), buf, sizeof(buf));
+    if (result == 0) {
+        return mp_obj_new_str_copy(&mp_type_str, (byte *)buf, strlen(buf));
+    }
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_1(os_getenv_str_obj, mod_os_getenv_str);
+#endif
+
 //| def listdir(dir: str) -> str:
 //|     """With no argument, list the current directory.  Otherwise list the given directory."""
 //|     ...
@@ -306,6 +328,10 @@ STATIC const mp_rom_map_elem_t os_module_globals_table[] = {
 
     { MP_ROM_QSTR(MP_QSTR_urandom), MP_ROM_PTR(&os_urandom_obj) },
 
+    #if CIRCUITPY_COMMAND_LINE_WORKFLOW
+    { MP_ROM_QSTR(MP_QSTR_getenv_int), MP_ROM_PTR(&os_getenv_int_obj) },
+    { MP_ROM_QSTR(MP_QSTR_getenv_str), MP_ROM_PTR(&os_getenv_str_obj) },
+    #endif
 //| sep: str
 //| """Separator used to delineate path components such as folder and file names."""
     { MP_ROM_QSTR(MP_QSTR_sep), MP_ROM_QSTR(MP_QSTR__slash_) },
