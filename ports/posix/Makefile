@@ -88,7 +88,9 @@ test: circuitpython
 		echo $?; \
 	fi
 
-.PHONY: vtest%
+.PHONY: vtest% vtest
+vtest:
+	$(Q)$(MAKE) TEST_SHOW_FAILURES=true "test"
 vtest%:
 	$(Q)$(MAKE) TEST_SHOW_FAILURES=true "test$*"
 
