@@ -246,13 +246,9 @@ STATIC mp_obj_t time_localtime(size_t n_args, const mp_obj_t *args) {
 
     mp_int_t secs = mp_obj_get_int(arg);
 
-    #if MICROPY_EPOCH_IS_1970
-    if (secs < 0 || (mp_uint_t)secs < TIMEUTILS_SECONDS_1970_TO_2000) {
-    #else
-    if (secs < 0) {
-        #endif
-        mp_raise_msg(&mp_type_OverflowError, MP_ERROR_TEXT("timestamp out of range for platform time_t"));
-    }
+    // CIRCUITPY-CHANGE
+    mp_int_t min_secs = MICROPY_EPOCH_IS_1970 ? 0 : TIMEUTILS_SECONDS_1970_TO_2000;
+    mp_arg_validate_int_min(secs, min_secs, MP_QSTR_secs);
 
     timeutils_struct_time_t tm;
     timeutils_seconds_since_epoch_to_struct_time(secs, &tm);
@@ -284,9 +280,7 @@ STATIC mp_obj_t time_mktime(mp_obj_t t) {
         mp_raise_TypeError_varg(MP_ERROR_TEXT("function takes %d positional arguments but %d were given"), 9, len);
     }
 
-    if (mp_obj_get_int(elem[0]) < 2000) {
-        mp_raise_msg_varg(&mp_type_OverflowError, MP_ERROR_TEXT("%q out of range"), MP_QSTR_tm_year);
-    }
+    mp_arg_validate_int_range(mp_obj_get_int(elem[0]), 1970, 2037, MP_QSTR_tm_year);
 
     mp_uint_t secs = timeutils_mktime(mp_obj_get_int(elem[0]), mp_obj_get_int(elem[1]), mp_obj_get_int(elem[2]),
         mp_obj_get_int(elem[3]), mp_obj_get_int(elem[4]), mp_obj_get_int(elem[5]));
