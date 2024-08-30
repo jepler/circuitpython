@@ -54,6 +54,9 @@ DIFF = os.getenv("MICROPY_DIFF", "diff -u")
 # Set PYTHONIOENCODING so that CPython will use utf-8 on systems which set another encoding in the locale
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
+# Set time zone to one that allows the time_mktime_localtime test to succeed
+os.environ["TZ"] = "GMT"
+
 # Code to allow a target MicroPython to import an .mpy from RAM
 injected_import_hook_code = """\
 import sys, os, io
@@ -721,6 +724,7 @@ def run_tests(pyb, tests, args, result_dir, num_threads=1):
                 "PYTHONPATH": base_path("testlib"),
                 "PATH": os.environ["PATH"],
                 "LANG": "en_US.UTF-8",
+                "TZ": "GMT",
             }
             # run CPython to work out expected output
             try:
