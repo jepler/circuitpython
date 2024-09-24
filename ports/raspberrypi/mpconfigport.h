@@ -37,6 +37,10 @@
 #define CIRCUITPY_USB_HOST_INSTANCE 1
 #endif
 
+#ifndef CIRCUITPY_PICO_RP2350_E9_WORKAROUND
+#define CIRCUITPY_PICO_RP2350_E9_WORKAROUND (PICO_RP2350)
+#endif
+
 // This also includes mpconfigboard.h.
 #include "py/circuitpy_mpconfig.h"
 

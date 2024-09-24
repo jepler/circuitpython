@@ -41,6 +41,10 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
 
     // Set to input. No output value.
     gpio_init(pin->number);
+    #if CIRCUITPY_PICO_RP2350_E9_WORKAROUND
+    gpio_set_input_enabled(self->pin->number, false);
+    #endif
+
     return DIGITALINOUT_OK;
 }
 
@@ -64,7 +68,11 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t *self
 digitalinout_result_t common_hal_digitalio_digitalinout_switch_to_input(
     digitalio_digitalinout_obj_t *self, digitalio_pull_t pull) {
     // This also sets direction to input.
-    return common_hal_digitalio_digitalinout_set_pull(self, pull);
+    digitalinout_result_t result = common_hal_digitalio_digitalinout_set_pull(self, pull);
+    #if CIRCUITPY_PICO_RP2350_E9_WORKAROUND
+    gpio_set_input_enabled(self->pin->number, false);
+    #endif
+    return result;
 }
 
 digitalinout_result_t common_hal_digitalio_digitalinout_switch_to_output(
@@ -134,7 +142,14 @@ bool common_hal_digitalio_digitalinout_get_value(
         return cyw43_arch_gpio_get(self->pin->number);
     }
     #endif
+    #if CIRCUITPY_PICO_RP2350_E9_WORKAROUND
+    gpio_set_input_enabled(self->pin->number, true);
+    bool result = gpio_get(self->pin->number);
+    gpio_set_input_enabled(self->pin->number, false);
+    return result;
+    #else
     return gpio_get(self->pin->number);
+    #endif
 }
 
 digitalinout_result_t common_hal_digitalio_digitalinout_set_drive_mode(
