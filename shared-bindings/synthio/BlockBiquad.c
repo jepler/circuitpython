@@ -11,9 +11,14 @@
 #include "shared-bindings/util.h"
 
 //| class FilterType:
+//|     """The type of filter"""
+//|
 //|     LOW_PASS: FilterType
+//|     """A low-pass filter"""
 //|     HIGH_PASS: FilterType
+//|     """A high-pass filter"""
 //|     BAND_PASS: FilterType
+//|     """A band-pass filter"""
 //|
 
 MAKE_ENUM_VALUE(synthio_filter_type, kind, LOW_PASS, SYNTHIO_LOW_PASS);
@@ -37,16 +42,28 @@ static synthio_filter_e validate_synthio_filter(mp_obj_t obj, qstr arg_name) {
 }
 
 //| class BlockBiquad:
-//|     def _init__(kind: FilterKind, f0: BlockInput, Q: BlockInput = 0.7071067811865475): ...
+//|     def __init__(
+//|         kind: FilterKind, frequency: BlockInput, q_factor: BlockInput = 0.7071067811865475
+//|     ):
+//|         """Construct a biquad filter object with dynamic center frequency & q factor
+//|
+//|         Since ``frequency`` and ``q_factor`` are `BlockInput`s, they can be varied dynamically.
+//|         Internally, this is evaluated as "direct form 1" biquad filter.
+//|
+//|         The internal filter state x[] and y[] is not updated when the filter
+//|         coefficients change, and there is no theoretical justification for why
+//|         this should result in a stable filter output. However, in practice,
+//|         slowly varying the filter's characteristic frequency and sharpness
+//|         appears to work as you'd expect."""
 
 static const mp_arg_t block_biquad_properties[] = {
     { MP_QSTR_kind, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = MP_OBJ_NULL } },
-    { MP_QSTR_f0, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = MP_OBJ_NULL } },
+    { MP_QSTR_frequency, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = MP_OBJ_NULL } },
     { MP_QSTR_Q, MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL } },
 };
 
 static mp_obj_t synthio_block_biquad_make_new(const mp_obj_type_t *type_in, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
-    enum { ARG_kind, ARG_f0, ARG_Q };
+    enum { ARG_kind, ARG_frequency, ARG_Q };
 
     mp_arg_val_t args[MP_ARRAY_SIZE(block_biquad_properties)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(block_biquad_properties), block_biquad_properties, args);
@@ -56,7 +73,7 @@ static mp_obj_t synthio_block_biquad_make_new(const mp_obj_type_t *type_in, size
     }
 
     synthio_filter_e kind = validate_synthio_filter(args[ARG_kind].u_obj, MP_QSTR_kind);
-    return common_hal_synthio_block_biquad_new(kind, args[ARG_f0].u_obj, args[ARG_Q].u_obj);
+    return common_hal_synthio_block_biquad_new(kind, args[ARG_frequency].u_obj, args[ARG_Q].u_obj);
 }
 
 //|
@@ -72,49 +89,49 @@ MP_PROPERTY_GETTER(synthio_block_biquad_kind_obj,
     (mp_obj_t)&synthio_block_biquad_get_kind_obj);
 
 //|
-//|     f0: BlockInput
+//|     frequency: BlockInput
 //|     """The central frequency (in Hz) of the filter"""
-static mp_obj_t synthio_block_biquad_get_f0(mp_obj_t self_in) {
+static mp_obj_t synthio_block_biquad_get_frequency(mp_obj_t self_in) {
     synthio_block_biquad_t *self = MP_OBJ_TO_PTR(self_in);
-    return common_hal_synthio_block_biquad_get_f0(self);
+    return common_hal_synthio_block_biquad_get_frequency(self);
 }
-MP_DEFINE_CONST_FUN_OBJ_1(synthio_block_biquad_get_f0_obj, synthio_block_biquad_get_f0);
+MP_DEFINE_CONST_FUN_OBJ_1(synthio_block_biquad_get_frequency_obj, synthio_block_biquad_get_frequency);
 
-static mp_obj_t synthio_block_biquad_set_f0(mp_obj_t self_in, mp_obj_t arg) {
+static mp_obj_t synthio_block_biquad_set_frequency(mp_obj_t self_in, mp_obj_t arg) {
     synthio_block_biquad_t *self = MP_OBJ_TO_PTR(self_in);
-    common_hal_synthio_block_biquad_set_f0(self, arg);
+    common_hal_synthio_block_biquad_set_frequency(self, arg);
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(synthio_block_biquad_set_f0_obj, synthio_block_biquad_set_f0);
-MP_PROPERTY_GETSET(synthio_block_biquad_f0_obj,
-    (mp_obj_t)&synthio_block_biquad_get_f0_obj,
-    (mp_obj_t)&synthio_block_biquad_set_f0_obj);
+MP_DEFINE_CONST_FUN_OBJ_2(synthio_block_biquad_set_frequency_obj, synthio_block_biquad_set_frequency);
+MP_PROPERTY_GETSET(synthio_block_biquad_frequency_obj,
+    (mp_obj_t)&synthio_block_biquad_get_frequency_obj,
+    (mp_obj_t)&synthio_block_biquad_set_frequency_obj);
 
 
 //|
-//|     Q: BlockInput
-//|     """The sharpness (Q) of the filter"""
+//|     q_factor: BlockInput
+//|     """The sharpness (q_factor) of the filter"""
 //|
-static mp_obj_t synthio_block_biquad_get_Q(mp_obj_t self_in) {
+static mp_obj_t synthio_block_biquad_get_q_factor(mp_obj_t self_in) {
     synthio_block_biquad_t *self = MP_OBJ_TO_PTR(self_in);
-    return common_hal_synthio_block_biquad_get_Q(self);
+    return common_hal_synthio_block_biquad_get_q_factor(self);
 }
-MP_DEFINE_CONST_FUN_OBJ_1(synthio_block_biquad_get_Q_obj, synthio_block_biquad_get_Q);
+MP_DEFINE_CONST_FUN_OBJ_1(synthio_block_biquad_get_q_factor_obj, synthio_block_biquad_get_q_factor);
 
-static mp_obj_t synthio_block_biquad_set_Q(mp_obj_t self_in, mp_obj_t arg) {
+static mp_obj_t synthio_block_biquad_set_q_factor(mp_obj_t self_in, mp_obj_t arg) {
     synthio_block_biquad_t *self = MP_OBJ_TO_PTR(self_in);
-    common_hal_synthio_block_biquad_set_Q(self, arg);
+    common_hal_synthio_block_biquad_set_q_factor(self, arg);
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_2(synthio_block_biquad_set_Q_obj, synthio_block_biquad_set_Q);
-MP_PROPERTY_GETSET(synthio_block_biquad_Q_obj,
-    (mp_obj_t)&synthio_block_biquad_get_Q_obj,
-    (mp_obj_t)&synthio_block_biquad_set_Q_obj);
+MP_DEFINE_CONST_FUN_OBJ_2(synthio_block_biquad_set_q_factor_obj, synthio_block_biquad_set_q_factor);
+MP_PROPERTY_GETSET(synthio_block_biquad_q_factor_obj,
+    (mp_obj_t)&synthio_block_biquad_get_q_factor_obj,
+    (mp_obj_t)&synthio_block_biquad_set_q_factor_obj);
 
 static const mp_rom_map_elem_t synthio_block_biquad_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_kind), MP_ROM_PTR(&synthio_block_biquad_kind_obj) },
-    { MP_ROM_QSTR(MP_QSTR_f0), MP_ROM_PTR(&synthio_block_biquad_f0_obj) },
-    { MP_ROM_QSTR(MP_QSTR_Q), MP_ROM_PTR(&synthio_block_biquad_Q_obj) },
+    { MP_ROM_QSTR(MP_QSTR_frequency), MP_ROM_PTR(&synthio_block_biquad_frequency_obj) },
+    { MP_ROM_QSTR(MP_QSTR_q_factor), MP_ROM_PTR(&synthio_block_biquad_q_factor_obj) },
 };
 static MP_DEFINE_CONST_DICT(synthio_block_biquad_locals_dict, synthio_block_biquad_locals_dict_table);
 

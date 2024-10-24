@@ -33,8 +33,8 @@ static void fast_sincos(mp_float_t theta, sincos_result_t *result) {
 mp_obj_t common_hal_synthio_block_biquad_new(synthio_filter_e kind, mp_obj_t f0, mp_obj_t Q) {
     synthio_block_biquad_t *self = mp_obj_malloc(synthio_block_biquad_t, &synthio_block_biquad_type_obj);
     self->kind = kind;
-    synthio_block_assign_slot(f0, &self->f0, MP_QSTR_f0);
-    synthio_block_assign_slot(Q, &self->Q, MP_QSTR_Q);
+    synthio_block_assign_slot(f0, &self->f0, MP_QSTR_frequency);
+    synthio_block_assign_slot(Q, &self->Q, MP_QSTR_q_factor);
     return MP_OBJ_FROM_PTR(self);
 }
 
@@ -42,20 +42,20 @@ synthio_filter_e common_hal_synthio_block_biquad_get_kind(synthio_block_biquad_t
     return self->kind;
 }
 
-mp_obj_t common_hal_synthio_block_biquad_get_Q(synthio_block_biquad_t *self) {
+mp_obj_t common_hal_synthio_block_biquad_get_q_factor(synthio_block_biquad_t *self) {
     return self->Q.obj;
 }
 
-void common_hal_synthio_block_biquad_set_Q(synthio_block_biquad_t *self, mp_obj_t Q) {
-    synthio_block_assign_slot(Q, &self->Q, MP_QSTR_Q);
+void common_hal_synthio_block_biquad_set_q_factor(synthio_block_biquad_t *self, mp_obj_t q_factor) {
+    synthio_block_assign_slot(q_factor, &self->Q, MP_QSTR_q_factor);
 }
 
-mp_obj_t common_hal_synthio_block_biquad_get_f0(synthio_block_biquad_t *self) {
+mp_obj_t common_hal_synthio_block_biquad_get_frequency(synthio_block_biquad_t *self) {
     return self->f0.obj;
 }
 
-void common_hal_synthio_block_biquad_set_f0(synthio_block_biquad_t *self, mp_obj_t f0) {
-    synthio_block_assign_slot(f0, &self->f0, MP_QSTR_f0);
+void common_hal_synthio_block_biquad_set_frequency(synthio_block_biquad_t *self, mp_obj_t frequency) {
+    synthio_block_assign_slot(frequency, &self->f0, MP_QSTR_frequency);
 }
 
 static int32_t biquad_scale_arg_float(mp_float_t arg) {
