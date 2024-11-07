@@ -26,6 +26,9 @@
 #include "bindings/cyw43/__init__.h"
 #endif
 
+static mp_obj_t digitalio_digitalinout_switch_to_output(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args);
+static mp_obj_t digitalio_digitalinout_switch_to_input(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args);
+
 static void check_result(digitalinout_result_t result) {
     switch (result) {
         case DIGITALINOUT_OK:
@@ -58,22 +61,51 @@ MP_WEAK const mcu_pin_obj_t *common_hal_digitalio_validate_pin(mp_obj_t obj) {
 //|     a pin, see the :py:class:`analogio.AnalogIn` and
 //|     :py:class:`analogio.AnalogOut` classes."""
 //|
-//|     def __init__(self, pin: microcontroller.Pin) -> None:
+//|     def __init__(
+//|         self,
+//|         pin: microcontroller.Pin,
+//|         *,
+//|         pull: Pull | None = None,
+//|         value: bool | None,
+//|         drive_mode: DriveMode = DriveMode.PUSH_PULL
+//|     ) -> None:
 //|         """Create a new DigitalInOut object associated with the pin. Defaults to input
-//|         with no pull. Use :py:meth:`switch_to_input` and
-//|         :py:meth:`switch_to_output` to change the direction.
+//|         with no pull.
 //|
-//|         :param ~microcontroller.Pin pin: The pin to control"""
+//|         If `value` is specified then the initial direction is output and
+//|         specified `drive_mode` is used.
+//|
+//|         :param ~microcontroller.Pin pin: The pin to control
+//|         :param ~Pull pull: The pull resistor setting
+//|         :param bool value: The initial value. If not `None`, sets pin to output mode.
+//|         :param DriveMode drive_mode: The initial drive mode, if `value` is specified
+//|
+//|         """
 //|         ...
 static mp_obj_t digitalio_digitalinout_make_new(const mp_obj_type_t *type,
-    size_t n_args, size_t n_kw, const mp_obj_t *args) {
-    mp_arg_check_num(n_args, n_kw, 1, 1, false);
+    size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+    enum { ARG_pin, ARG_pull, ARG_value, ARG_drive_mode };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_pin,        MP_ARG_OBJ | MP_ARG_REQUIRED, {}},
+        { MP_QSTR_pull,       MP_ARG_OBJ | MP_ARG_KW_ONLY, { .u_obj = MP_ROM_NONE } },
+        { MP_QSTR_value,      MP_ARG_OBJ | MP_ARG_KW_ONLY, { .u_obj = MP_ROM_NONE } },
+        { MP_QSTR_drive_mode, MP_ARG_OBJ | MP_ARG_KW_ONLY, { .u_obj = MP_ROM_NONE } },
+    };
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    digitalio_digitalinout_obj_t *self = mp_obj_malloc(digitalio_digitalinout_obj_t, &digitalio_digitalinout_type);
+    digitalio_digitalinout_obj_t *self = mp_obj_malloc_with_finaliser(digitalio_digitalinout_obj_t, &digitalio_digitalinout_type);
 
-    const mcu_pin_obj_t *pin = common_hal_digitalio_validate_pin(args[0]);
+    const mcu_pin_obj_t *pin = common_hal_digitalio_validate_pin(all_args[0]);
     common_hal_digitalio_digitalinout_construct(self, pin);
 
+    if (args[ARG_value].u_obj != MP_ROM_NONE) {
+        mp_obj_t args1[] = { MP_OBJ_FROM_PTR(self), args[ARG_value].u_obj, args[ARG_drive_mode].u_obj};
+        digitalio_digitalinout_switch_to_output(3, args1, NULL);
+    } else if (args[ARG_pull].u_obj != MP_ROM_NONE) {
+        mp_obj_t args1[] = { MP_OBJ_FROM_PTR(self), args[ARG_pull].u_obj};
+        digitalio_digitalinout_switch_to_input(2, args1, NULL);
+    }
     return MP_OBJ_FROM_PTR(self);
 }
 
@@ -325,6 +357,7 @@ MP_PROPERTY_GETSET(digitalio_digitalio_pull_obj,
 static const mp_rom_map_elem_t digitalio_digitalinout_locals_dict_table[] = {
     // instance methods
     { MP_ROM_QSTR(MP_QSTR_deinit),             MP_ROM_PTR(&digitalio_digitalinout_deinit_obj) },
+    { MP_ROM_QSTR(MP_QSTR___del__),            MP_ROM_PTR(&digitalio_digitalinout_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR___enter__),          MP_ROM_PTR(&default___enter___obj) },
     { MP_ROM_QSTR(MP_QSTR___exit__),           MP_ROM_PTR(&digitalio_digitalinout_obj___exit___obj) },
     { MP_ROM_QSTR(MP_QSTR_switch_to_output),   MP_ROM_PTR(&digitalio_digitalinout_switch_to_output_obj) },
