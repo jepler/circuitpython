@@ -124,7 +124,7 @@ static void audio_dma_load_next_block(audio_dma_t *dma, size_t buffer_idx) {
     uint8_t *sample_buffer;
     uint32_t sample_buffer_length;
     get_buffer_result = audiosample_get_buffer(dma->sample,
-        dma->single_channel_output, dma->audio_channel, &sample_buffer, &sample_buffer_length);
+        false /* single_channel_output*/, dma->audio_channel, &sample_buffer, &sample_buffer_length);
 
     if (get_buffer_result == GET_BUFFER_ERROR) {
         audio_dma_stop(dma);
@@ -144,7 +144,7 @@ static void audio_dma_load_next_block(audio_dma_t *dma, size_t buffer_idx) {
 
     if (get_buffer_result == GET_BUFFER_DONE) {
         if (dma->loop) {
-            audiosample_reset_buffer(dma->sample, dma->single_channel_output, dma->audio_channel);
+            audiosample_reset_buffer(dma->sample, false /* single_channel_output */, dma->audio_channel);
         } else {
             // Set channel trigger to ourselves so we don't keep going.
             dma_channel_hw_t *c = &dma_hw->ch[dma_channel];
@@ -168,7 +168,6 @@ audio_dma_result audio_dma_setup_playback(
     audio_dma_t *dma,
     mp_obj_t sample,
     bool loop,
-    bool single_channel_output,
     uint8_t audio_channel,
     bool output_signed,
     uint8_t output_resolution,
@@ -194,7 +193,6 @@ audio_dma_result audio_dma_setup_playback(
 
     dma->sample = sample;
     dma->loop = loop;
-    dma->single_channel_output = single_channel_output;
     dma->audio_channel = audio_channel;
     dma->signed_to_unsigned = false;
     dma->unsigned_to_signed = false;
@@ -205,14 +203,14 @@ audio_dma_result audio_dma_setup_playback(
     dma->output_register_address = output_register_address;
     dma->swap_channel = swap_channel;
 
-    audiosample_reset_buffer(sample, single_channel_output, audio_channel);
+    audiosample_reset_buffer(sample, false /* single_channel_output */, audio_channel);
 
 
     bool single_buffer;  // True if data fits in one single buffer.
 
     bool samples_signed;
     uint32_t max_buffer_length;
-    audiosample_get_buffer_structure(sample, single_channel_output, &single_buffer, &samples_signed,
+    audiosample_get_buffer_structure(sample, false /* single_channel_output */, &single_buffer, &samples_signed,
         &max_buffer_length, &dma->sample_spacing);
 
     // Check to see if we have to scale the resolution up.
@@ -248,7 +246,7 @@ audio_dma_result audio_dma_setup_playback(
         dma->output_size = 1;
     }
     // Transfer both channels at once.
-    if (!single_channel_output && audiosample_channel_count(sample) == 2) {
+    if (audiosample_channel_count(sample) == 2) {
         dma->output_size *= 2;
     }
     enum dma_channel_transfer_size dma_size = DMA_SIZE_8;

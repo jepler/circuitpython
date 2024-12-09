@@ -260,7 +260,6 @@ void common_hal_audiobusio_i2sout_play(audiobusio_i2sout_obj_t *self,
         &self->dma,
         sample,
         loop,
-        false, // single channel
         0, // audio channel
         true,  // output signed
         bits_per_sample,

@@ -198,7 +198,6 @@ void common_hal_audiopwmio_pwmaudioout_play(audiopwmio_pwmaudioout_obj_t *self, 
         &self->dma,
         sample,
         loop,
-        false, // single channel
         0, // audio channel
         false,  // output signed
         BITS_PER_SAMPLE,
