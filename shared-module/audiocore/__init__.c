@@ -30,26 +30,52 @@ uint8_t audiosample_channel_count(mp_obj_t sample_obj) {
     return proto->channel_count(MP_OBJ_TO_PTR(sample_obj));
 }
 
-void audiosample_reset_buffer(mp_obj_t sample_obj, bool single_channel_output, uint8_t audio_channel) {
+void audiosample_reset_buffer(mp_obj_t sample_obj) {
     const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
-    proto->reset_buffer(MP_OBJ_TO_PTR(sample_obj), single_channel_output, audio_channel);
+    proto->reset_buffer(MP_OBJ_TO_PTR(sample_obj));
 }
 
 audioio_get_buffer_result_t audiosample_get_buffer(mp_obj_t sample_obj,
+    uint8_t **buffer, uint32_t *buffer_length) {
+    const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
+    return proto->get_buffer(MP_OBJ_TO_PTR(sample_obj), buffer, buffer_length);
+}
+
+void audiosample_get_buffer_structure(mp_obj_t sample_obj,
+    bool *single_buffer, bool *samples_signed,
+    uint32_t *max_buffer_length) {
+    const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
+    proto->get_buffer_structure(MP_OBJ_TO_PTR(sample_obj), single_buffer,
+        samples_signed, max_buffer_length);
+}
+
+#if CIRCUITPY_AUDIOCORE_SINGLE_CHANNEL_OUTPUT
+audioio_get_buffer_result_t audiosample_get_buffer_sco(mp_obj_t sample_obj,
     bool single_channel_output,
     uint8_t channel,
     uint8_t **buffer, uint32_t *buffer_length) {
-    const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
-    return proto->get_buffer(MP_OBJ_TO_PTR(sample_obj), single_channel_output, channel, buffer, buffer_length);
+    if (single_channel_output) {
+        // TODO: implement it
+        abort();
+    }
+    return audiosample_get_buffer(sample_obj, buffer, buffer_length);
 }
 
-void audiosample_get_buffer_structure(mp_obj_t sample_obj, bool single_channel_output,
+void audiosample_get_buffer_structure_sco(mp_obj_t sample_obj,
+    bool single_channel_output,
     bool *single_buffer, bool *samples_signed,
     uint32_t *max_buffer_length, uint8_t *spacing) {
     const audiosample_p_t *proto = mp_proto_get_or_throw(MP_QSTR_protocol_audiosample, sample_obj);
-    proto->get_buffer_structure(MP_OBJ_TO_PTR(sample_obj), single_channel_output, single_buffer,
+    proto->get_buffer_structure(MP_OBJ_TO_PTR(sample_obj), single_buffer,
         samples_signed, max_buffer_length, spacing);
+    if (single_channel_output) {
+        spacing = audiosample_channel_count(sample_obj);
+    } else {
+        spacing = 1;
+    }
 }
+
+#endif
 
 void audiosample_convert_u8m_s16s(int16_t *buffer_out, const uint8_t *buffer_in, size_t nframes) {
     for (; nframes--;) {

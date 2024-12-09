@@ -286,19 +286,11 @@ static void sum_with_loudness(int32_t *out_buffer32, int32_t *tmp_buffer32, int1
     }
 }
 
-void synthio_synth_synthesize(synthio_synth_t *synth, uint8_t **bufptr, uint32_t *buffer_length, uint8_t channel) {
-
-    if (channel == synth->other_channel) {
-        *buffer_length = synth->last_buffer_length;
-        *bufptr = (uint8_t *)(synth->buffers[synth->other_buffer_index] + channel);
-        return;
-    }
+void synthio_synth_synthesize(synthio_synth_t *synth, uint8_t **bufptr, uint32_t *buffer_length) {
 
     shared_bindings_synthio_lfo_tick(synth->sample_rate);
 
     synth->buffer_index = !synth->buffer_index;
-    synth->other_channel = 1 - channel;
-    synth->other_buffer_index = synth->buffer_index;
 
     uint16_t dur = MIN(SYNTHIO_MAX_DUR, synth->span.dur);
     synth->span.dur -= dur;
@@ -361,11 +353,7 @@ void synthio_synth_synthesize(synthio_synth_t *synth, uint8_t **bufptr, uint32_t
     *bufptr = (uint8_t *)out_buffer16;
 }
 
-void synthio_synth_reset_buffer(synthio_synth_t *synth, bool single_channel_output, uint8_t channel) {
-    if (single_channel_output && channel == 1) {
-        return;
-    }
-    synth->other_channel = -1;
+void synthio_synth_reset_buffer(synthio_synth_t *synth) {
 }
 
 bool synthio_synth_deinited(synthio_synth_t *synth) {
@@ -393,7 +381,6 @@ void synthio_synth_init(synthio_synth_t *synth, uint32_t sample_rate, int channe
     synth->buffers[0] = m_malloc(synth->buffer_length);
     synth->buffers[1] = m_malloc(synth->buffer_length);
     synth->channel_count = channel_count;
-    synth->other_channel = -1;
     synth->waveform_obj = waveform_obj;
     synth->sample_rate = sample_rate;
     synthio_synth_envelope_set(synth, envelope_obj);
@@ -403,16 +390,11 @@ void synthio_synth_init(synthio_synth_t *synth, uint32_t sample_rate, int channe
     }
 }
 
-void synthio_synth_get_buffer_structure(synthio_synth_t *synth, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length, uint8_t *spacing) {
+void synthio_synth_get_buffer_structure(synthio_synth_t *synth,
+    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length) {
     *single_buffer = false;
     *samples_signed = true;
     *max_buffer_length = synth->buffer_length;
-    if (single_channel_output) {
-        *spacing = synth->channel_count;
-    } else {
-        *spacing = 1;
-    }
 }
 
 static void parse_common(mp_buffer_info_t *bufinfo, mp_obj_t o, int16_t what, mp_int_t max_len) {

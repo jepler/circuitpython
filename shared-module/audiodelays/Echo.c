@@ -95,7 +95,7 @@ void common_hal_audiodelays_echo_construct(audiodelays_echo_obj_t *self, uint32_
     self->echo_buffer_write_pos = 0;
 
     // where we read the previous echo from delay_ms ago to play back now (for freq shift)
-    self->echo_buffer_left_pos = self->echo_buffer_right_pos = 0;
+    self->echo_buffer_pos = 0;
 }
 
 bool common_hal_audiodelays_echo_deinited(audiodelays_echo_obj_t *self) {
@@ -194,9 +194,8 @@ uint8_t common_hal_audiodelays_echo_get_bits_per_sample(audiodelays_echo_obj_t *
     return self->bits_per_sample;
 }
 
-void audiodelays_echo_reset_buffer(audiodelays_echo_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel) {
+void audiodelays_echo_reset_buffer(audiodelays_echo_obj_t *self
+    ) {
 
     memset(self->buffer[0], 0, self->buffer_len);
     memset(self->buffer[1], 0, self->buffer_len);
@@ -224,8 +223,7 @@ void common_hal_audiodelays_echo_play(audiodelays_echo_obj_t *self, mp_obj_t sam
     bool single_buffer;
     bool samples_signed;
     uint32_t max_buffer_length;
-    uint8_t spacing;
-    audiosample_get_buffer_structure(sample, false, &single_buffer, &samples_signed, &max_buffer_length, &spacing);
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed, &max_buffer_length);
     if (samples_signed != self->samples_signed) {
         mp_raise_ValueError_varg(MP_ERROR_TEXT("The sample's %q does not match"), MP_QSTR_signedness);
     }
@@ -233,8 +231,8 @@ void common_hal_audiodelays_echo_play(audiodelays_echo_obj_t *self, mp_obj_t sam
     self->sample = sample;
     self->loop = loop;
 
-    audiosample_reset_buffer(self->sample, false, 0);
-    audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, false, 0, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
+    audiosample_reset_buffer(self->sample);
+    audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
 
     // Track remaining sample length in terms of bytes per sample
     self->sample_buffer_length /= (self->bits_per_sample / 8);
@@ -277,12 +275,8 @@ int16_t mix_down_sample(int32_t sample) {
     return sample;
 }
 
-audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *self, bool single_channel_output, uint8_t channel,
+audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *self,
     uint8_t **buffer, uint32_t *buffer_length) {
-
-    if (!single_channel_output) {
-        channel = 0;
-    }
 
     // get the effect values we need from the BlockInput. These may change at run time so you need to do bounds checking if required
     mp_float_t mix = MIN(1.0, MAX(synthio_block_slot_get(&self->mix), 0.0));
@@ -307,12 +301,7 @@ audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *
 
     // Set our echo buffer position accounting for stereo
     uint32_t echo_buffer_pos = 0;
-    if (self->freq_shift) {
-        echo_buffer_pos = self->echo_buffer_left_pos;
-        if (channel == 1) {
-            echo_buffer_pos = self->echo_buffer_right_pos;
-        }
-    }
+    echo_buffer_pos = self->echo_buffer_pos;
 
     // Loop over the entire length of our buffer to fill it, this may require several calls to get data from the sample
     while (length != 0) {
@@ -320,14 +309,14 @@ audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *
         if (self->sample_buffer_length == 0) {
             if (!self->more_data) { // The sample has indicated it has no more data to play
                 if (self->loop && self->sample) { // If we are supposed to loop reset the sample to the start
-                    audiosample_reset_buffer(self->sample, false, 0);
+                    audiosample_reset_buffer(self->sample);
                 } else { // If we were not supposed to loop the sample, stop playing it but we still need to play the echo
                     self->sample = NULL;
                 }
             }
             if (self->sample) {
                 // Load another sample buffer to play
-                audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, false, 0, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
+                audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
                 // Track length in terms of words.
                 self->sample_buffer_length /= (self->bits_per_sample / 8);
                 self->more_data = result == GET_BUFFER_MORE_DATA;
@@ -502,13 +491,7 @@ audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *
         }
     }
 
-    if (self->freq_shift) {
-        if (channel == 0) {
-            self->echo_buffer_left_pos = echo_buffer_pos;
-        } else if (channel == 1) {
-            self->echo_buffer_right_pos = echo_buffer_pos;
-        }
-    }
+    self->echo_buffer_pos = echo_buffer_pos;
 
     // Finally pass our buffer and length to the calling audio function
     *buffer = (uint8_t *)self->buffer[self->last_buf_idx];
@@ -518,17 +501,12 @@ audioio_get_buffer_result_t audiodelays_echo_get_buffer(audiodelays_echo_obj_t *
     return GET_BUFFER_MORE_DATA;
 }
 
-void audiodelays_echo_get_buffer_structure(audiodelays_echo_obj_t *self, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length, uint8_t *spacing) {
+void audiodelays_echo_get_buffer_structure(audiodelays_echo_obj_t *self,
+    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length) {
 
     // Return information about the effect's buffer (not the sample's)
     // These are used by calling audio objects to determine how to handle the effect's buffer
     *single_buffer = false;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->buffer_len;
-    if (single_channel_output) {
-        *spacing = self->channel_count;
-    } else {
-        *spacing = 1;
-    }
 }

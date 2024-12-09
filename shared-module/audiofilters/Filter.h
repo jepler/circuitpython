@@ -44,16 +44,12 @@ typedef struct {
 
 void reset_filter_states(audiofilters_filter_obj_t *self);
 
-void audiofilters_filter_reset_buffer(audiofilters_filter_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel);
+void audiofilters_filter_reset_buffer(audiofilters_filter_obj_t *self);
 
 audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel,
     uint8_t **buffer,
     uint32_t *buffer_length);  // length in bytes
 
-void audiofilters_filter_get_buffer_structure(audiofilters_filter_obj_t *self, bool single_channel_output,
+void audiofilters_filter_get_buffer_structure(audiofilters_filter_obj_t *self,
     bool *single_buffer, bool *samples_signed,
-    uint32_t *max_buffer_length, uint8_t *spacing);
+    uint32_t *max_buffer_length);

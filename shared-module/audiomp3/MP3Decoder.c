@@ -351,7 +351,6 @@ void common_hal_audiomp3_mp3file_set_file(audiomp3_mp3file_obj_t *self, mp_obj_t
     self->block_ok = false;
     stream_set_blocking(self, true);
 
-    self->other_channel = -1;
     mp3file_update_inbuf_half(self, true);
     mp3file_find_sync_word(self, true);
     // It **SHOULD** not be necessary to do this; the buffer should be filled
@@ -421,12 +420,7 @@ uint8_t common_hal_audiomp3_mp3file_get_channel_count(audiomp3_mp3file_obj_t *se
     return self->channel_count;
 }
 
-void audiomp3_mp3file_reset_buffer(audiomp3_mp3file_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel) {
-    if (single_channel_output && channel == 1) {
-        return;
-    }
+void audiomp3_mp3file_reset_buffer(audiomp3_mp3file_obj_t *self) {
     // We don't reset the buffer index in case we're looping and we have an odd number of buffer
     // loads
     background_callback_prevent();
@@ -434,7 +428,6 @@ void audiomp3_mp3file_reset_buffer(audiomp3_mp3file_obj_t *self,
         INPUT_BUFFER_CLEAR(self->inbuf);
         self->eof = 0;
         self->samples_decoded = 0;
-        self->other_channel = -1;
         mp3file_skip_id3v2(self, false);
         mp3file_find_sync_word(self, false);
     }
@@ -442,8 +435,6 @@ void audiomp3_mp3file_reset_buffer(audiomp3_mp3file_obj_t *self,
 }
 
 audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel,
     uint8_t **bufptr,
     uint32_t *buffer_length) {
     if (!self->inbuf.buf) {
@@ -453,27 +444,11 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t *
         }
         return GET_BUFFER_ERROR;
     }
-    if (!single_channel_output) {
-        channel = 0;
-    }
 
     size_t frame_buffer_size_bytes = self->frame_buffer_size;
     *buffer_length = frame_buffer_size_bytes;
 
-    if (channel == self->other_channel) {
-        *bufptr = (uint8_t *)(self->pcm_buffer[self->other_buffer_index] + channel);
-        self->other_channel = -1;
-        self->samples_decoded += *buffer_length / sizeof(int16_t);
-        if (DO_DEBUG) {
-            mp_printf(&mp_plat_print, "%s:%d\n", __FILE__, __LINE__);
-        }
-        return GET_BUFFER_MORE_DATA;
-    }
-
-
     self->buffer_index = !self->buffer_index;
-    self->other_channel = 1 - channel;
-    self->other_buffer_index = self->buffer_index;
     int16_t *buffer = (int16_t *)(void *)self->pcm_buffer[self->buffer_index];
     *bufptr = (uint8_t *)buffer;
 
@@ -523,17 +498,12 @@ audioio_get_buffer_result_t audiomp3_mp3file_get_buffer(audiomp3_mp3file_obj_t *
     return result;
 }
 
-void audiomp3_mp3file_get_buffer_structure(audiomp3_mp3file_obj_t *self, bool single_channel_output,
+void audiomp3_mp3file_get_buffer_structure(audiomp3_mp3file_obj_t *self,
     bool *single_buffer, bool *samples_signed,
-    uint32_t *max_buffer_length, uint8_t *spacing) {
+    uint32_t *max_buffer_length) {
     *single_buffer = false;
     *samples_signed = true;
     *max_buffer_length = self->frame_buffer_size;
-    if (single_channel_output) {
-        *spacing = self->channel_count;
-    } else {
-        *spacing = 1;
-    }
 }
 
 float common_hal_audiomp3_mp3file_get_rms_level(audiomp3_mp3file_obj_t *self) {

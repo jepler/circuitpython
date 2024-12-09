@@ -37,13 +37,12 @@ uint8_t common_hal_synthio_synthesizer_get_channel_count(synthio_synthesizer_obj
     return self->synth.channel_count;
 }
 
-void synthio_synthesizer_reset_buffer(synthio_synthesizer_obj_t *self,
-    bool single_channel_output, uint8_t channel) {
-    synthio_synth_reset_buffer(&self->synth, single_channel_output, channel);
+void synthio_synthesizer_reset_buffer(synthio_synthesizer_obj_t *self) {
+    synthio_synth_reset_buffer(&self->synth);
 }
 
 audioio_get_buffer_result_t synthio_synthesizer_get_buffer(synthio_synthesizer_obj_t *self,
-    bool single_channel_output, uint8_t channel, uint8_t **buffer, uint32_t *buffer_length) {
+    uint8_t **buffer, uint32_t *buffer_length) {
     if (common_hal_synthio_synthesizer_deinited(self)) {
         *buffer_length = 0;
         return GET_BUFFER_ERROR;
@@ -51,7 +50,7 @@ audioio_get_buffer_result_t synthio_synthesizer_get_buffer(synthio_synthesizer_o
     self->synth.span.dur = SYNTHIO_MAX_DUR;
 
 
-    synthio_synth_synthesize(&self->synth, buffer, buffer_length, single_channel_output ? channel : 0);
+    synthio_synth_synthesize(&self->synth, buffer, buffer_length);
 
     // free-running LFOs
     mp_obj_iter_buf_t iter_buf;
@@ -67,9 +66,9 @@ audioio_get_buffer_result_t synthio_synthesizer_get_buffer(synthio_synthesizer_o
     return GET_BUFFER_MORE_DATA;
 }
 
-void synthio_synthesizer_get_buffer_structure(synthio_synthesizer_obj_t *self, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length, uint8_t *spacing) {
-    return synthio_synth_get_buffer_structure(&self->synth, single_channel_output, single_buffer, samples_signed, max_buffer_length, spacing);
+void synthio_synthesizer_get_buffer_structure(synthio_synthesizer_obj_t *self,
+    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length) {
+    return synthio_synth_get_buffer_structure(&self->synth, single_buffer, samples_signed, max_buffer_length);
 }
 
 void common_hal_synthio_synthesizer_release_all(synthio_synthesizer_obj_t *self) {

@@ -154,9 +154,7 @@ uint8_t common_hal_audiofilters_filter_get_bits_per_sample(audiofilters_filter_o
     return self->bits_per_sample;
 }
 
-void audiofilters_filter_reset_buffer(audiofilters_filter_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel) {
+void audiofilters_filter_reset_buffer(audiofilters_filter_obj_t *self) {
 
     memset(self->buffer[0], 0, self->buffer_len);
     memset(self->buffer[1], 0, self->buffer_len);
@@ -190,8 +188,7 @@ void common_hal_audiofilters_filter_play(audiofilters_filter_obj_t *self, mp_obj
     bool single_buffer;
     bool samples_signed;
     uint32_t max_buffer_length;
-    uint8_t spacing;
-    audiosample_get_buffer_structure(sample, false, &single_buffer, &samples_signed, &max_buffer_length, &spacing);
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed, &max_buffer_length);
     if (samples_signed != self->samples_signed) {
         mp_raise_ValueError_varg(MP_ERROR_TEXT("The sample's %q does not match"), MP_QSTR_signedness);
     }
@@ -199,8 +196,8 @@ void common_hal_audiofilters_filter_play(audiofilters_filter_obj_t *self, mp_obj
     self->sample = sample;
     self->loop = loop;
 
-    audiosample_reset_buffer(self->sample, false, 0);
-    audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, false, 0, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
+    audiosample_reset_buffer(self->sample);
+    audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
 
     // Track remaining sample length in terms of bytes per sample
     self->sample_buffer_length /= (self->bits_per_sample / 8);
@@ -242,13 +239,8 @@ int16_t mix_down_sample(int32_t sample) {
     return sample;
 }
 
-audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_obj_t *self, bool single_channel_output, uint8_t channel,
+audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_obj_t *self,
     uint8_t **buffer, uint32_t *buffer_length) {
-    (void)channel;
-
-    if (!single_channel_output) {
-        channel = 0;
-    }
 
     // get the effect values we need from the BlockInput. These may change at run time so you need to do bounds checking if required
     mp_float_t mix = MIN(1.0, MAX(synthio_block_slot_get(&self->mix), 0.0));
@@ -267,14 +259,14 @@ audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_o
         if (self->sample_buffer_length == 0) {
             if (!self->more_data) { // The sample has indicated it has no more data to play
                 if (self->loop && self->sample) { // If we are supposed to loop reset the sample to the start
-                    audiosample_reset_buffer(self->sample, false, 0);
+                    audiosample_reset_buffer(self->sample);
                 } else { // If we were not supposed to loop the sample, stop playing it
                     self->sample = NULL;
                 }
             }
             if (self->sample) {
                 // Load another sample buffer to play
-                audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, false, 0, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
+                audioio_get_buffer_result_t result = audiosample_get_buffer(self->sample, (uint8_t **)&self->sample_remaining_buffer, &self->sample_buffer_length);
                 // Track length in terms of words.
                 self->sample_buffer_length /= (self->bits_per_sample / 8);
                 self->more_data = result == GET_BUFFER_MORE_DATA;
@@ -374,17 +366,12 @@ audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_o
     return GET_BUFFER_MORE_DATA;
 }
 
-void audiofilters_filter_get_buffer_structure(audiofilters_filter_obj_t *self, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length, uint8_t *spacing) {
+void audiofilters_filter_get_buffer_structure(audiofilters_filter_obj_t *self,
+    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length) {
 
     // Return information about the effect's buffer (not the sample's)
     // These are used by calling audio objects to determine how to handle the effect's buffer
     *single_buffer = false;
     *samples_signed = self->samples_signed;
     *max_buffer_length = self->buffer_len;
-    if (single_channel_output) {
-        *spacing = self->channel_count;
-    } else {
-        *spacing = 1;
-    }
 }

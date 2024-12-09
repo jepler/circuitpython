@@ -35,14 +35,11 @@ typedef struct {
 } audioio_wavefile_obj_t;
 
 // These are not available from Python because it may be called in an interrupt.
-void audioio_wavefile_reset_buffer(audioio_wavefile_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel);
+void audioio_wavefile_reset_buffer(audioio_wavefile_obj_t *self
+    );
 audioio_get_buffer_result_t audioio_wavefile_get_buffer(audioio_wavefile_obj_t *self,
-    bool single_channel_output,
-    uint8_t channel,
     uint8_t **buffer,
     uint32_t *buffer_length);                                                     // length in bytes
-void audioio_wavefile_get_buffer_structure(audioio_wavefile_obj_t *self, bool single_channel_output,
+void audioio_wavefile_get_buffer_structure(audioio_wavefile_obj_t *self,
     bool *single_buffer, bool *samples_signed,
-    uint32_t *max_buffer_length, uint8_t *spacing);
+    uint32_t *max_buffer_length);

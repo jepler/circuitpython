@@ -51,17 +51,16 @@ void common_hal_audiomixer_mixervoice_play(audiomixer_mixervoice_obj_t *self, mp
     bool single_buffer;
     bool samples_signed;
     uint32_t max_buffer_length;
-    uint8_t spacing;
-    audiosample_get_buffer_structure(sample, false, &single_buffer, &samples_signed,
-        &max_buffer_length, &spacing);
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
+        &max_buffer_length);
     if (samples_signed != self->parent->samples_signed) {
         mp_raise_ValueError_varg(MP_ERROR_TEXT("The sample's %q does not match"), MP_QSTR_signedness);
     }
     self->sample = sample;
     self->loop = loop;
 
-    audiosample_reset_buffer(sample, false, 0);
-    audioio_get_buffer_result_t result = audiosample_get_buffer(sample, false, 0, (uint8_t **)&self->remaining_buffer, &self->buffer_length);
+    audiosample_reset_buffer(sample);
+    audioio_get_buffer_result_t result = audiosample_get_buffer(sample, (uint8_t **)&self->remaining_buffer, &self->buffer_length);
     // Track length in terms of words.
     self->buffer_length /= sizeof(uint32_t);
     self->more_data = result == GET_BUFFER_MORE_DATA;

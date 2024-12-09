@@ -129,20 +129,19 @@ uint8_t common_hal_synthio_miditrack_get_channel_count(synthio_miditrack_obj_t *
     return 1;
 }
 
-void synthio_miditrack_reset_buffer(synthio_miditrack_obj_t *self,
-    bool single_channel_output, uint8_t channel) {
-    synthio_synth_reset_buffer(&self->synth, single_channel_output, channel);
+void synthio_miditrack_reset_buffer(synthio_miditrack_obj_t *self) {
+    synthio_synth_reset_buffer(&self->synth);
     start_parse(self);
 }
 
 audioio_get_buffer_result_t synthio_miditrack_get_buffer(synthio_miditrack_obj_t *self,
-    bool single_channel_output, uint8_t channel, uint8_t **buffer, uint32_t *buffer_length) {
+    uint8_t **buffer, uint32_t *buffer_length) {
     if (common_hal_synthio_miditrack_deinited(self)) {
         *buffer_length = 0;
         return GET_BUFFER_ERROR;
     }
 
-    synthio_synth_synthesize(&self->synth, buffer, buffer_length, single_channel_output ? 0 : channel);
+    synthio_synth_synthesize(&self->synth, buffer, buffer_length);
     if (self->synth.span.dur == 0) {
         if (self->pos == self->track.len) {
             return GET_BUFFER_DONE;
@@ -153,7 +152,7 @@ audioio_get_buffer_result_t synthio_miditrack_get_buffer(synthio_miditrack_obj_t
     return GET_BUFFER_MORE_DATA;
 }
 
-void synthio_miditrack_get_buffer_structure(synthio_miditrack_obj_t *self, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length, uint8_t *spacing) {
-    return synthio_synth_get_buffer_structure(&self->synth, single_channel_output, single_buffer, samples_signed, max_buffer_length, spacing);
+void synthio_miditrack_get_buffer_structure(synthio_miditrack_obj_t *self,
+    bool *single_buffer, bool *samples_signed, uint32_t *max_buffer_length) {
+    return synthio_synth_get_buffer_structure(&self->synth, single_buffer, samples_signed, max_buffer_length);
 }

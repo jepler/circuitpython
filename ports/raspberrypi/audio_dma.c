@@ -124,7 +124,7 @@ static void audio_dma_load_next_block(audio_dma_t *dma, size_t buffer_idx) {
     uint8_t *sample_buffer;
     uint32_t sample_buffer_length;
     get_buffer_result = audiosample_get_buffer(dma->sample,
-        false /* single_channel_output*/, dma->audio_channel, &sample_buffer, &sample_buffer_length);
+        &sample_buffer, &sample_buffer_length);
 
     if (get_buffer_result == GET_BUFFER_ERROR) {
         audio_dma_stop(dma);
@@ -144,7 +144,7 @@ static void audio_dma_load_next_block(audio_dma_t *dma, size_t buffer_idx) {
 
     if (get_buffer_result == GET_BUFFER_DONE) {
         if (dma->loop) {
-            audiosample_reset_buffer(dma->sample, false /* single_channel_output */, dma->audio_channel);
+            audiosample_reset_buffer(dma->sample);
         } else {
             // Set channel trigger to ourselves so we don't keep going.
             dma_channel_hw_t *c = &dma_hw->ch[dma_channel];
@@ -203,24 +203,19 @@ audio_dma_result audio_dma_setup_playback(
     dma->output_register_address = output_register_address;
     dma->swap_channel = swap_channel;
 
-    audiosample_reset_buffer(sample, false /* single_channel_output */, audio_channel);
+    audiosample_reset_buffer(sample);
 
 
     bool single_buffer;  // True if data fits in one single buffer.
 
     bool samples_signed;
     uint32_t max_buffer_length;
-    audiosample_get_buffer_structure(sample, false /* single_channel_output */, &single_buffer, &samples_signed,
-        &max_buffer_length, &dma->sample_spacing);
+    audiosample_get_buffer_structure(sample, &single_buffer, &samples_signed,
+        &max_buffer_length);
 
     // Check to see if we have to scale the resolution up.
     if (dma->sample_resolution <= 8 && dma->output_resolution > 8) {
         max_buffer_length *= 2;
-    }
-    if (output_signed != samples_signed ||
-        dma->sample_spacing > 1 ||
-        (dma->sample_resolution != dma->output_resolution)) {
-        max_buffer_length /= dma->sample_spacing;
     }
 
     dma->buffer[0] = (uint8_t *)m_realloc(dma->buffer[0], max_buffer_length);

@@ -92,6 +92,8 @@ endif # samd21
 
 ifeq ($(CHIP_FAMILY),samd51)
 
+CIRCUITPY_AUDIOCORE_SINGLE_CHANNEL_OUTPUT = 1
+
 # No native touchio on SAMD51.
 CIRCUITPY_TOUCHIO_USE_NATIVE = 0
 
