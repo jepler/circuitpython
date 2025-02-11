@@ -615,6 +615,10 @@ void background_callback_run_all(void);
 #define CIRCUITPY_MIN_GCC_VERSION 13
 #endif
 
+#ifndef MICROPY_MODULE_ATTR_DELEGATION
+#define MICROPY_MODULE_ATTR_DELEGATION (CIRCUITPY_DISPLAYIO)
+#endif
+
 #if defined(__GNUC__)
 #if __GNUC__ < CIRCUITPY_MIN_GCC_VERSION
 // (the 3 level scheme here is required to get expansion & stringization
