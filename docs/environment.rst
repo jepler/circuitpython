@@ -129,3 +129,32 @@ If a valid frequency is not defined the board will initialize the framebuffer wi
 frequency of 12500000hz (12.5Mhz). The value should be entered as an integer in hertz
 i.e. CIRCUITPY_DISPLAY_FREQUENCY=16000000 will override the default value with a 16Mhz
 display frequency.
+
+`Sunton ESP32-8048S050 <https://circuitpython.org/board/sunton_esp32_8048S050/>`_
+
+CIRCUITPY_DISPLAY_WIDTH, _HEIGHT, and _COLOR_DEPTH (RP2350 boards with DVI or HSTX connector)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Selects the desired resolution and color depth.
+
+Supported resolutions are:
+ * 640x480 with color depth 1, 2, 4 or 8 bits per pixel
+ * 320x240 with color depth 8 or 16 bits per pixel
+
+The default value, if unspecified, is 320x240 with 16 bits per pixel.
+
+setting ``CIRCUITPY_DISPLAY_WIDTH = 0`` disables automatic display configuration. In this case, the other
+values are not used.
+
+If an EDID EEPROM is not detected on the I2C bus, automatic display
+configuration is not performed.
+
+Example: Configure the display to 640x480 black and white (1bpp):
+
+.. code-block::
+
+    CIRCUITPY_DISPLAY_WIDTH=640
+    CIRCUITPY_DISPLAY_WIDTH=480
+    CIRCUITPY_DISPLAY_COLOR_DEPTH=1
+
+`Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
+`Adafruit Metro RP2350 <https://circuitpython.org/board/adafruit_metro_rp2350/>`_
