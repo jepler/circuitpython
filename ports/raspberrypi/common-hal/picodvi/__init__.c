@@ -35,17 +35,27 @@ void picodvi_autoconstruct(void) {
         return;
     }
 
+
     mp_int_t width = 320;
     mp_int_t height = 240;
     mp_int_t color_depth = 16;
 
-    // TODO: User configuration can cause safe mode errors without a self-explanatory message.
-    common_hal_os_getenv_int("CIRCUITPY_DISPLAY_WIDTH", &width);
-    common_hal_os_getenv_int("CIRCUITPY_DISPLAY_HEIGHT", &height);
-    common_hal_os_getenv_int("CIRCUITPY_DISPLAY_COLOR_DEPTH", &color_depth);
+    (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_WIDTH", &width);
+    (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_HEIGHT", &height);
+    (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_COLOR_DEPTH", &color_depth);
+
+    if (width == 0) {
+        return;
+    }
+    if (!common_hal_picodvi_framebuffer_preflight(width, height, color_depth)) {
+        // TODO: User configuration can fail without a self-explanatory message.
+        // sadly, a print from here does NOT reach boot_out.txt, so no point in
+        // spending code size to print a message. Setting aside a safe mode
+        // message just for this purpose? maybe?
+        return;
+    }
 
     // construct framebuffer and display
-
     picodvi_framebuffer_obj_t *fb = &allocate_display_bus_or_raise()->picodvi;
     fb->base.type = &picodvi_framebuffer_type;
     common_hal_picodvi_framebuffer_construct(fb,
