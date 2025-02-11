@@ -17,6 +17,9 @@
 #if CIRCUITPY_BOARD_UART
 #include "shared-bindings/busio/UART.h"
 #endif
+#if CIRCUITPY_DISPLAYIO
+#include "shared-module/displayio/__init__.h"
+#endif
 
 //| """Board specific pin names
 //|
@@ -104,6 +107,7 @@ MP_DEFINE_CONST_FUN_OBJ_0(board_uart_obj, board_uart_0);
 // CIRCUITPYTHON_BOARD_DICT_STANDARD_ITEMS includes a table entry for DISPLAY that
 // is None. In either case, the board pins file doesn't need to do anything with DISPLAY.
 #if CIRCUITPY_DISPLAYIO
+extern void mp_module_board_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
 void mp_module_board_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
     if (attr == MP_QSTR_DISPLAY && dest[0] == MP_OBJ_NULL) {
         mp_obj_base_t *first_display = &displays[0].display_base;
