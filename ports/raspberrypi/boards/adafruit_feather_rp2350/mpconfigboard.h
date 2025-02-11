@@ -29,6 +29,3 @@
 #define DEFAULT_DVI_BUS_GREEN_DP (&pin_GPIO16)
 #define DEFAULT_DVI_BUS_BLUE_DN (&pin_GPIO13)
 #define DEFAULT_DVI_BUS_BLUE_DP (&pin_GPIO12)
-
-// delegate board.DISPLAY attribute
-#define MICROPY_MODULE_ATTR_DELEGATION (1)
