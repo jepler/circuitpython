@@ -40,10 +40,10 @@ MP_DECLARE_CONST_FUN_OBJ_0(board_uart_obj);
 
 #if CIRCUITPY_DISPLAYIO
 #define CIRCUITPYTHON_BOARD_DICT_DISPLAYIO_ITEMS \
-    { MP_ROM_QSTR(MP_QSTR_DISPLAY), MP_ROM_NONE },
+    /* expands to nothing, the DISPLAY property is handled by mp_module_board_attr */
 #else
 #define CIRCUITPYTHON_BOARD_DICT_DISPLAYIO_ITEMS \
-    /* expands to nothing, the DISPLAY property is handled by mp_module_board_attr */
+    { MP_ROM_QSTR(MP_QSTR_DISPLAY), MP_ROM_NONE },
 #endif
 
 #define CIRCUITPYTHON_BOARD_DICT_STANDARD_ITEMS \
