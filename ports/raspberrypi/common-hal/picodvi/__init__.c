@@ -80,15 +80,14 @@ void picodvi_autoconstruct(void) {
 
     if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
         // invalid rotation
-        return;
+        rotation = 0;
     }
 
     if (!common_hal_picodvi_framebuffer_preflight(width, height, color_depth)) {
-        // TODO: User configuration can fail without a self-explanatory message.
-        // sadly, a print from here does NOT reach boot_out.txt, so no point in
-        // spending code size to print a message. Setting aside a safe mode
-        // message just for this purpose? maybe?
-        return;
+        // invalid configuration, set back to default
+        width = 320;
+        height = 240;
+        color_depth = 16;
     }
 
     // construct framebuffer and display
