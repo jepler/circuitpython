@@ -16,37 +16,73 @@
 #include "py/runtime.h"
 #include "supervisor/port_heap.h"
 
-void picodvi_autoconstruct(void) {
-    #if defined(DEFAULT_DVI_BUS_CLK_DP)
-    if (get_safe_mode() != SAFE_MODE_NONE) {
-        return;
+#if defined(DEFAULT_DVI_BUS_CLK_DP)
+static bool picodvi_autoconstruct_enabled(void) {
+    char buf[sizeof("detect")];
+    buf[0] = 0;
+
+    // (any failure leaves the content of buf untouched: an empty nul-terminated string
+    (void)common_hal_os_getenv_str("CIRCUITPY_PICODVI_ENABLE", buf, sizeof(buf));
+
+    if (!strcasecmp(buf, "never")) {
+        return false;
     }
-    // check if address 0x50 is live on the I2C bus -- return if not
+    if (!strcasecmp(buf, "always")) {
+        return true;
+    }
+
+    // It's "detect" or else an invalid value which is treated the same as "detect".
+
+    // check if address 0x50 is live on the I2C bus
     busio_i2c_obj_t *i2c = common_hal_board_create_i2c(0);
     if (!i2c) {
-        return;
+        return false;
     }
     if (!common_hal_busio_i2c_try_lock(i2c)) {
-        return;
+        return false;
     }
     bool probed = common_hal_busio_i2c_probe(i2c, 0x50);
     common_hal_busio_i2c_unlock(i2c);
-    if (!probed) {
+    return probed;
+}
+
+// For picodvi_autoconstruct to work, the 8 DVI/HSTX pin names must be defined, AND
+// i2c bus 0 must also be connected to DVI with on-board pull ups
+void picodvi_autoconstruct(void) {
+    if (get_safe_mode() != SAFE_MODE_NONE) {
         return;
     }
 
+    if (!picodvi_autoconstruct_enabled()) {
+        return;
+    }
 
     mp_int_t width = 320;
-    mp_int_t height = 240;
+    mp_int_t height = 0;
     mp_int_t color_depth = 16;
+    mp_int_t rotation = 0;
 
     (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_WIDTH", &width);
     (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_HEIGHT", &height);
     (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_COLOR_DEPTH", &color_depth);
+    (void)common_hal_os_getenv_int("CIRCUITPY_DISPLAY_ROTATION", &rotation);
 
-    if (width == 0) {
+    if (height == 0) {
+        switch (width) {
+            case 640:
+                height = 480;
+                break;
+            case 320:
+                height = 240;
+                break;
+        }
+    }
+
+    if (rotation != 0 && rotation != 90 && rotation != 180 && rotation != 270) {
+        // invalid rotation
         return;
     }
+
     if (!common_hal_picodvi_framebuffer_preflight(width, height, color_depth)) {
         // TODO: User configuration can fail without a self-explanatory message.
         // sadly, a print from here does NOT reach boot_out.txt, so no point in
@@ -75,7 +111,10 @@ void picodvi_autoconstruct(void) {
     common_hal_framebufferio_framebufferdisplay_construct(
         display,
         MP_OBJ_FROM_PTR(fb),
-        0,
+        rotation,
         true);
-    #endif
 }
+#else
+void picodvi_autoconstruct(void) {
+}
+#endif

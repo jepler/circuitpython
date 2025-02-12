@@ -121,6 +121,8 @@ a rotation of 0. Attempting to initialize the screen with a rotation other than 
 90, 180 or 270 is not supported and will result in an unexpected screen rotation.
 
 `Sunton ESP32-8048S050 <https://circuitpython.org/board/sunton_esp32_8048S050/>`_
+`Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
+`Adafruit Metro RP2350 <https://circuitpython.org/board/adafruit_metro_rp2350/>`_
 
 CIRCUITPY_DISPLAY_FREQUENCY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -132,6 +134,20 @@ display frequency.
 
 `Sunton ESP32-8048S050 <https://circuitpython.org/board/sunton_esp32_8048S050/>`_
 
+
+CIRCUITPY_PICODVI_ENABLE
+~~~~~~~~~~~~~~~~~~~~~~~~
+Whether to configure the display at board initialization time, one of the following:
+
+.. code-block::
+
+    CIRCUITPY_PICODVI_ENABLE="detect" # when EDID EEPROM is detected (default)
+    CIRCUITPY_PICODVI_ENABLE="always"
+    CIRCUITPY_PICODVI_ENABLE="never"
+
+`Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
+`Adafruit Metro RP2350 <https://circuitpython.org/board/adafruit_metro_rp2350/>`_
+
 CIRCUITPY_DISPLAY_WIDTH, _HEIGHT, and _COLOR_DEPTH (RP2350 boards with DVI or HSTX connector)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Selects the desired resolution and color depth.
@@ -142,18 +158,14 @@ Supported resolutions are:
 
 The default value, if unspecified, is 320x240 with 16 bits per pixel.
 
-setting ``CIRCUITPY_DISPLAY_WIDTH = 0`` disables automatic display configuration. In this case, the other
-values are not used.
+If height is unspecified, it is set from the width. For example, a width of 640
+implies a height of 480.
 
-If an EDID EEPROM is not detected on the I2C bus, automatic display
-configuration is not performed.
-
-Example: Configure the display to 640x480 black and white (1bpp):
+Example: Configure the display to 640x480 black and white (1 bit per pixel):
 
 .. code-block::
 
     CIRCUITPY_DISPLAY_WIDTH=640
-    CIRCUITPY_DISPLAY_WIDTH=480
     CIRCUITPY_DISPLAY_COLOR_DEPTH=1
 
 `Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
