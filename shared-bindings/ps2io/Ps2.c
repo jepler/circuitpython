@@ -44,6 +44,7 @@
 //|           print(kbd.sendcmd(0xed))
 //|           print(kbd.sendcmd(0x01))"""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_data_pin, ARG_clock_pin };
     static const mp_arg_t allowed_args[] = {
@@ -66,6 +67,7 @@ static mp_obj_t ps2io_ps2_make_new(const mp_obj_type_t *type, size_t n_args, siz
 //|     def deinit(self) -> None:
 //|         """Deinitialises the Ps2 and releases any hardware resources for reuse."""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_deinit(mp_obj_t self_in) {
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_ps2io_ps2_deinit(self);
@@ -82,12 +84,14 @@ static void check_for_deinit(ps2io_ps2_obj_t *self) {
 //|     def __enter__(self) -> Ps2:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_obj___exit__(size_t n_args, const mp_obj_t *args) {
     mp_check_self(mp_obj_is_type(args[0], &ps2io_ps2_type));
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(args[0]);
@@ -100,6 +104,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(ps2io_ps2___exit___obj, 4, 4, ps2io_p
 //|         """Removes and returns the oldest received byte. When buffer
 //|         is empty, raises an IndexError exception."""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_obj_popleft(mp_obj_t self_in) {
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -124,6 +129,7 @@ MP_DEFINE_CONST_FUN_OBJ_1(ps2io_ps2_popleft_obj, ps2io_ps2_obj_popleft);
 //|
 //|         :param int byte: byte value of the command"""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_obj_sendcmd(mp_obj_t self_in, mp_obj_t ob) {
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -165,6 +171,7 @@ MP_DEFINE_CONST_FUN_OBJ_2(ps2io_ps2_sendcmd_obj, ps2io_ps2_obj_sendcmd);
 //|
 //|         0x2000: device didn't send a response byte in time"""
 //|         ...
+//|
 static mp_obj_t ps2io_ps2_obj_clear_errors(mp_obj_t self_in) {
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -178,6 +185,7 @@ MP_DEFINE_CONST_FUN_OBJ_1(ps2io_ps2_clear_errors_obj, ps2io_ps2_obj_clear_errors
 //|         """Returns the number of received bytes in buffer, available
 //|         to :py:func:`popleft()`."""
 //|         ...
+//|
 //|
 static mp_obj_t ps2_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
     ps2io_ps2_obj_t *self = MP_OBJ_TO_PTR(self_in);

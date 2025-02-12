@@ -40,11 +40,12 @@
 //|         scroll_area: displayio.TileGrid,
 //|         font: fontio.BuiltinFont,
 //|         *,
-//|         status_bar: Optional[displayio.TileGrid] = None
+//|         status_bar: Optional[displayio.TileGrid] = None,
 //|     ) -> None:
 //|         """Terminal manages tile indices and cursor position based on VT100 commands. The font should be
 //|         a `fontio.BuiltinFont` and the TileGrid's bitmap should match the font's bitmap."""
 //|         ...
+//|
 
 static mp_obj_t terminalio_terminal_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_scroll_area, ARG_font, ARG_status_bar };
@@ -81,6 +82,7 @@ static mp_obj_t terminalio_terminal_make_new(const mp_obj_type_t *type, size_t n
 //|         :return: the number of bytes written
 //|         :rtype: int or None"""
 //|         ...
+//|
 //|
 static mp_uint_t terminalio_terminal_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {
     terminalio_terminal_obj_t *self = MP_OBJ_TO_PTR(self_in);

@@ -22,6 +22,7 @@
 //|     NOTCH: FilterMode
 //|     """A notch filter"""
 //|
+//|
 
 MAKE_ENUM_VALUE(synthio_filter_mode_type, mode, LOW_PASS, SYNTHIO_LOW_PASS);
 MAKE_ENUM_VALUE(synthio_filter_mode_type, mode, HIGH_PASS, SYNTHIO_HIGH_PASS);
@@ -63,6 +64,7 @@ static synthio_filter_mode validate_synthio_filter_mode(mp_obj_t obj, qstr arg_n
 //|         this should result in a stable filter output. However, in practice,
 //|         slowly varying the filter's characteristic frequency and sharpness
 //|         appears to work as you'd expect."""
+//|
 
 static const mp_arg_t block_biquad_properties[] = {
     { MP_QSTR_mode, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_obj = MP_OBJ_NULL } },
@@ -119,6 +121,7 @@ MP_PROPERTY_GETSET(synthio_block_biquad_frequency_obj,
 //|
 //|     Q: BlockInput
 //|     """The sharpness (Q) of the filter"""
+//|
 //|
 static mp_obj_t synthio_block_biquad_get_Q(mp_obj_t self_in) {
     synthio_block_biquad_t *self = MP_OBJ_TO_PTR(self_in);

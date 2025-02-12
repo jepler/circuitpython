@@ -203,7 +203,7 @@ audio_dma_result audio_dma_setup_playback(
     dma->output_signed = output_signed;
     dma->sample_spacing = 1;
     dma->output_resolution = output_resolution;
-    dma->sample_resolution = audiosample_bits_per_sample(sample);
+    dma->sample_resolution = audiosample_get_bits_per_sample(sample);
     dma->output_register_address = output_register_address;
     dma->swap_channel = swap_channel;
 
@@ -250,7 +250,7 @@ audio_dma_result audio_dma_setup_playback(
         dma->output_size = 1;
     }
     // Transfer both channels at once.
-    if (!single_channel_output && audiosample_channel_count(sample) == 2) {
+    if (!single_channel_output && audiosample_get_channel_count(sample) == 2) {
         dma->output_size *= 2;
     }
     enum dma_channel_transfer_size dma_size = DMA_SIZE_8;

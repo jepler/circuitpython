@@ -78,6 +78,7 @@ static const uint16_t triangle[] = {0, 32767, 0, -32767};
 //|         interpolate: bool = True,
 //|     ) -> None:
 //|         pass
+//|
 static const mp_arg_t lfo_properties[] = {
     { MP_QSTR_waveform, MP_ARG_OBJ, {.u_obj = MP_ROM_NONE } },
     { MP_QSTR_rate, MP_ARG_OBJ | MP_ARG_KW_ONLY, {.u_obj = MP_ROM_INT(1) } },
@@ -270,6 +271,7 @@ MP_PROPERTY_GETTER(synthio_lfo_value_obj,
 //|
 //|     def retrigger(self) -> None:
 //|         """Reset the LFO's internal index to the start of the waveform. Most useful when it its `once` property is `True`."""
+//|
 //|
 static mp_obj_t synthio_lfo_retrigger(mp_obj_t self_in) {
     synthio_lfo_obj_t *self = MP_OBJ_TO_PTR(self_in);

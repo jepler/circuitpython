@@ -70,7 +70,7 @@ void common_hal_pwmio_pwmout_raise_error(pwmout_result_t result) {
 //|         *,
 //|         duty_cycle: int = 0,
 //|         frequency: int = 500,
-//|         variable_frequency: bool = False
+//|         variable_frequency: bool = False,
 //|     ) -> None:
 //|         """Create a PWM object associated with the given pin. This allows you to
 //|         write PWM signals out on the given pin. Frequency is fixed after init
@@ -131,6 +131,7 @@ void common_hal_pwmio_pwmout_raise_error(pwmout_result_t result) {
 //|
 //|         """
 //|         ...
+//|
 static mp_obj_t pwmio_pwmout_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     enum { ARG_pin, ARG_duty_cycle, ARG_frequency, ARG_variable_frequency };
     static const mp_arg_t allowed_args[] = {
@@ -159,6 +160,7 @@ static mp_obj_t pwmio_pwmout_make_new(const mp_obj_type_t *type, size_t n_args, 
 //|     def deinit(self) -> None:
 //|         """Deinitialises the PWMOut and releases any hardware resources for reuse."""
 //|         ...
+//|
 static mp_obj_t pwmio_pwmout_deinit(mp_obj_t self_in) {
     pwmio_pwmout_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_pwmio_pwmout_deinit(self);
@@ -175,12 +177,14 @@ static void check_for_deinit(pwmio_pwmout_obj_t *self) {
 //|     def __enter__(self) -> PWMOut:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t pwmio_pwmout_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_pwmio_pwmout_deinit(args[0]);
@@ -230,6 +234,7 @@ MP_PROPERTY_GETSET(pwmio_pwmout_duty_cycle_obj,
 //|     from the original duty cycle value. This should happen without any need
 //|     to manually re-set the duty cycle. However, an output glitch may occur during the adjustment.
 //|     """
+//|
 //|
 static mp_obj_t pwmio_pwmout_obj_get_frequency(mp_obj_t self_in) {
     pwmio_pwmout_obj_t *self = MP_OBJ_TO_PTR(self_in);

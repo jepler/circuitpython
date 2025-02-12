@@ -974,7 +974,13 @@ static int run_repl(safe_mode_t safe_mode) {
     return exit_code;
 }
 
+#if defined(__ZEPHYR__) && __ZEPHYR__ == 1
+#include <zephyr/console/console.h>
+
+int circuitpython_main(void) {
+#else
 int __attribute__((used)) main(void) {
+    #endif
 
     // initialise the cpu and peripherals
     set_safe_mode(port_init());

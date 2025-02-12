@@ -46,6 +46,7 @@ MP_WEAK const mcu_pin_obj_t *common_hal_analogio_analogin_validate_pin(mp_obj_t 
 //|         when you read a value. You can retry the read.
 //|         """
 //|         ...
+//|
 static mp_obj_t analogio_analogin_make_new(const mp_obj_type_t *type,
     mp_uint_t n_args, size_t n_kw, const mp_obj_t *args) {
     // check number of arguments
@@ -62,6 +63,7 @@ static mp_obj_t analogio_analogin_make_new(const mp_obj_type_t *type,
 //|     def deinit(self) -> None:
 //|         """Turn off the AnalogIn and release the pin for other use."""
 //|         ...
+//|
 static mp_obj_t analogio_analogin_deinit(mp_obj_t self_in) {
     analogio_analogin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_analogio_analogin_deinit(self);
@@ -77,12 +79,14 @@ static void check_for_deinit(analogio_analogin_obj_t *self) {
 //|     def __enter__(self) -> AnalogIn:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t analogio_analogin___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_analogio_analogin_deinit(args[0]);
@@ -109,6 +113,7 @@ MP_PROPERTY_GETTER(analogio_analogin_value_obj,
 //|     """The maximum voltage measurable (also known as the reference voltage) as a
 //|     ``float`` in Volts.  Note the ADC value may not scale to the actual voltage linearly
 //|     at ends of the analog range."""
+//|
 //|
 static mp_obj_t analogio_analogin_obj_get_reference_voltage(mp_obj_t self_in) {
     analogio_analogin_obj_t *self = MP_OBJ_TO_PTR(self_in);

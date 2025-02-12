@@ -10,8 +10,7 @@
 #include "shared-bindings/gifio/OnDiskGif.h"
 #include "shared-bindings/util.h"
 
-//| """Access GIF-format images
-//| """
+//| """Access GIF-format images"""
 static const mp_rom_map_elem_t gifio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_gifio) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_GifWriter),  MP_ROM_PTR(&gifio_gifwriter_type)},

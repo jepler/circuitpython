@@ -51,13 +51,6 @@ static int8_t _sm_dma_plus_one_read[NUM_PIOS][NUM_PIO_STATE_MACHINES];
 #define SM_DMA_CLEAR_CHANNEL_READ(pio_index, sm) (_sm_dma_plus_one_read[(pio_index)][(sm)] = 0)
 #define SM_DMA_SET_CHANNEL_READ(pio_index, sm, channel) (_sm_dma_plus_one_read[(pio_index)][(sm)] = (channel) + 1)
 
-static PIO pio_instances[NUM_PIOS] = {
-    pio0,
-    pio1
-    #if NUM_PIOS == 3
-    , pio2
-    #endif
-};
 typedef void (*interrupt_handler_type)(void *);
 static interrupt_handler_type _interrupt_handler[NUM_PIOS][NUM_PIO_STATE_MACHINES];
 static void *_interrupt_arg[NUM_PIOS][NUM_PIO_STATE_MACHINES];
@@ -149,7 +142,7 @@ static void _reset_statemachine(PIO pio, uint8_t sm, bool leave_pins) {
 
 void reset_rp2pio_statemachine(void) {
     for (size_t i = 0; i < NUM_PIOS; i++) {
-        PIO pio = pio_instances[i];
+        PIO pio = pio_get_instance(i);
         for (size_t j = 0; j < NUM_PIO_STATE_MACHINES; j++) {
             if (_never_reset[i][j]) {
                 continue;
@@ -239,7 +232,7 @@ static bool use_existing_program(PIO *pio_out, uint *sm_out, int *offset_inout, 
     }
 
     for (size_t i = 0; i < NUM_PIOS; i++) {
-        PIO pio = pio_instances[i];
+        PIO pio = pio_get_instance(i);
         if (!is_gpio_compatible(pio, required_gpio_ranges)) {
             continue;
         }
@@ -1086,7 +1079,7 @@ void common_hal_rp2pio_statemachine_set_interrupt_handler(rp2pio_statemachine_ob
 
 static void rp2pio_statemachine_interrupt_handler(void) {
     for (size_t pio_index = 0; pio_index < NUM_PIOS; pio_index++) {
-        PIO pio = pio_instances[pio_index];
+        PIO pio = pio_get_instance(pio_index);
         for (size_t sm = 0; sm < NUM_PIO_STATE_MACHINES; sm++) {
             if (!_interrupt_handler[pio_index][sm]) {
                 continue;
@@ -1441,7 +1434,7 @@ int common_hal_rp2pio_statemachine_get_offset(rp2pio_statemachine_obj_t *self) {
 
 int common_hal_rp2pio_statemachine_get_pc(rp2pio_statemachine_obj_t *self) {
     uint8_t pio_index = pio_get_index(self->pio);
-    PIO pio = pio_instances[pio_index];
+    PIO pio = pio_get_instance(pio_index);
     uint8_t sm = self->state_machine;
     return pio_sm_get_pc(pio, sm);
 }

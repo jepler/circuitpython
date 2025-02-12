@@ -101,6 +101,7 @@
 //|         is not limited but images that are too large will cause a memory exception.
 //|         """
 //|         ...
+//|
 static mp_obj_t gifio_ondiskgif_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_filename, ARG_use_palette, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
@@ -135,12 +136,14 @@ static void check_for_deinit(gifio_ondiskgif_t *self) {
 //|     def __enter__(self) -> OnDiskGif:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the GIF when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t gifio_ondiskgif_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_gifio_ondiskgif_deinit(args[0]);
@@ -192,6 +195,7 @@ MP_PROPERTY_GETTER(gifio_ondiskgif_bitmap_obj,
 
 //|     palette: Optional[displayio.Palette]
 //|     """The palette for the current frame if it exists."""
+//|
 static mp_obj_t gifio_ondiskgif_obj_get_palette(mp_obj_t self_in) {
     gifio_ondiskgif_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -206,6 +210,7 @@ MP_PROPERTY_GETTER(gifio_ondiskgif_palette_obj,
 
 //|     def next_frame(self) -> float:
 //|         """Loads the next frame. Returns expected delay before the next frame in seconds."""
+//|
 static mp_obj_t gifio_ondiskgif_obj_next_frame(mp_obj_t self_in) {
     gifio_ondiskgif_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -276,6 +281,7 @@ MP_PROPERTY_GETTER(gifio_ondiskgif_max_delay_obj,
 //|     def deinit(self) -> None:
 //|         """Release resources allocated by OnDiskGif."""
 //|         ...
+//|
 //|
 static mp_obj_t gifio_ondiskgif_obj_deinit(mp_obj_t self_in) {
     gifio_ondiskgif_t *self = MP_OBJ_TO_PTR(self_in);

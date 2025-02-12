@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"PO-Revision-Date: 2025-01-25 09:05+0000\n"
+"PO-Revision-Date: 2025-02-07 13:02+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: none\n"
 "Language: en_GB\n"
@@ -754,6 +754,10 @@ msgstr "Can only alarm on one low pin while others alarm high from deep sleep."
 msgid "Can only alarm on two low pins from deep sleep."
 msgstr "Can only alarm on two low pins from deep sleep."
 
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Can't construct AudioOut because continuous channel already open"
+msgstr "Can't construct AudioOut because continuous channel already open"
+
 #: ports/espressif/common-hal/_bleio/Characteristic.c
 #: ports/nordic/common-hal/_bleio/Characteristic.c
 msgid "Can't set CCCD on local Characteristic"
@@ -1019,14 +1023,42 @@ msgstr "Failed to connect: internal error"
 msgid "Failed to connect: timeout"
 msgstr "Failed to connect: timeout"
 
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to create continuous channels: invalid arg"
+msgstr "Failed to create continuous channels: invalid arg"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to create continuous channels: invalid state"
+msgstr "Failed to create continuous channels: invalid state"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to create continuous channels: no mem"
+msgstr "Failed to create continuous channels: no mem"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to create continuous channels: not found"
+msgstr "Failed to create continuous channels: not found"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to enable continuous"
+msgstr "Failed to enable continuous"
+
 #: shared-module/audiomp3/MP3Decoder.c
 msgid "Failed to parse MP3 file"
 msgstr "Failed to parse MP3 file"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to register continuous events callback"
+msgstr "Failed to register continuous events callback"
 
 #: ports/nordic/sd_mutex.c
 #, c-format
 msgid "Failed to release mutex, err 0x%04x"
 msgstr "Failed to release mutex, err 0x%04x"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "Failed to start async audio"
+msgstr "Failed to start async audio"
 
 #: supervisor/shared/safe_mode.c
 msgid "Failed to write internal flash."
@@ -2435,6 +2467,10 @@ msgstr "a bytes-like object is required"
 msgid "addresses is empty"
 msgstr "addresses is empty"
 
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "already playing"
+msgstr "already playing"
+
 #: py/compile.c
 msgid "annotation must be an identifier"
 msgstr "annotation must be an identifier"
@@ -2512,6 +2548,10 @@ msgstr "attempt to get argmin/argmax of an empty sequence"
 #: py/objstr.c
 msgid "attributes not supported"
 msgstr "attributes not supported"
+
+#: ports/espressif/common-hal/audioio/AudioOut.c
+msgid "audio format not supported"
+msgstr "audio format not supported"
 
 #: extmod/ulab/code/ulab_tools.c
 msgid "axis is out of bounds"

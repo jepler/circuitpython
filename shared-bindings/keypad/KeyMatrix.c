@@ -69,6 +69,7 @@
 //|           The default is 1, which resolves immediately. The maximum is 127.
 //|         """
 //|         ...
+//|
 
 static mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if CIRCUITPY_KEYPAD_KEYMATRIX
@@ -126,6 +127,7 @@ static mp_obj_t keypad_keymatrix_make_new(const mp_obj_type_t *type, size_t n_ar
 //|     def deinit(self) -> None:
 //|         """Stop scanning and release the pins."""
 //|         ...
+//|
 static mp_obj_t keypad_keymatrix_deinit(mp_obj_t self_in) {
     keypad_keymatrix_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_keypad_keymatrix_deinit(self);
@@ -136,12 +138,14 @@ MP_DEFINE_CONST_FUN_OBJ_1(keypad_keymatrix_deinit_obj, keypad_keymatrix_deinit);
 //|     def __enter__(self) -> KeyMatrix:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t keypad_keymatrix___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_keypad_keymatrix_deinit(args[0]);
@@ -164,10 +168,12 @@ static void check_for_deinit(keypad_keymatrix_obj_t *self) {
 //|         were being held down at program start.
 //|         """
 //|         ...
+//|
 
 //|     key_count: int
 //|     """The number of keys that are being scanned. (read-only)
 //|     """
+//|
 
 //|     def key_number_to_row_column(self, key_number: int) -> Tuple[int]:
 //|         """Return the row and column for the given key number.
@@ -178,6 +184,7 @@ static void check_for_deinit(keypad_keymatrix_obj_t *self) {
 //|         :rtype: Tuple[int]
 //|         """
 //|         ...
+//|
 static mp_obj_t keypad_keymatrix_key_number_to_row_column(mp_obj_t self_in, mp_obj_t key_number_in) {
     keypad_keymatrix_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -204,6 +211,7 @@ MP_DEFINE_CONST_FUN_OBJ_2(keypad_keymatrix_key_number_to_row_column_obj, keypad_
 //|         The key number is ``row * len(column_pins) + column``.
 //|         """
 //|         ...
+//|
 static mp_obj_t keypad_keymatrix_row_column_to_key_number(mp_obj_t self_in, mp_obj_t row_in, mp_obj_t column_in) {
     keypad_keymatrix_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -222,6 +230,7 @@ MP_DEFINE_CONST_FUN_OBJ_3(keypad_keymatrix_row_column_to_key_number_obj, keypad_
 //|     events: EventQueue
 //|     """The `EventQueue` associated with this `Keys` object. (read-only)
 //|     """
+//|
 //|
 
 static const mp_rom_map_elem_t keypad_keymatrix_locals_dict_table[] = {

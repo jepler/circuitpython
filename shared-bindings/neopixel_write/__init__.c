@@ -84,6 +84,7 @@ static void check_for_deinit(digitalio_digitalinout_obj_t *self) {
 //|
 //| """
 //|
+//|
 //| def neopixel_write(digitalinout: digitalio.DigitalInOut, buf: ReadableBuffer) -> None:
 //|     """Write buf out on the given DigitalInOut.
 //|
@@ -91,6 +92,7 @@ static void check_for_deinit(digitalio_digitalinout_obj_t *self) {
 //|     :param ~circuitpython_typing.ReadableBuffer buf: The bytes to clock out. No assumption is made about color order
 //|     """
 //|     ...
+//|
 //|
 static mp_obj_t neopixel_write_neopixel_write_(mp_obj_t digitalinout_obj, mp_obj_t buf) {
     const digitalio_digitalinout_obj_t *digitalinout =

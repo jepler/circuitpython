@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "shared-bindings/audiofilters/Filter.h"
+#include "shared-bindings/audiocore/__init__.h"
 #include "shared-module/audiofilters/Filter.h"
 
 #include "shared/runtime/context_manager_helpers.h"
@@ -68,6 +69,7 @@
 //|               synth.release(note)
 //|               time.sleep(5)"""
 //|         ...
+//|
 static mp_obj_t audiofilters_filter_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_filter, ARG_mix, ARG_buffer_size, ARG_sample_rate, ARG_bits_per_sample, ARG_samples_signed, ARG_channel_count, };
     static const mp_arg_t allowed_args[] = {
@@ -99,6 +101,7 @@ static mp_obj_t audiofilters_filter_make_new(const mp_obj_type_t *type, size_t n
 //|     def deinit(self) -> None:
 //|         """Deinitialises the Filter."""
 //|         ...
+//|
 static mp_obj_t audiofilters_filter_deinit(mp_obj_t self_in) {
     audiofilters_filter_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_audiofilters_filter_deinit(self);
@@ -107,20 +110,20 @@ static mp_obj_t audiofilters_filter_deinit(mp_obj_t self_in) {
 static MP_DEFINE_CONST_FUN_OBJ_1(audiofilters_filter_deinit_obj, audiofilters_filter_deinit);
 
 static void check_for_deinit(audiofilters_filter_obj_t *self) {
-    if (common_hal_audiofilters_filter_deinited(self)) {
-        raise_deinited_error();
-    }
+    audiosample_check_for_deinit(&self->base);
 }
 
 //|     def __enter__(self) -> Filter:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t audiofilters_filter_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_audiofilters_filter_deinit(args[0]);
@@ -172,6 +175,7 @@ MP_PROPERTY_GETSET(audiofilters_filter_mix_obj,
 
 //|     playing: bool
 //|     """True when the effect is playing a sample. (read-only)"""
+//|
 static mp_obj_t audiofilters_filter_obj_get_playing(mp_obj_t self_in) {
     audiofilters_filter_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
@@ -188,6 +192,7 @@ MP_PROPERTY_GETTER(audiofilters_filter_playing_obj,
 //|
 //|         The sample must match the encoding settings given in the constructor."""
 //|         ...
+//|
 static mp_obj_t audiofilters_filter_obj_play(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_sample, ARG_loop };
     static const mp_arg_t allowed_args[] = {
@@ -211,6 +216,7 @@ MP_DEFINE_CONST_FUN_OBJ_KW(audiofilters_filter_play_obj, 1, audiofilters_filter_
 //|         """Stops playback of the sample."""
 //|         ...
 //|
+//|
 static mp_obj_t audiofilters_filter_obj_stop(mp_obj_t self_in) {
     audiofilters_filter_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -231,17 +237,14 @@ static const mp_rom_map_elem_t audiofilters_filter_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_playing), MP_ROM_PTR(&audiofilters_filter_playing_obj) },
     { MP_ROM_QSTR(MP_QSTR_filter), MP_ROM_PTR(&audiofilters_filter_filter_obj) },
     { MP_ROM_QSTR(MP_QSTR_mix), MP_ROM_PTR(&audiofilters_filter_mix_obj) },
+    AUDIOSAMPLE_FIELDS,
 };
 static MP_DEFINE_CONST_DICT(audiofilters_filter_locals_dict, audiofilters_filter_locals_dict_table);
 
 static const audiosample_p_t audiofilters_filter_proto = {
     MP_PROTO_IMPLEMENT(MP_QSTR_protocol_audiosample)
-    .sample_rate = (audiosample_sample_rate_fun)common_hal_audiofilters_filter_get_sample_rate,
-    .bits_per_sample = (audiosample_bits_per_sample_fun)common_hal_audiofilters_filter_get_bits_per_sample,
-    .channel_count = (audiosample_channel_count_fun)common_hal_audiofilters_filter_get_channel_count,
     .reset_buffer = (audiosample_reset_buffer_fun)audiofilters_filter_reset_buffer,
     .get_buffer = (audiosample_get_buffer_fun)audiofilters_filter_get_buffer,
-    .get_buffer_structure = (audiosample_get_buffer_structure_fun)audiofilters_filter_get_buffer_structure,
 };
 
 MP_DEFINE_CONST_OBJ_TYPE(

@@ -65,6 +65,7 @@ MP_WEAK const mcu_pin_obj_t *common_hal_digitalio_validate_pin(mp_obj_t obj) {
 //|
 //|         :param ~microcontroller.Pin pin: The pin to control"""
 //|         ...
+//|
 static mp_obj_t digitalio_digitalinout_make_new(const mp_obj_type_t *type,
     size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
@@ -80,6 +81,7 @@ static mp_obj_t digitalio_digitalinout_make_new(const mp_obj_type_t *type,
 //|     def deinit(self) -> None:
 //|         """Turn off the DigitalInOut and release the pin for other use."""
 //|         ...
+//|
 static mp_obj_t digitalio_digitalinout_obj_deinit(mp_obj_t self_in) {
     digitalio_digitalinout_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_digitalio_digitalinout_deinit(self);
@@ -90,12 +92,14 @@ MP_DEFINE_CONST_FUN_OBJ_1(digitalio_digitalinout_deinit_obj, digitalio_digitalin
 //|     def __enter__(self) -> DigitalInOut:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t digitalio_digitalinout_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_digitalio_digitalinout_deinit(MP_OBJ_TO_PTR(args[0]));
@@ -119,6 +123,7 @@ static inline void check_for_deinit(digitalio_digitalinout_obj_t *self) {
 //|         :param ~digitalio.DriveMode drive_mode: drive mode for the output
 //|         """
 //|         ...
+//|
 static mp_obj_t digitalio_digitalinout_switch_to_output(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_value, ARG_drive_mode };
     static const mp_arg_t allowed_args[] = {
@@ -156,6 +161,7 @@ MP_DEFINE_CONST_FUN_OBJ_KW(digitalio_digitalinout_switch_to_output_obj, 1, digit
 //|           switch.pull = digitalio.Pull.UP
 //|           print(switch.value)"""
 //|         ...
+//|
 static mp_obj_t digitalio_digitalinout_switch_to_input(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_pull };
     static const mp_arg_t allowed_args[] = {
@@ -287,6 +293,7 @@ MP_PROPERTY_GETSET(digitalio_digitalio_drive_mode_obj,
 //|     - `None`
 //|
 //|     :raises AttributeError: if `direction` is :py:data:`~digitalio.Direction.OUTPUT`."""
+//|
 //|
 static mp_obj_t digitalio_digitalinout_obj_get_pull(mp_obj_t self_in) {
     digitalio_digitalinout_obj_t *self = MP_OBJ_TO_PTR(self_in);

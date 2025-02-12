@@ -44,6 +44,7 @@
 //|           pulses[0] = 200
 //|           pulse.send(pulses)"""
 //|         ...
+//|
 static mp_obj_t pulseio_pulseout_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if CIRCUITPY_PULSEIO_PULSEOUT
     enum { ARG_pin, ARG_frequency, ARG_duty_cycle};
@@ -71,6 +72,7 @@ static mp_obj_t pulseio_pulseout_make_new(const mp_obj_type_t *type, size_t n_ar
 //|     def deinit(self) -> None:
 //|         """Deinitialises the PulseOut and releases any hardware resources for reuse."""
 //|         ...
+//|
 static mp_obj_t pulseio_pulseout_deinit(mp_obj_t self_in) {
     pulseio_pulseout_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_pulseio_pulseout_deinit(self);
@@ -81,12 +83,14 @@ static MP_DEFINE_CONST_FUN_OBJ_1(pulseio_pulseout_deinit_obj, pulseio_pulseout_d
 //|     def __enter__(self) -> PulseOut:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t pulseio_pulseout_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_pulseio_pulseout_deinit(args[0]);
@@ -104,6 +108,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pulseio_pulseout___exit___obj, 4, 4, 
 //|
 //|         :param array.array pulses: pulse durations in microseconds"""
 //|         ...
+//|
 //|
 static mp_obj_t pulseio_pulseout_obj_send(mp_obj_t self_in, mp_obj_t pulses) {
     pulseio_pulseout_obj_t *self = MP_OBJ_TO_PTR(self_in);

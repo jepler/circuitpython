@@ -48,6 +48,7 @@ static mp_obj_t mp_obj_new_i2ctarget_i2c_target_request(i2ctarget_i2c_target_obj
 //|         :type addresses: list[int]
 //|         :param bool smbus: Use SMBUS timings if the hardware supports it"""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     i2ctarget_i2c_target_obj_t *self = mp_obj_malloc_with_finaliser(i2ctarget_i2c_target_obj_t, &i2ctarget_i2c_target_type);
     enum { ARG_scl, ARG_sda, ARG_addresses, ARG_smbus };
@@ -84,6 +85,7 @@ static mp_obj_t i2ctarget_i2c_target_make_new(const mp_obj_type_t *type, size_t 
 //|     def deinit(self) -> None:
 //|         """Releases control of the underlying hardware so other classes can use it."""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_obj_deinit(mp_obj_t self_in) {
     i2ctarget_i2c_target_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_i2ctarget_i2c_target_deinit(self);
@@ -100,12 +102,14 @@ static void check_for_deinit(i2ctarget_i2c_target_obj_t *self) {
 //|     def __enter__(self) -> I2CTarget:
 //|         """No-op used in Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware on context exit. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_obj___exit__(size_t n_args, const mp_obj_t *args) {
     i2ctarget_i2c_target_obj_t *self = MP_OBJ_TO_PTR(args[0]);
     common_hal_i2ctarget_i2c_target_deinit(self);
@@ -119,6 +123,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(i2ctarget_i2c_target___exit___obj, 4,
 //|         :param float timeout: Timeout in seconds. Zero means wait forever, a negative value means check once
 //|         :return: I2CTargetRequest or None if timeout=-1 and there's no request
 //|         :rtype: ~i2ctarget.I2CTargetRequest"""
+//|
 //|
 static mp_obj_t i2ctarget_i2c_target_request(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     i2ctarget_i2c_target_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
@@ -216,6 +221,7 @@ MP_DEFINE_CONST_OBJ_TYPE(
 //|         :param address: I2C address
 //|         :param is_read: True if the main target is requesting data
 //|         :param is_restart: Repeated Start Condition"""
+//|
 static mp_obj_t i2ctarget_i2c_target_request_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 4, 4, false);
     return mp_obj_new_i2ctarget_i2c_target_request(args[0], mp_obj_get_int(args[1]), mp_obj_is_true(args[2]), mp_obj_is_true(args[3]));
@@ -224,11 +230,13 @@ static mp_obj_t i2ctarget_i2c_target_request_make_new(const mp_obj_type_t *type,
 //|     def __enter__(self) -> I2CTargetRequest:
 //|         """No-op used in Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Close the request."""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_request_obj___exit__(size_t n_args, const mp_obj_t *args) {
     i2ctarget_i2c_target_request_obj_t *self = MP_OBJ_TO_PTR(args[0]);
     check_for_deinit(self->target);
@@ -260,6 +268,7 @@ MP_DEFINE_CONST_PROP_GET(i2ctarget_i2c_target_request_is_read_obj, i2ctarget_i2c
 
 //|     is_restart: bool
 //|     """Is Repeated Start Condition."""
+//|
 static mp_obj_t i2ctarget_i2c_target_request_get_is_restart(mp_obj_t self_in) {
     i2ctarget_i2c_target_request_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self->target);
@@ -276,6 +285,7 @@ MP_DEFINE_CONST_PROP_GET(i2ctarget_i2c_target_request_is_restart_obj, i2ctarget_
 //|         :param ack: Whether or not to send an ACK after the n'th byte
 //|         :return: Bytes read"""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_request_read(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     i2ctarget_i2c_target_request_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     check_for_deinit(self->target);
@@ -334,6 +344,7 @@ MP_DEFINE_CONST_FUN_OBJ_KW(i2ctarget_i2c_target_request_read_obj, 1, i2ctarget_i
 //|         :param ~circuitpython_typing.ReadableBuffer buffer: Write out the data in this buffer
 //|         :return: Number of bytes written"""
 //|         ...
+//|
 static mp_obj_t i2ctarget_i2c_target_request_write(mp_obj_t self_in, mp_obj_t buf_in) {
     i2ctarget_i2c_target_request_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self->target);
@@ -367,6 +378,7 @@ static MP_DEFINE_CONST_FUN_OBJ_2(i2ctarget_i2c_target_request_write_obj, i2ctarg
 //|
 //|         :param ack: Whether to send an ACK or NACK"""
 //|         ...
+//|
 //|
 static mp_obj_t i2ctarget_i2c_target_request_ack(uint n_args, const mp_obj_t *args) {
     i2ctarget_i2c_target_request_obj_t *self = MP_OBJ_TO_PTR(args[0]);

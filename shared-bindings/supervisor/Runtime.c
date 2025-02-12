@@ -42,6 +42,7 @@ static supervisor_run_reason_t _run_reason;
 //|         """You cannot create an instance of `supervisor.Runtime`.
 //|         Use `supervisor.runtime` to access the sole instance available."""
 //|         ...
+//|
 
 //|     usb_connected: bool
 //|     """Returns the USB enumeration status (read-only)."""
@@ -181,6 +182,7 @@ MP_PROPERTY_GETSET(supervisor_runtime_ble_workflow_obj,
 //|     """Set brightness of status RGB LED from 0-255. This will take effect
 //|     after the current code finishes and the status LED is used to show
 //|     the finish state."""
+//|
 //|
 static mp_obj_t supervisor_runtime_get_rgb_status_brightness(mp_obj_t self) {
     return MP_OBJ_NEW_SMALL_INT(get_status_brightness());

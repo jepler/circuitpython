@@ -27,7 +27,7 @@
 //|         bit_depth: int = 8,
 //|         mono: bool = True,
 //|         oversample: int = 64,
-//|         startup_delay: float = 0.11
+//|         startup_delay: float = 0.11,
 //|     ) -> None:
 //|         """Create a PDMIn object associated with the given pins. This allows you to
 //|         record audio signals from the given pins. Individual ports may put further
@@ -70,7 +70,9 @@
 //|           with audiobusio.PDMIn(board.MICROPHONE_CLOCK, board.MICROPHONE_DATA, sample_rate=16000, bit_depth=16) as mic:
 //|               mic.record(b, len(b))
 //|         """
+//|
 //|     ...
+//|
 static mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if !CIRCUITPY_AUDIOBUSIO_PDMIN
     mp_raise_NotImplementedError_varg(MP_ERROR_TEXT("%q"), MP_QSTR_PDMIn);
@@ -127,6 +129,7 @@ static mp_obj_t audiobusio_pdmin_make_new(const mp_obj_type_t *type, size_t n_ar
 //|     def deinit(self) -> None:
 //|         """Deinitialises the PDMIn and releases any hardware resources for reuse."""
 //|         ...
+//|
 static mp_obj_t audiobusio_pdmin_deinit(mp_obj_t self_in) {
     audiobusio_pdmin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_audiobusio_pdmin_deinit(self);
@@ -142,11 +145,13 @@ static void check_for_deinit(audiobusio_pdmin_obj_t *self) {
 //|     def __enter__(self) -> PDMIn:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context."""
 //|         ...
+//|
 static mp_obj_t audiobusio_pdmin_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_audiobusio_pdmin_deinit(args[0]);
@@ -166,6 +171,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audiobusio_pdmin___exit___obj, 4, 4, 
 //|         :return: The number of samples recorded. If this is less than ``destination_length``,
 //|           some samples were missed due to processing time."""
 //|         ...
+//|
 static mp_obj_t audiobusio_pdmin_obj_record(mp_obj_t self_obj, mp_obj_t destination, mp_obj_t destination_length) {
     audiobusio_pdmin_obj_t *self = MP_OBJ_TO_PTR(self_obj);
     check_for_deinit(self);
@@ -197,6 +203,7 @@ MP_DEFINE_CONST_FUN_OBJ_3(audiobusio_pdmin_record_obj, audiobusio_pdmin_obj_reco
 //|     sample_rate: int
 //|     """The actual sample_rate of the recording. This may not match the constructed
 //|     sample rate due to internal clock limitations."""
+//|
 //|
 static mp_obj_t audiobusio_pdmin_obj_get_sample_rate(mp_obj_t self_in) {
     audiobusio_pdmin_obj_t *self = MP_OBJ_TO_PTR(self_in);

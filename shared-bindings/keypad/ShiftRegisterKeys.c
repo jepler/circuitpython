@@ -84,6 +84,7 @@
 //|           The default is 1, which resolves immediately. The maximum is 127.
 //|         """
 //|         ...
+//|
 
 static mp_obj_t keypad_shiftregisterkeys_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     #if CIRCUITPY_KEYPAD_SHIFTREGISTERKEYS
@@ -173,6 +174,7 @@ static mp_obj_t keypad_shiftregisterkeys_make_new(const mp_obj_type_t *type, siz
 //|     def deinit(self) -> None:
 //|         """Stop scanning and release the pins."""
 //|         ...
+//|
 static mp_obj_t keypad_shiftregisterkeys_deinit(mp_obj_t self_in) {
     keypad_shiftregisterkeys_obj_t *self = MP_OBJ_TO_PTR(self_in);
 
@@ -184,12 +186,14 @@ MP_DEFINE_CONST_FUN_OBJ_1(keypad_shiftregisterkeys_deinit_obj, keypad_shiftregis
 //|     def __enter__(self) -> Keys:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t keypad_shiftregisterkeys___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_keypad_shiftregisterkeys_deinit(args[0]);
@@ -206,6 +210,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(keypad_shiftregisterkeys___exit___obj
 //|         were being held down at program start.
 //|         """
 //|         ...
+//|
 
 //|     key_count: int
 //|     """The total number of keys that are being scanned. (read-only)
@@ -214,6 +219,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(keypad_shiftregisterkeys___exit___obj
 //|     events: EventQueue
 //|     """The `EventQueue` associated with this `Keys` object. (read-only)
 //|     """
+//|
 //|
 
 static const mp_rom_map_elem_t keypad_shiftregisterkeys_locals_dict_table[] = {

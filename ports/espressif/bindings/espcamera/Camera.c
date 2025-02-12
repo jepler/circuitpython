@@ -70,6 +70,7 @@
 //|         :param framebuffer_count: The number of framebuffers (1 for single-buffered and 2 for double-buffered)
 //|         :param grab_mode: When to grab a new frame
 //|         """
+//|
 static mp_obj_t espcamera_camera_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_data_pins, ARG_pixel_clock_pin, ARG_vsync_pin, ARG_href_pin, ARG_i2c, ARG_external_clock_pin, ARG_external_clock_frequency, ARG_powerdown_pin, ARG_reset_pin, ARG_pixel_format, ARG_frame_size, ARG_jpeg_quality, ARG_framebuffer_count, ARG_grab_mode, NUM_ARGS };
     static const mp_arg_t allowed_args[] = {
@@ -143,6 +144,7 @@ static mp_obj_t espcamera_camera_make_new(const mp_obj_type_t *type, size_t n_ar
 //|     def deinit(self) -> None:
 //|         """Deinitialises the camera and releases all memory resources for reuse."""
 //|         ...
+//|
 static mp_obj_t espcamera_camera_deinit(mp_obj_t self_in) {
     espcamera_camera_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_espcamera_camera_deinit(self);
@@ -159,12 +161,14 @@ static void check_for_deinit(espcamera_camera_obj_t *self) {
 //|     def __enter__(self) -> Camera:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t espcamera_camera_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     return espcamera_camera_deinit(args[0]);
@@ -173,6 +177,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(espcamera_camera___exit___obj, 4, 4, 
 
 //|     frame_available: bool
 //|     """True if a frame is available, False otherwise"""
+//|
 
 static mp_obj_t espcamera_camera_frame_available_get(const mp_obj_t self_in) {
     espcamera_camera_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -193,6 +198,7 @@ MP_PROPERTY_GETTER(espcamera_camera_frame_available_obj,
 //|         If `pixel_format` is `PixelFormat.JPEG`, the returned value is a read-only `memoryview`.
 //|         Otherwise, the returned value is a read-only `displayio.Bitmap`.
 //|         """
+//|
 static mp_obj_t espcamera_camera_take(size_t n_args, const mp_obj_t *args) {
     espcamera_camera_obj_t *self = MP_OBJ_TO_PTR(args[0]);
     mp_float_t timeout = n_args < 2 ? MICROPY_FLOAT_CONST(0.25) : mp_obj_get_float(args[1]);
@@ -229,6 +235,7 @@ static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(espcamera_camera_take_obj, 1, 2, espc
 //|         the other properties to set, they are set together in a single function call.
 //|
 //|         If an argument is unspecified or None, then the setting is unchanged."""
+//|
 
 static mp_obj_t espcamera_camera_reconfigure(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     espcamera_camera_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
@@ -911,6 +918,7 @@ MP_PROPERTY_GETTER(espcamera_camera_grab_mode_obj,
 
 //|     framebuffer_count: int
 //|     """True if double buffering is used"""
+//|
 //|
 static mp_obj_t espcamera_camera_get_framebuffer_count(const mp_obj_t self_in) {
     espcamera_camera_obj_t *self = MP_OBJ_TO_PTR(self_in);

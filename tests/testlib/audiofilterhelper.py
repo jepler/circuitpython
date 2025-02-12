@@ -7,7 +7,8 @@ from synthio import Note, LFO, MathOperation, Synthesizer
 sinedata = array.array("h", [int(32767 * sin(i * 2 * pi / 600)) for i in range(600)])
 sine8k = RawSample(sinedata, sample_rate=8000)
 
-def synth_test(_gen=None, dtype=np.int16, divisor = 32768, channel_count=1):
+
+def synth_test(_gen=None, dtype=np.int16, divisor=32768, channel_count=1):
     def func(gen):
         g = gen()
         synth, blocks = next(g)

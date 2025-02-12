@@ -16,17 +16,12 @@
 extern const mp_obj_type_t audiofilters_filter_type;
 
 typedef struct {
-    mp_obj_base_t base;
+    audiosample_base_t base;
     mp_obj_t *filter;
     synthio_block_slot_t mix;
 
     size_t filter_states_len;
     biquad_filter_state *filter_states;
-
-    uint8_t bits_per_sample;
-    bool samples_signed;
-    uint8_t channel_count;
-    uint32_t sample_rate;
 
     int8_t *buffer[2];
     uint8_t last_buf_idx;
@@ -54,7 +49,3 @@ audioio_get_buffer_result_t audiofilters_filter_get_buffer(audiofilters_filter_o
     uint8_t channel,
     uint8_t **buffer,
     uint32_t *buffer_length);  // length in bytes
-
-void audiofilters_filter_get_buffer_structure(audiofilters_filter_obj_t *self, bool single_channel_output,
-    bool *single_buffer, bool *samples_signed,
-    uint32_t *max_buffer_length, uint8_t *spacing);

@@ -22,6 +22,7 @@
 //|
 //|         PortOut objects are constructed for every corresponding entry in the USB
 //|         descriptor and added to the ``usb_midi.ports`` tuple."""
+//|
 
 // These are standard stream methods. Code is in py/stream.c.
 //
@@ -31,6 +32,7 @@
 //|         :return: the number of bytes written
 //|         :rtype: int or None"""
 //|         ...
+//|
 //|
 
 static mp_uint_t usb_midi_portout_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {

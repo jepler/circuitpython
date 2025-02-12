@@ -251,7 +251,7 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t *dma,
     }
 
 
-    if (audiosample_bits_per_sample(sample) == 16) {
+    if (audiosample_get_bits_per_sample(sample) == 16) {
         dma->beat_size = 2;
         dma->bytes_per_sample = 2;
     } else {
@@ -262,7 +262,7 @@ audio_dma_result audio_dma_setup_playback(audio_dma_t *dma,
         }
     }
     // Transfer both channels at once.
-    if (!single_channel_output && audiosample_channel_count(sample) == 2) {
+    if (!single_channel_output && audiosample_get_channel_count(sample) == 2) {
         dma->beat_size *= 2;
     }
 

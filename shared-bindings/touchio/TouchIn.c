@@ -36,6 +36,7 @@
 //|
 //|         :param ~microcontroller.Pin pin: the pin to read from"""
 //|         ...
+//|
 static mp_obj_t touchio_touchin_make_new(const mp_obj_type_t *type,
     size_t n_args, size_t n_kw, const mp_obj_t *args) {
     // check number of arguments
@@ -53,6 +54,7 @@ static mp_obj_t touchio_touchin_make_new(const mp_obj_type_t *type,
 //|     def deinit(self) -> None:
 //|         """Deinitialises the TouchIn and releases any hardware resources for reuse."""
 //|         ...
+//|
 static mp_obj_t touchio_touchin_deinit(mp_obj_t self_in) {
     touchio_touchin_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_touchio_touchin_deinit(self);
@@ -69,12 +71,14 @@ static void check_for_deinit(touchio_touchin_obj_t *self) {
 //|     def __enter__(self) -> TouchIn:
 //|         """No-op used by Context Managers."""
 //|         ...
+//|
 //  Provided by context manager helper.
 
 //|     def __exit__(self) -> None:
 //|         """Automatically deinitializes the hardware when exiting a context. See
 //|         :ref:`lifetime-and-contextmanagers` for more info."""
 //|         ...
+//|
 static mp_obj_t touchio_touchin_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
     common_hal_touchio_touchin_deinit(args[0]);
@@ -124,6 +128,7 @@ MP_PROPERTY_GETTER(touchio_touchin_raw_value_obj,
 //|
 //|       touch = touchio.TouchIn(board.A1)
 //|       touch.threshold = 7300"""
+//|
 //|
 static mp_obj_t touchio_touchin_obj_get_threshold(mp_obj_t self_in) {
     touchio_touchin_obj_t *self = MP_OBJ_TO_PTR(self_in);

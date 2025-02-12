@@ -23,6 +23,7 @@
 //|         PortIn objects are constructed for every corresponding entry in the USB
 //|         descriptor and added to the ``usb_midi.ports`` tuple."""
 //|         ...
+//|
 
 // These are standard stream methods. Code is in py/stream.c.
 //
@@ -43,6 +44,7 @@
 //|         :return: number of bytes read and stored into ``buf``
 //|         :rtype: bytes or None"""
 //|         ...
+//|
 //|
 
 // These three methods are used by the shared stream methods.
