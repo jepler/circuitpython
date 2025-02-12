@@ -104,7 +104,7 @@ Additional board specific keys
 CIRCUITPY_DISPLAY_WIDTH (Sunton, MaTouch)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Selects the correct screen resolution (1024x600 or 800x640) for the particular board variant.
-If the CIRCUITPY_DISPLAY_HEIGHT parameter is set to a value of 1024 the display is initialized
+If the CIRCUITPY_DISPLAY_WIDTH parameter is set to a value of 1024 the display is initialized
 during power up at 1024x600 otherwise the display will be initialized at a resolution
 of 800x480.
 
