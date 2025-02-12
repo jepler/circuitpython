@@ -17,10 +17,10 @@
 #include "supervisor/port_heap.h"
 
 void picodvi_autoconstruct(void) {
+    #if defined(DEFAULT_DVI_BUS_CLK_DP)
     if (get_safe_mode() != SAFE_MODE_NONE) {
         return;
     }
-    #if defined(DEFAULT_DVI_BUS_CLK_DP)
     // check if address 0x50 is live on the I2C bus -- return if not
     busio_i2c_obj_t *i2c = common_hal_board_create_i2c(0);
     if (!i2c) {
