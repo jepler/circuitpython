@@ -209,14 +209,18 @@ MP_PROPERTY_GETSET(supervisor_runtime_rgb_status_brightness_obj,
 
 #if CIRCUITPY_DISPLAYIO
 //|     display: Any
-//|     """The first configured displayio display, if any. Read-only.
+//|     """The primary configured displayio display, if any. Read-only.
 //|
-//|     If the board has a display that is configured in board setup, in boot.py,
-//|     or in a previous invocation of code.py, it is available here.
+//|     If the board has a display that is hard coded, or that was explicitly set
+//|     in boot.py or code.py (including a previous run of code.py), it is
+//|     available here until it is released with ``displayio.releasee_displays()``.
 //|
 //|     The display can be of any supported display type, such as `busdisplay.BusDisplay`.
 //|
-//|     If no display is configured, this property is always `None`.
+//|     If no display is configured, this property is `None`.
+//|
+//|     In a future release of CircuitPython, any display that is not the primary display
+//|     will be automatically released at the end of running a code file.
 //|
 //|     On boards without displayio, this property is present but the value is always `None`."""
 //|
@@ -225,9 +229,15 @@ static mp_obj_t supervisor_runtime_get_display(mp_obj_t self) {
     return common_hal_displayio_get_primary_display();
 }
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_display_obj, supervisor_runtime_get_display);
+static mp_obj_t supervisor_runtime_set_display(mp_obj_t self, mp_obj_t new_primary_display) {
+    common_hal_displayio_set_primary_display(new_primary_display);
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_2(supervisor_runtime_set_display_obj, supervisor_runtime_set_display);
 
-MP_PROPERTY_GETTER(supervisor_runtime_display_obj,
-    (mp_obj_t)&supervisor_runtime_get_display_obj);
+MP_PROPERTY_GETSET(supervisor_runtime_display_obj,
+    (mp_obj_t)&supervisor_runtime_get_display_obj,
+    (mp_obj_t)&supervisor_runtime_set_display_obj);
 #endif
 
 static const mp_rom_map_elem_t supervisor_runtime_locals_dict_table[] = {
