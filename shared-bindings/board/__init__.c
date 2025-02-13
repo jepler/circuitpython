@@ -17,9 +17,6 @@
 #if CIRCUITPY_BOARD_UART
 #include "shared-bindings/busio/UART.h"
 #endif
-#if CIRCUITPY_DISPLAYIO
-#include "shared-module/displayio/__init__.h"
-#endif
 
 //| """Board specific pin names
 //|
@@ -101,31 +98,6 @@ static mp_obj_t board_uart_0(void) {
 }
 #endif
 MP_DEFINE_CONST_FUN_OBJ_0(board_uart_obj, board_uart_0);
-
-//| DISPLAY: object | None
-//| """Returns the board's first display, if configured, or None otherwise
-//|
-//| The display can be of any supported display type, such as `busdisplay.BusDisplay`."""
-
-// Note: If DISPLAYIO is enabled, this module delegation returns the first
-// display, if configured; else, it returns None. If DISPLAYIO is not enabled,
-// CIRCUITPYTHON_BOARD_DICT_STANDARD_ITEMS includes a table entry for DISPLAY that
-// is None. In either case, the board pins file doesn't need to do anything with DISPLAY.
-#if CIRCUITPY_DISPLAYIO
-extern void mp_module_board_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
-void mp_module_board_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
-    if (attr == MP_QSTR_DISPLAY && dest[0] == MP_OBJ_NULL) {
-        mp_obj_base_t *first_display = &displays[0].display_base;
-        if (first_display->type != &mp_type_NoneType && first_display->type != NULL) {
-            dest[0] = MP_OBJ_FROM_PTR(first_display);
-        } else {
-            dest[0] = mp_const_none;
-        }
-    }
-}
-
-MP_REGISTER_MODULE_DELEGATION(board_module, mp_module_board_attr);
-#endif
 
 const mp_obj_module_t board_module = {
     .base = { &mp_type_module },

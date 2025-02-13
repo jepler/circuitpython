@@ -38,15 +38,6 @@ MP_DECLARE_CONST_FUN_OBJ_0(board_uart_obj);
     } \
     MP_DEFINE_CONST_FUN_OBJ_0(board_##name##_obj, board_##name);
 
-#if CIRCUITPY_DISPLAYIO
-#define CIRCUITPYTHON_BOARD_DICT_DISPLAYIO_ITEMS \
-    /* expands to nothing, the DISPLAY property is handled by mp_module_board_attr */
-#else
-#define CIRCUITPYTHON_BOARD_DICT_DISPLAYIO_ITEMS \
-    { MP_ROM_QSTR(MP_QSTR_DISPLAY), MP_ROM_NONE },
-#endif
-
 #define CIRCUITPYTHON_BOARD_DICT_STANDARD_ITEMS \
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_board) }, \
-    { MP_ROM_QSTR(MP_QSTR_board_id), MP_ROM_PTR(&board_module_id_obj) }, \
-    CIRCUITPYTHON_BOARD_DICT_DISPLAYIO_ITEMS
+    { MP_ROM_QSTR(MP_QSTR_board_id), MP_ROM_PTR(&board_module_id_obj) },

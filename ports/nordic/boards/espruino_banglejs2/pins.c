@@ -41,6 +41,7 @@ static const mp_rom_map_elem_t board_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_PRESSURE_SDA), MP_ROM_PTR(&pin_P1_13) },
 
 
+    { MP_ROM_QSTR(MP_QSTR_DISPLAY), MP_ROM_PTR(&displays[0].display)}
 };
 
 MP_DEFINE_CONST_DICT(board_module_globals, board_module_globals_table);

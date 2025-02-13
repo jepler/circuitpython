@@ -145,6 +145,10 @@ Whether to configure the display at board initialization time, one of the follow
     CIRCUITPY_PICODVI_ENABLE="always"
     CIRCUITPY_PICODVI_ENABLE="never"
 
+A display configured in this manner is available at ``supervisor.runtime.display``
+until it is released by ``displayio.release_displays()``. It does not appear at
+``board.DISPLAY``.
+
 `Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
 `Adafruit Metro RP2350 <https://circuitpython.org/board/adafruit_metro_rp2350/>`_
 

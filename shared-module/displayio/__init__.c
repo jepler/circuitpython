@@ -434,3 +434,12 @@ primary_display_bus_t *allocate_display_bus_or_raise(void) {
     }
     mp_raise_RuntimeError(MP_ERROR_TEXT("Too many display busses; forgot displayio.release_displays() ?"));
 }
+
+
+mp_obj_t common_hal_displayio_get_primary_display(void) {
+    mp_obj_base_t *first_display = &displays[0].display_base;
+    if (first_display->type != &mp_type_NoneType && first_display->type != NULL) {
+        return MP_OBJ_FROM_PTR(first_display);
+    }
+    return mp_const_none;
+}

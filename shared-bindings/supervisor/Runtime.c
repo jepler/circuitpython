@@ -20,6 +20,10 @@
 #include "supervisor/shared/status_leds.h"
 #include "supervisor/shared/bluetooth/bluetooth.h"
 
+#if CIRCUITPY_DISPLAYIO
+#include "shared-bindings/displayio/__init__.h"
+#endif
+
 #if CIRCUITPY_TINYUSB
 #include "tusb.h"
 #endif
@@ -183,7 +187,6 @@ MP_PROPERTY_GETSET(supervisor_runtime_ble_workflow_obj,
 //|     after the current code finishes and the status LED is used to show
 //|     the finish state."""
 //|
-//|
 static mp_obj_t supervisor_runtime_get_rgb_status_brightness(mp_obj_t self) {
     return MP_OBJ_NEW_SMALL_INT(get_status_brightness());
 }
@@ -204,6 +207,29 @@ MP_PROPERTY_GETSET(supervisor_runtime_rgb_status_brightness_obj,
     (mp_obj_t)&supervisor_runtime_get_rgb_status_brightness_obj,
     (mp_obj_t)&supervisor_runtime_set_rgb_status_brightness_obj);
 
+#if CIRCUITPY_DISPLAYIO
+//|     display: Any
+//|     """The first configured displayio display, if any. Read-only.
+//|
+//|     If the board has a display that is configured in board setup, in boot.py,
+//|     or in a previous invocation of code.py, it is available here.
+//|
+//|     The display can be of any supported display type, such as `busdisplay.BusDisplay`.
+//|
+//|     If no display is configured, this property is always `None`.
+//|
+//|     On boards without displayio, this property is present but the value is always `None`."""
+//|
+//|
+static mp_obj_t supervisor_runtime_get_display(mp_obj_t self) {
+    return common_hal_displayio_get_primary_display();
+}
+MP_DEFINE_CONST_FUN_OBJ_1(supervisor_runtime_get_display_obj, supervisor_runtime_get_display);
+
+MP_PROPERTY_GETTER(supervisor_runtime_display_obj,
+    (mp_obj_t)&supervisor_runtime_get_display_obj);
+#endif
+
 static const mp_rom_map_elem_t supervisor_runtime_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_usb_connected), MP_ROM_PTR(&supervisor_runtime_usb_connected_obj) },
     { MP_ROM_QSTR(MP_QSTR_serial_connected), MP_ROM_PTR(&supervisor_runtime_serial_connected_obj) },
@@ -213,6 +239,11 @@ static const mp_rom_map_elem_t supervisor_runtime_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_autoreload), MP_ROM_PTR(&supervisor_runtime_autoreload_obj) },
     { MP_ROM_QSTR(MP_QSTR_ble_workflow),  MP_ROM_PTR(&supervisor_runtime_ble_workflow_obj) },
     { MP_ROM_QSTR(MP_QSTR_rgb_status_brightness),  MP_ROM_PTR(&supervisor_runtime_rgb_status_brightness_obj) },
+    #if CIRCUITPY_DISPLAYIO
+    { MP_ROM_QSTR(MP_QSTR_display),  MP_ROM_PTR(&supervisor_runtime_display_obj) },
+    #else
+    { MP_ROM_QSTR(MP_QSTR_display),  MP_ROM_NONE },
+    #endif
 };
 
 static MP_DEFINE_CONST_DICT(supervisor_runtime_locals_dict, supervisor_runtime_locals_dict_table);
