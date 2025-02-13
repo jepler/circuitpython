@@ -148,8 +148,8 @@ Whether to configure the display at board initialization time, one of the follow
 `Adafruit Feather RP2350 <https://circuitpython.org/board/adafruit_feather_rp2350/>`_
 `Adafruit Metro RP2350 <https://circuitpython.org/board/adafruit_metro_rp2350/>`_
 
-CIRCUITPY_DISPLAY_WIDTH, _HEIGHT, and _COLOR_DEPTH (RP2350 boards with DVI or HSTX connector)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CIRCUITPY_DISPLAY_WIDTH, CIRCUITPY_DISPLAY_HEIGHT, and CIRCUITPY_DISPLAY_COLOR_DEPTH (RP2350 boards with DVI or HSTX connector)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Selects the desired resolution and color depth.
 
 Supported resolutions are:
