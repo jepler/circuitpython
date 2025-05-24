@@ -12,14 +12,15 @@
 #include "supervisor/linker.h"
 #include "supervisor/port.h"
 #include "supervisor/shared/tick.h"
-#include "shared-bindings/microcontroller/__init__.h"
 
 static volatile background_callback_t *volatile callback_head, *volatile callback_tail;
 
 #ifndef CALLBACK_CRITICAL_BEGIN
+#include "shared-bindings/microcontroller/__init__.h"
 #define CALLBACK_CRITICAL_BEGIN (common_hal_mcu_disable_interrupts())
 #endif
 #ifndef CALLBACK_CRITICAL_END
+#include "shared-bindings/microcontroller/__init__.h"
 #define CALLBACK_CRITICAL_END (common_hal_mcu_enable_interrupts())
 #endif
 

@@ -72,7 +72,9 @@ void port_background_tick(void);
 // Execute port specific actions during background tasks. This is before the
 // background callback system and happens *very* often. Use
 // port_background_tick() when possible.
+#ifndef port_background_task
 void port_background_task(void);
+#endif
 
 // Take port specific actions at the beginning and end of background ticks.
 // This is used e.g., to set a monitoring pin for debug purposes.  "Actual
