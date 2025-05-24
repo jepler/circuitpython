@@ -248,4 +248,6 @@ static inline unsigned long mp_random_seed_init(void) {
 #endif
 
 // CIRCUITPY-CHANGE
+#ifndef RUN_BACKGROUND_TASKS
 #define RUN_BACKGROUND_TASKS ((void)0)
+#endif
