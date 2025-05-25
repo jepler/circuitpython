@@ -7,7 +7,7 @@
 static void audioout_buf_callback_fun(void *self_in) {
     audiosdl_audioout_obj_t *self = self_in;
 
-    if (!self->stream || !self->dev || !self->sample) {
+    if (!self->stream || !self->dev || self->sample == mp_const_none) {
         return;
     }
 

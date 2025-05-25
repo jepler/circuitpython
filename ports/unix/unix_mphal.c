@@ -118,11 +118,13 @@ void mp_hal_stdio_mode_raw(void) {
     termios.c_cc[VMIN] = 1;
     termios.c_cc[VTIME] = 0;
     tcsetattr(0, TCSAFLUSH, &termios);
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 }
 
 void mp_hal_stdio_mode_orig(void) {
     // restore terminal settings
     tcsetattr(0, TCSAFLUSH, &orig_termios);
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) & ~O_NONBLOCK);
 }
 
 #endif
@@ -181,7 +183,14 @@ main_term:;
 
     unsigned char c;
     ssize_t ret;
-    MP_HAL_RETRY_SYSCALL(ret, read(STDIN_FILENO, &c, 1), {});
+    while (1) {
+        MP_HAL_RETRY_SYSCALL(ret, read(STDIN_FILENO, &c, 1), {});
+        if (ret < 0 && errno == EWOULDBLOCK) {
+            RUN_BACKGROUND_TASKS;
+        } else {
+            break;
+        }
+    }
     if (ret == 0) {
         c = 4; // EOF, ctrl-D
     } else if (c == '\n') {
