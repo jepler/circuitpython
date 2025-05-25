@@ -1,14 +1,18 @@
 # Disable optimisations and enable assert() on this build.
 DEBUG ?= 1
 
+SDL_CFLAGS := $(shell sdl2-config --cflags)
+SDL_LIBS := $(shell sdl2-config --libs)
+
 # CIRCUITPY-CHANGE: add exception chaining
 CFLAGS += \
 	-Wformat -Wmissing-declarations -Wmissing-prototypes \
 	-Wold-style-definition -Wpointer-arith -Wshadow -Wuninitialized -Wunused-parameter \
 	-DMICROPY_UNIX_COVERAGE \
-	-DMICROPY_CPYTHON_EXCEPTION_CHAIN=1
+	-DMICROPY_CPYTHON_EXCEPTION_CHAIN=1 \
+	$(SDL_CFLAGS)
 
-LDFLAGS +=
+LDFLAGS += $(SDL_LIBS)
 
 FROZEN_MANIFEST ?= $(VARIANT_DIR)/manifest.py
 USER_C_MODULES = $(TOP)/examples/usercmodule
@@ -46,6 +50,8 @@ SRC_CIRCUITPYTHON := \
 	shared-bindings/audiomixer/MixerVoice.c \
 	shared-bindings/audiomp3/__init__.c \
 	shared-bindings/audiomp3/MP3Decoder.c \
+	shared-bindings/audiosdl/__init__.c \
+	shared-bindings/audiosdl/AudioOut.c \
 	shared-bindings/bitmapfilter/__init__.c \
 	shared-bindings/bitmaptools/__init__.c \
 	shared-bindings/codeop/__init__.c \
@@ -91,6 +97,8 @@ SRC_CIRCUITPYTHON := \
 	shared-module/audiomp3/MP3Decoder.c \
 	shared-module/audiomixer/Mixer.c \
 	shared-module/audiomixer/MixerVoice.c \
+	shared-module/audiosdl/__init__.c \
+	shared-module/audiosdl/AudioOut.c \
 	shared-module/bitmapfilter/__init__.c \
 	shared-module/bitmaptools/__init__.c \
 	shared-module/displayio/area.c \
