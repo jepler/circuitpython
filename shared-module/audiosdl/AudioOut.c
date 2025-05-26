@@ -44,6 +44,7 @@ static void audio_callback(void *self_in, Uint8 *stream_in, int len_bytes) {
 
     SDL_AudioStreamGet(self->stream, stream_in, n_copy_bytes);
     if (n_copy_bytes < len_bytes) {
+        write(2, "U", 1);
         // set any remaining samples to zero, it causes a playback gap
         memset(stream_in + n_copy_bytes, 0, len_bytes - n_copy_bytes);
     }
@@ -69,7 +70,7 @@ void common_hal_audiosdl_audioout_construct(audiosdl_audioout_obj_t *self,
 
     SDL_zero(desired);
     desired.freq = sample_rate;
-    desired.channels = 1;
+    desired.channels = 2;
     desired.samples = 512;
     desired.userdata = self;
     desired.callback = audio_callback;
