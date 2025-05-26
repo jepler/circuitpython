@@ -28,6 +28,7 @@ SRC_C += lib/tjpgd/src/tjpgd.c
 $(BUILD)/lib/tjpgd/src/tjpgd.o: CFLAGS += -Wno-shadow -Wno-cast-align
 
 SRC_CIRCUITPYTHON := \
+	variants/sound/modtime.c \
 	shared/runtime/context_manager_helpers.c \
 	displayio_min.c \
 	shared-bindings/__future__/__init__.c \

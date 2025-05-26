@@ -34,6 +34,7 @@
 
 #include "py/mphal.h"
 #include "py/runtime.h"
+#include "modtime.h"
 
 #ifdef _WIN32
 static inline int msec_sleep_tv(struct timeval *tv) {
@@ -85,7 +86,8 @@ static mp_obj_t mod_time_clock(void) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(mod_time_clock_obj, mod_time_clock);
 
-static mp_obj_t mp_time_sleep(mp_obj_t arg) {
+MP_WEAK // CIRCUITPY-CHANGE: function is weak
+mp_obj_t mp_time_sleep(mp_obj_t arg) {
     #if MICROPY_PY_BUILTINS_FLOAT
     struct timeval tv;
     mp_float_t val = mp_obj_get_float(arg);
