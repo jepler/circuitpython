@@ -2124,6 +2124,11 @@ typedef double mp_float_t;
 #define MP_NORETURN __attribute__((noreturn))
 #endif
 
+// Modifier for function which returns twice
+#ifndef MP_RETURNS_TWICE
+#define MP_RETURNS_TWICE __attribute__((returns_twice))
+#endif
+
 #if !MICROPY_PREVIEW_VERSION_2
 #define NORETURN MP_NORETURN
 #endif
