@@ -209,11 +209,11 @@ mp_uint_t mp_hal_ticks_ms(void) {
     #if (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(_POSIX_MONOTONIC_CLOCK)
     struct timespec tv;
     clock_gettime(CLOCK_MONOTONIC, &tv);
-    return tv.tv_sec * 1000 + tv.tv_nsec / 1000000;
+    return tv.tv_sec * 1000u + tv.tv_nsec / 1000000u;
     #else
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return tv.tv_sec * 1000u + tv.tv_usec / 1000u;
     #endif
 }
 #endif
@@ -223,11 +223,11 @@ mp_uint_t mp_hal_ticks_us(void) {
     #if (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(_POSIX_MONOTONIC_CLOCK)
     struct timespec tv;
     clock_gettime(CLOCK_MONOTONIC, &tv);
-    return tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+    return tv.tv_sec * 1000000u + tv.tv_nsec / 1000u;
     #else
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000000 + tv.tv_usec;
+    return tv.tv_sec * 1000000u + tv.tv_usec;
     #endif
 }
 #endif
