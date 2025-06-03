@@ -248,6 +248,10 @@ mp_uint_t mp_thread_create(void *(*entry)(void *), void *arg, size_t *stack_size
     if (*stack_size == 0) {
         *stack_size = 8192 * sizeof(void *);
     }
+    #if defined(__i386__) && defined(MICROPY_SANITIZE)
+    // i386 architectures require more stack when sanitizing
+    *stack_size *= 2;
+    #endif
 
     // minimum stack size is set by pthreads
     if (*stack_size < PTHREAD_STACK_MIN) {
