@@ -708,6 +708,19 @@ function ci_unix_coverage_32bit_run_native_mpy_tests {
     ci_unix_coverage_run_native_mpy_tests --arch x86
 }
 
+function ci_unix_sanitize_undefined_32bit_build {
+    ci_unix_build_helper VARIANT=sanitize_undefined MICROPY_FORCE_32BIT=1
+    ci_unix_build_ffi_lib_helper gcc -m32
+}
+
+function ci_unix_sanitize_undefined_32bit_run_tests {
+    ci_unix_run_tests_full_helper sanitize_undefined MICROPY_FORCE_32BIT=1
+}
+
+function ci_unix_sanitize_undefined_32bit_run_native_mpy_tests {
+    ci_unix_sanitize_undefined_run_native_mpy_tests --arch x86
+}
+
 function ci_unix_nanbox_build {
     # Use Python 2 to check that it can run the build scripts
     ci_unix_build_helper PYTHON=python2.7 VARIANT=nanbox CFLAGS_EXTRA="-DMICROPY_PY_MATH_CONSTANTS=1"
