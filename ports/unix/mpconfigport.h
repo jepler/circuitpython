@@ -154,6 +154,9 @@ typedef long mp_off_t;
 // Don't default sys.argv and sys.path because we do that in main.
 #define MICROPY_PY_SYS_PATH_ARGV_DEFAULTS (0)
 
+// Enable sys.settrace
+#define MICROPY_PY_SYS_SETTRACE (1)
+
 // Enable sys.executable.
 #define MICROPY_PY_SYS_EXECUTABLE (1)
 
