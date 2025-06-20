@@ -221,6 +221,15 @@ static mp_obj_t extra_coverage(void) {
         mp_printf(&mp_plat_print, "abc\n%"); // string ends in middle of format specifier
         mp_printf(&mp_plat_print, "%%\n"); // literal % character
         mp_printf(&mp_plat_print, ".%-3s.\n", "a"); // left adjust
+        mp_printf(&mp_plat_print, "%q %q %q %q %q %q %q %q\n",
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int,
+            MP_QSTR_int);
     }
 
     // GC
