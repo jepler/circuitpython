@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
     int stack_dummy;
     stack_top = (char *)&stack_dummy;
 
+soft_reset:
     #if MICROPY_ENABLE_GC
     gc_init(heap, heap + sizeof(heap));
     #endif
@@ -54,7 +55,21 @@ int main(int argc, char **argv) {
         }
     }
     #else
-    pyexec_friendly_repl();
+    for (;;) {
+        if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
+            if (pyexec_raw_repl() != 0) {
+                printf("MPY: soft reboot\n");
+                mp_deinit();
+                goto soft_reset;
+                break;
+            }
+        } else {
+            int ret_code = pyexec_friendly_repl();
+            if (ret_code != 0) {
+                break;
+            }
+        }
+    }
     #endif
     // do_str("print('hello world!', list(x+1 for x in range(10)), end='eol\\n')", MP_PARSE_SINGLE_INPUT);
     // do_str("for i in range(10):\r\n  print(i)", MP_PARSE_FILE_INPUT);
@@ -104,3 +119,8 @@ void _start() {
     int r = main(0, NULL);
     exit(r);
 }
+
+mp_obj_t mp_builtin_open(size_t n_args, const mp_obj_t *args, mp_map_t *kwargs) {
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_KW(mp_builtin_open_obj, 1, mp_builtin_open);

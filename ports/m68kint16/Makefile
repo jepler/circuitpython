@@ -24,7 +24,7 @@ MODEL = -mshort
 
 DEBUG=1
 LD = $(CC)
-CFLAGS += $(INC) -std=gnu99 $(COPT) $(MODEL) -ffunction-sections -fdata-sections -g 
+CFLAGS += $(INC) -std=gnu99 $(COPT) $(MODEL) -ffunction-sections -fdata-sections -g
 LDFLAGS += $(MODEL) -Wl,-Map=$@.map
 CSUPEROPT = -Os # save some code space
 
