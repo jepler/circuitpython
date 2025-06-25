@@ -140,7 +140,7 @@ jobs:
       working-directory: tests
       run: python run-tests.py --print-failures
 
-  cross-build-on-linux:
+  cross-build-i386-win-on-linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -148,3 +148,12 @@ jobs:
       run: source tools/ci.sh && ci_windows_setup
     - name: Build
       run: source tools/ci.sh && ci_windows_build
+
+  cross-build-x86_64-win-on-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install packages
+      run: source tools/ci.sh && ci_windows_setup
+    - name: Build
+      run: source tools/ci.sh && ci_windows64_build

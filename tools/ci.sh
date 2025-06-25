@@ -877,6 +877,12 @@ function ci_windows_build {
     make ${MAKEOPTS} -C ports/windows submodules
     make ${MAKEOPTS} -C ports/windows CROSS_COMPILE=i686-w64-mingw32-
 }
+function ci_windows64_build {
+    make ${MAKEOPTS} -C mpy-cross
+    make ${MAKEOPTS} -C ports/windows submodules
+    make ${MAKEOPTS} -C ports/windows CROSS_COMPILE=x86_64-w64-mingw32-
+}
+
 
 ########################################################################################
 # ports/zephyr
