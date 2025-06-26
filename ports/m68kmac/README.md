@@ -18,9 +18,9 @@ To run the executable and get a basic working REPL do:
 
 ## Key TODOs
 
- * Correctly implement GC collection (stack + registers)
+ * Correctly implement stack checking
  * Add Mac API support (e.g., quickdraw, arbitrary traps)
  * Add filesystem access
  * Add the ability to run python scripts in files
- * Support larger heap
+ * Support larger heap (via split heap?)
  * Address GPL files (RetroConsole), GitHub Actions CI, and other issues that might prevent upstream inclusion.

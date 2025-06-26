@@ -41,7 +41,7 @@ SRC_C = \
 SRC_C += \
 	$(BUILD)/_frozen_mpy.c \
 	shared/runtime/stdout_helpers.c \
-	shared/runtime/gchelper_generic.c \
+	shared/runtime/gchelper_native.c \
 	shared/readline/readline.c \
 	shared/runtime/pyexec.c \
 
@@ -51,15 +51,15 @@ SRC_CXX += \
 	retro/ConsoleWindow.cpp \
 	retro/InitConsole.cpp \
 
-#	shared/libc/printf.c \
-
-#SRC_C += shared/libc/string0.c
+SRC_S += \
+	shared/runtime/gchelper_m68k.S \
 
 SRC_QSTR += shared/readline/readline.c shared/runtime/pyexec.c
 
 OBJ += $(PY_CORE_O)
 OBJ += $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_CXX:.cpp=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_S:.S=.o))
 
 all: $(BUILD)/micropython.bin
 
