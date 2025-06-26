@@ -37,6 +37,8 @@
 
 #ifdef _WIN32
 #define fsync _commit
+#elif defined(__m68k__)
+#define fsync(x) (0)
 #else
 #include <poll.h>
 #endif
@@ -204,7 +206,9 @@ static mp_uint_t vfs_posix_file_ioctl(mp_obj_t o_in, mp_uint_t request, uintptr_
         case MP_STREAM_CLOSE:
             if (o->fd >= 0) {
                 MP_THREAD_GIL_EXIT();
+                mp_printf(&mp_plat_print, "closing %d\n", o->fd);
                 close(o->fd);
+                mp_printf(&mp_plat_print, "closed %d\n", o->fd);
                 MP_THREAD_GIL_ENTER();
             }
             o->fd = -1;
@@ -215,6 +219,8 @@ static mp_uint_t vfs_posix_file_ioctl(mp_obj_t o_in, mp_uint_t request, uintptr_
         case MP_STREAM_POLL: {
             #ifdef _WIN32
             mp_raise_NotImplementedError(MP_ERROR_TEXT("poll on file not available on win32"));
+            #elif defined(__m68k__)
+            mp_raise_NotImplementedError(MP_ERROR_TEXT("poll on file not available on mac"));
             #else
             mp_uint_t ret = 0;
             uint8_t pollevents = 0;

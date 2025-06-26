@@ -313,7 +313,7 @@ bool Console::ProcessEscSequence(char c)
         }
         else
         {
-            if(argument.size() < MAX_LEN)    // Ignore subsequent characters
+            if(argument.size() < (unsigned)MAX_LEN)    // Ignore subsequent characters
                 argument+=c;
         }
         break;

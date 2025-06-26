@@ -14,6 +14,7 @@
 
 #define MICROPY_QSTR_EXTRA_POOL           mp_qstr_frozen_const_pool
 #define MICROPY_ENABLE_GC                 (1)
+// #define MICROPY_GCREGS_SETJMP             (1)
 #define MICROPY_HELPER_REPL               (1)
 #define MICROPY_MODULE_FROZEN_MPY         (1)
 #define MICROPY_ENABLE_EXTERNAL_IMPORT    (1)
@@ -22,6 +23,12 @@
 #define MICROPY_STACK_CHECK               (0)
 #define MICROPY_LONGINT_IMPL              (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL                (MICROPY_FLOAT_IMPL_FLOAT)
+#define MICROPY_READER_POSIX              (1)
+#define MICROPY_READER_VFS                (1)
+#define MICROPY_VFS                       (1)
+#define MICROPY_VFS_POSIX                 (1)
+#define MICROPY_PY_OS_STATVFS             (0)
+#define MICROPY_VFS_POSIX_DIRENT          (0)
 
 #define MP_SSIZE_MAX LONG_MAX
 

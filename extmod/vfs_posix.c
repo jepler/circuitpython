@@ -42,7 +42,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#if MICROPY_VFS_POSIX_DIRENT
 #include <dirent.h>
+#endif
 #ifdef _MSC_VER
 #include <direct.h> // For mkdir etc.
 #endif
@@ -198,6 +200,7 @@ static mp_obj_t vfs_posix_getcwd(mp_obj_t self_in) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(vfs_posix_getcwd_obj, vfs_posix_getcwd);
 
+#if MICROPY_VFS_POSIX_DIRENT
 typedef struct _vfs_posix_ilistdir_it_t {
     mp_obj_base_t base;
     mp_fun_1_t iternext;
@@ -275,8 +278,10 @@ static mp_obj_t vfs_posix_ilistdir_it_del(mp_obj_t self_in) {
     }
     return mp_const_none;
 }
+#endif
 
 static mp_obj_t vfs_posix_ilistdir(mp_obj_t self_in, mp_obj_t path_in) {
+    #if MICROPY_VFS_POSIX_DIRENT
     mp_obj_vfs_posix_t *self = MP_OBJ_TO_PTR(self_in);
     vfs_posix_ilistdir_it_t *iter = mp_obj_malloc_with_finaliser(vfs_posix_ilistdir_it_t, &mp_type_polymorph_iter_with_finaliser);
     iter->iternext = vfs_posix_ilistdir_it_iternext;
@@ -293,13 +298,18 @@ static mp_obj_t vfs_posix_ilistdir(mp_obj_t self_in, mp_obj_t path_in) {
         mp_raise_OSError(errno);
     }
     return MP_OBJ_FROM_PTR(iter);
+    #else
+    mp_raise_OSError(EINVAL);
+    #endif
 }
 static MP_DEFINE_CONST_FUN_OBJ_2(vfs_posix_ilistdir_obj, vfs_posix_ilistdir);
 
 typedef struct _mp_obj_listdir_t {
     mp_obj_base_t base;
     mp_fun_1_t iternext;
+    #if MICROPY_VFS_POSIX_DIRENT
     DIR *dir;
+    #endif
 } mp_obj_listdir_t;
 
 static mp_obj_t vfs_posix_mkdir(mp_obj_t self_in, mp_obj_t path_in) {
