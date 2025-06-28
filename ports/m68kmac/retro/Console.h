@@ -25,12 +25,12 @@
 
 #include <Quickdraw.h>
 #include <vector>
-#include <string>
-#include <map>
-#include <functional>
 
 namespace retro
 {
+    class Console;
+    typedef void (Console::*EscapeSequenceFunction)();
+
     class Attributes
     {
 public:
@@ -91,7 +91,6 @@ public:
         void putch(char c);
 
         void write(const char *s, int n);
-        std::string ReadLine();
 
         static Console *currentInstance;
 
@@ -102,7 +101,7 @@ public:
             return cols;
         }
 
-        virtual void setWindowName(std::string newName) {
+        virtual void setWindowName(const char *newName) {
         };
 
 
@@ -115,11 +114,10 @@ public:
 private:
 
         State sequenceState;
-        std::string argument;
         GrafPtr consolePort = nullptr;
         Rect bounds;
         Attributes currentAttr;
-        std::map < char, std::function < void(std::string) >> escapeSequenceMap;
+        EscapeSequenceFunction escapeSequenceMap[256] = {};
 
         std::vector < AttributedChar > chars, onscreen;
 
@@ -158,36 +156,46 @@ public:
         virtual char WaitNextChar();
 private:
         void InitEscapeSequenceMap();
-        void SetCursorPosition(std::string);
-        void EraseInDisplay(std::string);
-        void SetDisplayAttributes(std::string);
+        void SetCursorPosition();
+        void EraseInDisplay();
+        void SetDisplayAttributes();
         void ClearWindow();
         void ClearFromCursorToEndOfWindow();
         void ClearFromTopOfWindowToCursor();
         void HandleControlSequence(char);
-        void MoveCursorUp(std::string args);
-        void MoveCursorDown(std::string args);
-        void MoveCursorForward(std::string args);
-        void MoveCursorBack(std::string args);
-        void MoveCursorNextLine(std::string args);
-        void MoveCursorPreviousLine(std::string args);
-        void MoveCursorHorizonalAbsolute(std::string args);
-        void EraseInLine(std::string args);
+        void MoveCursorUp();
+        void MoveCursorDown();
+        void MoveCursorForward();
+        void MoveCursorBack();
+        void MoveCursorNextLine();
+        void MoveCursorPreviousLine();
+        void MoveCursorHorizonalAbsolute();
+        void EraseInLine();
         void ClearFromCursorToEndOfLine();
         void ClearFromBeginningOfLineToCursor();
         void ClearEntireLine();
-        void ShowCursor(std::string args);
-        void HideCursor(std::string args);
-        void SaveCursorPosition(std::string args);
-        void RestoreCursorPosition(std::string args);
+        void ShowCursor();
+        void HideCursor();
+        void SaveCursorPosition();
+        void RestoreCursorPosition();
         void SetCursorX(int newX);
         int GetCursorX();
         void SetCursorY(int newY);
         int GetCursorY();
 
+        int getArgDefault(size_t i, int defval) {
+            if (i < args.size()) {
+                return args[i];
+            }
+            return defval;
+        }
+
+        std::vector < char > title;
+        std::vector < int > args;
+        int cur_arg;
+        bool got_something;
 protected:
         void Init(GrafPtr port, Rect r);
-
     };
 
 

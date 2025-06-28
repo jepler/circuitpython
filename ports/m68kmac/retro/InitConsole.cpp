@@ -95,6 +95,7 @@ extern "C" ssize_t _consolewrite(int fd, const void *buf, size_t count)
 
 extern "C" ssize_t _consoleread(int fd, void *buf, size_t count)
 {
+#if 0
     if(!Console::currentInstance)
         InitConsole();
     if(Console::currentInstance == (Console*)-1)
@@ -109,4 +110,6 @@ extern "C" ssize_t _consoleread(int fd, void *buf, size_t count)
     memcpy(buf, consoleBuf.data(), count);
     consoleBuf = consoleBuf.substr(count);
     return count;
+#endif
+    return 0;
 }
