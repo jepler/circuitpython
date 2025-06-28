@@ -38,6 +38,8 @@ LIBS =
 
 SRC_C = \
 	main.c \
+	vfs_mac.c \
+	macutil.c \
 
 SRC_C += \
 	$(BUILD)/_frozen_mpy.c \
@@ -56,6 +58,7 @@ SRC_S += \
 	shared/runtime/gchelper_m68k.S \
 
 SRC_QSTR += \
+	vfs_mac.c \
 	shared/readline/readline.c \
 	shared/runtime/pyexec.c \
 

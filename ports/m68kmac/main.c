@@ -118,33 +118,6 @@ void MP_NORETURN __fatal_error(const char *msg) {
     }
 }
 
-char *getcwd(char buf[], size_t size) {
-    snprintf(buf, size, "/");
-    return buf;
-}
-
-int mkdir(const char *pathname) {
-    errno = -EINVAL;
-    return -1;
-}
-
-int rmdir(const char *pathname) {
-    errno = -EINVAL;
-    return -1;
-}
-
-int chdir(const char *pathname) {
-    if (strcmp(pathname, "/") == 0 || strcmp(pathname, ".") == 0 || strcmp(pathname, "") == 0) {
-        return 0;
-    }
-    errno = -ENOENT;
-    return -1;
-}
-
-int fsync(int fd) {
-    return 0;
-}
-
 #ifndef NDEBUG
 void MP_WEAK __assert_func(const char *file, int line, const char *func, const char *expr) {
     printf("Assertion '%s' failed, at file %s:%d\n", expr, file, line);

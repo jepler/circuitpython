@@ -23,12 +23,10 @@
 #define MICROPY_STACK_CHECK               (0)
 #define MICROPY_LONGINT_IMPL              (MICROPY_LONGINT_IMPL_MPZ)
 #define MICROPY_FLOAT_IMPL                (MICROPY_FLOAT_IMPL_FLOAT)
-#define MICROPY_READER_POSIX              (1)
+#define MICROPY_READER_POSIX              (0)
 #define MICROPY_READER_VFS                (1)
 #define MICROPY_VFS                       (1)
-#define MICROPY_VFS_POSIX                 (1)
 #define MICROPY_PY_OS_STATVFS             (0)
-#define MICROPY_VFS_POSIX_DIRENT          (0)
 
 #define MP_SSIZE_MAX LONG_MAX
 
@@ -46,10 +44,14 @@ typedef long mp_off_t;
 // We need to provide a declaration/definition of alloca()
 #include <alloca.h>
 
-#define MICROPY_HW_BOARD_NAME "minimal"
+#define MICROPY_HW_BOARD_NAME "macplus"
 #define MICROPY_HW_MCU_NAME "m68000"
 
 #define MICROPY_MIN_USE_STDOUT (0)
 #define MICROPY_HEAP_SIZE      (100 * 1024)
 
 #define MP_STATE_PORT MP_STATE_VM
+
+typedef struct _mp_obj_type_t mp_obj_type_t;
+extern const mp_obj_type_t mp_type_vfs_mac;
+#define MICROPY_VFS_PORT { MP_ROM_QSTR(MP_QSTR_VfsMac), MP_ROM_PTR(&mp_type_vfs_mac) }

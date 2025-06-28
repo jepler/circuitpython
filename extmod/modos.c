@@ -214,6 +214,9 @@ static const mp_rom_map_elem_t os_module_globals_table[] = {
     #if MICROPY_VFS_POSIX
     { MP_ROM_QSTR(MP_QSTR_VfsPosix), MP_ROM_PTR(&mp_type_vfs_posix) },
     #endif
+    #if defined(MICROPY_VFS_PORT)
+    MICROPY_VFS_PORT,
+    #endif
     #endif
 
     #if MICROPY_MBFS
