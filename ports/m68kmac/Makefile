@@ -32,7 +32,7 @@ CFLAGS += -fdata-sections -ffunction-sections
 endif
 
 # Flags for optional C++ source code
-CXXFLAGS += $(filter-out -std=c99,$(CFLAGS))
+CXXFLAGS += $(filter-out -std=c99,$(CFLAGS)) -fno-rtti -fno-exceptions
 
 LIBS = 
 
@@ -72,7 +72,7 @@ $(BUILD)/_frozen_mpy.c: $(TOP)/tests/frozen/frozentest.mpy $(BUILD)/genhdr/qstrd
 
 $(BUILD)/micropython.code.bin: $(OBJ)
 	$(ECHO) "LINK $@"
-	$(Q)$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(Q)$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 	$(Q)$(SIZE) $@
 
 REZ=Rez
@@ -85,5 +85,22 @@ $(BUILD)/micropython.bin $(BUILD)/micropython.APPL $(BUILD)/micropython.dsk: $(B
 		"$(RINCLUDES)/Retro68APPL.r" \
 		-t "APPL" -c "mupy" \
 		-o $(BUILD)/micropython.bin --cc $(BUILD)/micropython.APPL --cc $(BUILD)/micropython.dsk
+
+.PHONY: docker-build
+docker-build:
+	docker run --rm --mount type=bind,source=$(TOP),destination=/work ghcr.io/autc04/retro68  make -C /work/ports/m68kmac -j$(shell nproc)
+
+.PHONY: docker-build-%
+docker-build-%:
+	docker run --rm --mount type=bind,source=$(TOP),destination=/work ghcr.io/autc04/retro68  make -C /work/ports/m68kmac $*
+
+UMAC=$(HOME)/src/umac/main -r ~/src/umac/rom.bin
+.PHONY: run7
+run7:
+	$(UMAC) -d ~/src/umac/HyperCardBootSystem7.img -d build/micropython.dsk
+
+.PHONY: run6
+run6:
+	$(UMAC) -d ~/src/pico-mac/umac0ro.img -d build/micropython.dsk
 
 include $(TOP)/py/mkrules.mk
