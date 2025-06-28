@@ -20,6 +20,7 @@ INC += -I$(BUILD)
 UNAME_S := $(shell uname -s)
 LD = $(CXX)
 CFLAGS += $(INC) -Wall -Wdouble-promotion -Wfloat-conversion -std=c99 $(COPT)
+CFLAGS += --param=min-pagesize=0
 CSUPEROPT = -Os # save some code space
 
 # Tune for Debugging or Optimization
