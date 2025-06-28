@@ -18,9 +18,14 @@ To run the executable and get a basic working REPL do:
 
 ## Key TODOs
 
- * Correctly implement stack checking
- * Add Mac API support (e.g., quickdraw, arbitrary traps)
  * Add filesystem access
- * Add the ability to run python scripts in files
+ * Freeze in `adafruit_editor` (together w/ any needed console improvements)
+ * auto-launch `code.py` (with bypass via shift key or something?)
+ * OR double-clickable ".py" files
+ * "Mac Roman" encoding support in terminal
+ * Mac API support (e.g., quickdraw, arbitrary traps)
+ * Correctly implement stack checking
  * Support larger heap (via split heap?)
- * Address GPL files (RetroConsole), GitHub Actions CI, and other issues that might prevent upstream inclusion.
+ * Build it in github actions CI
+ * Decide whether RetroConsole needs to be replaced (is GPL a problem for upstream??)
+ * Any other issues that might prevent upstream inclusion.
