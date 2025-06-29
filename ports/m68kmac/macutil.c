@@ -7,8 +7,7 @@ mp_obj_t new_str_from_pstr(Byte *pStr) {
     return mp_obj_new_str((const char *)pStr + 1, *pStr);
 }
 
-Byte *pstr_from_str(Byte *pStr, size_t pStr_size, mp_obj_t obj) {
-    GET_STR_DATA_LEN(obj, str_data, str_len);
+Byte *pstr_from_data(Byte *pStr, size_t pStr_size, const char *str_data, size_t str_len) {
     if (str_len + 1 >= pStr_size) {
         mp_raise_ValueError(MP_ERROR_TEXT("buffer too long"));
     }
@@ -17,6 +16,14 @@ Byte *pstr_from_str(Byte *pStr, size_t pStr_size, mp_obj_t obj) {
     return pStr;
 }
 
+Byte *pstr_from_str(Byte *pStr, size_t pStr_size, mp_obj_t obj) {
+    GET_STR_DATA_LEN(obj, str_data, str_len);
+    return pstr_from_data(pStr, pStr_size, (const char *)str_data, str_len);
+}
+
+Byte *pstr_from_cstr(Byte *pStr, size_t pStr_size, const char *str_data) {
+    return pstr_from_data(pStr, pStr_size, str_data, strlen(str_data));
+}
 
 int convert_mac_err(OSErr e) {
     int err = MP_EINVAL;

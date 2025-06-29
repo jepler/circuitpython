@@ -35,7 +35,6 @@ static VCB *getVolumeByName(mp_obj_t name) {
     GET_STR_DATA_LEN(name, str_data, str_len);
     VCB *vol = (VCB *)LMGetVCBQHdr().qHead;
     while (vol) {
-        mp_printf(&mp_plat_print, "vol@%p vcbVRefNum=%d\n", vol, vol->vcbVRefNum);
         if (PSTR_LEN(vol->vcbVN) == str_len &&
             memcmp(PSTR_DATA(vol->vcbVRefNum), str_data, str_len) == 0) {
             return vol;
@@ -47,9 +46,7 @@ static VCB *getVolumeByName(mp_obj_t name) {
 
 static VCB *getVolumeByVolumeReference(INTEGER vn) {
     VCB *vol = (VCB *)LMGetVCBQHdr().qHead;
-    mp_printf(&mp_plat_print, "vn=%d\n", vn);
     while (vol) {
-        mp_printf(&mp_plat_print, "vol@%p vcbVRefNum=%d\n", vol, vol->vcbVRefNum);
         if (vol->vcbVRefNum == vn) {
             return vol;
         }
@@ -177,14 +174,11 @@ static mp_uint_t vfs_mac_file_read(mp_obj_t o_in, void *buf, mp_uint_t size, int
         goto out_err;
     }
     LONGINT max_count = pos_eof - pos_cur;
-    mp_printf(&mp_plat_print, "pos=%ld eof=%ld count=%ld max_count=%ld\n", pos_cur, pos_eof, count, max_count);
     if (max_count < count) {
         count = max_count;
     }
 
     err = FSRead(o->fd, &count, buf);
-
-    mp_printf(&mp_plat_print, "read() err=%d\n", err);
 
     if (err == noErr) {
         return count;
@@ -241,7 +235,6 @@ static mp_uint_t vfs_mac_file_ioctl(mp_obj_t o_in, mp_uint_t request, uintptr_t 
                 int fd = o->fd;
                 o->fd = -1;
                 MP_THREAD_GIL_EXIT();
-                mp_printf(&mp_plat_print, "closing %d\n", fd);
                 OSErr err = FSClose(fd);
                 OSErr err1 = FlushVol(NULL, o->volRefNum);
                 if (err != noErr) {
@@ -252,7 +245,6 @@ static mp_uint_t vfs_mac_file_ioctl(mp_obj_t o_in, mp_uint_t request, uintptr_t 
                     *errcode = convert_mac_err(err1);
                     break;
                 }
-                mp_printf(&mp_plat_print, "closed %d\n", fd);
                 MP_THREAD_GIL_ENTER();
             }
             return 0;
@@ -377,6 +369,17 @@ static mp_obj_t vfs_mac_open(mp_obj_t self_in, mp_obj_t path_in, mp_obj_t mode_i
 }
 static MP_DEFINE_CONST_FUN_OBJ_3(vfs_mac_open_obj, vfs_mac_open);
 
+static mp_import_stat_t mp_vfs_mac_import_stat(void *self_in, const char *path) {
+    mp_obj_vfs_mac_t *self = MP_OBJ_TO_PTR(self_in);
+    Str255 pName;
+    PSTR_FROM_CSTR(pName, path);
+    FInfo f;
+    OSErr err = GetFInfo(pName, self->volRefNum, &f);
+    if (err != noErr) {
+        return MP_IMPORT_STAT_NO_EXIST;
+    }
+    return MP_IMPORT_STAT_FILE; // what about folders??
+}
 
 static const mp_rom_map_elem_t vfs_mac_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_volumes), MP_ROM_PTR(&volumes_obj) },
@@ -401,9 +404,7 @@ static const mp_rom_map_elem_t vfs_mac_locals_dict_table[] = {
 static MP_DEFINE_CONST_DICT(vfs_mac_locals_dict, vfs_mac_locals_dict_table);
 
 static const mp_vfs_proto_t vfs_mac_proto = {
-    #if 0
     .import_stat = mp_vfs_mac_import_stat,
-    #endif
 };
 
 static void vfs_mac_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {

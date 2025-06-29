@@ -101,6 +101,8 @@ docker-build-%:
 UMAC=$(HOME)/src/umac/main -r ~/src/umac/rom.bin
 .PHONY: run7
 run7:
+	hmount build/micropython.dsk
+	hcopy -r preload/* :
 	$(UMAC) -d ~/src/umac/HyperCardBootSystem7.img -d build/micropython.dsk
 
 .PHONY: run6

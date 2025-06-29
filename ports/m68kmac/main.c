@@ -48,11 +48,10 @@ int main(int argc, char **argv) {
     #endif
     mp_init();
 
-    #if MICROPY_VFS_POSIX
     {
         // Mount the host FS at the root of our internal VFS
         mp_obj_t args[2] = {
-            MP_OBJ_TYPE_GET_SLOT(&mp_type_vfs_posix, make_new)(&mp_type_vfs_posix, 0, 0, NULL),
+            MP_OBJ_TYPE_GET_SLOT(&mp_type_vfs_mac, make_new)(&mp_type_vfs_mac, 0, 0, NULL),
             MP_OBJ_NEW_QSTR(MP_QSTR__slash_),
         };
         mp_vfs_mount(2, args, (mp_map_t *)&mp_const_empty_map);
@@ -65,7 +64,6 @@ int main(int argc, char **argv) {
             MP_STATE_VM(vfs_cur) = MP_STATE_VM(vfs_cur)->next;
         }
     }
-    #endif
 
     #if 0
     do_str("print('hello world!', list(x+1 for x in range(10)), end='eol\\n')", MP_PARSE_SINGLE_INPUT);
