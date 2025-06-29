@@ -107,6 +107,8 @@ run7:
 
 .PHONY: run6
 run6:
+	hmount build/micropython.dsk
+	hcopy -r preload/* :
 	$(UMAC) -d ~/src/pico-mac/umac0ro.img -d build/micropython.dsk
 
 include $(TOP)/py/mkrules.mk

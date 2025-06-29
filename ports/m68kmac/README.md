@@ -18,7 +18,11 @@ To run the executable and get a basic working REPL do:
 
 ## Key TODOs
 
- * Add filesystem access
+ * Finish filesystem access
+    * stat, listdir, `mp_vfs_mac_import_stat` on system6
+ * Add sys.stdin, sys.stdout
+ * Add sys.stdin.readable & polling of sys.stdin for editor
+ * Fix crash seen while trying to use `adafruit_editor`
  * Freeze in `adafruit_editor` (together w/ any needed console improvements)
  * auto-launch `code.py` (with bypass via shift key or something?)
  * OR double-clickable ".py" files
@@ -28,4 +32,4 @@ To run the executable and get a basic working REPL do:
  * Support larger heap (via split heap?)
  * Build it in github actions CI
  * Decide whether RetroConsole needs to be replaced (is GPL a problem for upstream??)
- * Any other issues that might prevent upstream inclusion.
+ * Any other issues that might ease upstream inclusion.
