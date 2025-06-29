@@ -35,24 +35,27 @@ static VCB *getVolumeByName(mp_obj_t name) {
     GET_STR_DATA_LEN(name, str_data, str_len);
     VCB *vol = (VCB *)LMGetVCBQHdr().qHead;
     while (vol) {
+        mp_printf(&mp_plat_print, "vol@%p vcbVRefNum=%d\n", vol, vol->vcbVRefNum);
         if (PSTR_LEN(vol->vcbVN) == str_len &&
             memcmp(PSTR_DATA(vol->vcbVRefNum), str_data, str_len) == 0) {
             return vol;
         }
         vol = (VCB *)vol->qLink;
     }
-    mp_raise_ValueError(MP_ERROR_TEXT("volume not found"));
+    mp_raise_ValueError(MP_ERROR_TEXT("volume not found (by name)"));
 }
 
 static VCB *getVolumeByVolumeReference(INTEGER vn) {
     VCB *vol = (VCB *)LMGetVCBQHdr().qHead;
+    mp_printf(&mp_plat_print, "vn=%d\n", vn);
     while (vol) {
+        mp_printf(&mp_plat_print, "vol@%p vcbVRefNum=%d\n", vol, vol->vcbVRefNum);
         if (vol->vcbVRefNum == vn) {
             return vol;
         }
         vol = (VCB *)vol->qLink;
     }
-    mp_raise_ValueError(MP_ERROR_TEXT("volume not found"));
+    mp_raise_ValueError(MP_ERROR_TEXT("volume not found (by ref)"));
 }
 
 
@@ -144,6 +147,7 @@ mp_obj_t mp_vfs_mac_file_open(const mp_obj_vfs_mac_t *fs, const mp_obj_type_t *t
     }
     o->fd = fd;
     o->mode = mode_rw;
+    o->volRefNum = fs->volRefNum;
     return MP_OBJ_FROM_PTR(o);
 }
 
@@ -158,11 +162,34 @@ static mp_uint_t vfs_mac_file_read(mp_obj_t o_in, void *buf, mp_uint_t size, int
 
     check_fd_is_open(o);
     long count = (long)size;
-    OSErr err = FSRead(o->fd, &count, buf);
+
+    // As far as I could tell, reading past EOF is an error. It leaves the file advanced
+    // to the EOF position so "try again if EOF is signaled, only using the right length"
+    // doesn't work. Instead, check the current position & EOF position, limiting the size
+    // argument every time.
+    LONGINT pos_cur, pos_eof;
+    OSErr err = GetFPos(o->fd, &pos_cur);
+    if (err != noErr) {
+        goto out_err;
+    }
+    err = GetEOF(o->fd, &pos_eof);
+    if (err != noErr) {
+        goto out_err;
+    }
+    LONGINT max_count = pos_eof - pos_cur;
+    mp_printf(&mp_plat_print, "pos=%ld eof=%ld count=%ld max_count=%ld\n", pos_cur, pos_eof, count, max_count);
+    if (max_count < count) {
+        count = max_count;
+    }
+
+    err = FSRead(o->fd, &count, buf);
+
+    mp_printf(&mp_plat_print, "read() err=%d\n", err);
 
     if (err == noErr) {
         return count;
     }
+out_err:
     *errcode = convert_mac_err(err);
     return MP_STREAM_ERROR;
 }
@@ -293,6 +320,8 @@ static mp_obj_t vfs_mac_make_new(const mp_obj_type_t *type, size_t n_args, size_
 
     if (n_args == 0) {
         GetVol(NULL, &volRefNum);
+    } else if (mp_obj_is_small_int(args[0])) {
+        volRefNum = MP_OBJ_SMALL_INT_VALUE(args[0]);
     } else {
         volRefNum = getVolumeByName(args[0])->vcbVRefNum;
     }
