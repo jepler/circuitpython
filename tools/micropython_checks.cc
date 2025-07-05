@@ -305,7 +305,7 @@ struct micropython_checks : gimple_opt_pass {
 
                         case 'l':
                             ++fmt;
-                            if (*fmt != 'u' && *fmt != 'd' && *fmt != 'x') {
+                            if (*fmt != 'u' && *fmt != 'd' && *fmt != 'x' && *fmt != 'X') {
                                 location_t loc = gimple_location(stmt);
                                 warning_at(loc, OPT_Wformat_,
                                            "Bad format specification with ll%c",
