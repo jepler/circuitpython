@@ -307,11 +307,12 @@ function ci_nrf_build {
 function ci_powerpc_setup {
     sudo apt-get update
     sudo apt-get install gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross
+    ci_gcc_plugin_setup powerpc64le-linux-gnu
 }
 
 function ci_powerpc_build {
-    make ${MAKEOPTS} -C ports/powerpc UART=potato
-    make ${MAKEOPTS} -C ports/powerpc UART=lpc_serial
+    make ${MAKEOPTS} -C ports/powerpc UART=potato MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/powerpc UART=lpc_serial MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 ########################################################################################
@@ -342,17 +343,17 @@ function ci_qemu_build_arm_prepare {
 
 function ci_qemu_build_arm_bigendian {
     ci_qemu_build_arm_prepare
-    make ${MAKEOPTS} -C ports/qemu CFLAGS_EXTRA=-DMP_ENDIANNESS_BIG=1
+    make ${MAKEOPTS} -C ports/qemu CFLAGS_EXTRA=-DMP_ENDIANNESS_BIG=1 MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 function ci_qemu_build_arm_sabrelite {
     ci_qemu_build_arm_prepare
-    make ${MAKEOPTS} -C ports/qemu BOARD=SABRELITE test_full
+    make ${MAKEOPTS} -C ports/qemu BOARD=SABRELITE test_full MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 function ci_qemu_build_arm_thumb {
     ci_qemu_build_arm_prepare
-    make ${MAKEOPTS} -C ports/qemu test_full
+    make ${MAKEOPTS} -C ports/qemu test_full MICROPY_USE_COMPILER_PLUGIN=gcc
 
     # Test building and running native .mpy with armv7m architecture.
     ci_native_mpy_modules_build armv7m
@@ -362,7 +363,7 @@ function ci_qemu_build_arm_thumb {
 function ci_qemu_build_rv32 {
     make ${MAKEOPTS} -C mpy-cross
     make ${MAKEOPTS} -C ports/qemu BOARD=VIRT_RV32 submodules
-    make ${MAKEOPTS} -C ports/qemu BOARD=VIRT_RV32 test_full
+    make ${MAKEOPTS} -C ports/qemu BOARD=VIRT_RV32 test_full MICROPY_USE_COMPILER_PLUGIN=gcc
 
     # Test building and running native .mpy with rv32imc architecture.
     ci_native_mpy_modules_build rv32imc
@@ -380,13 +381,13 @@ function ci_renesas_ra_setup {
 function ci_renesas_ra_board_build {
     make ${MAKEOPTS} -C mpy-cross
     make ${MAKEOPTS} -C ports/renesas-ra submodules
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=RA4M1_CLICKER
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA6M2
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA6M1
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA4M1
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA4W1
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=RA4M1_CLICKER MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA6M2 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA6M1 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA4M1 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=EK_RA4W1 MICROPY_USE_COMPILER_PLUGIN=gcc
     make ${MAKEOPTS} -C ports/renesas-ra BOARD=ARDUINO_PORTENTA_C33 submodules
-    make ${MAKEOPTS} -C ports/renesas-ra BOARD=ARDUINO_PORTENTA_C33
+    make ${MAKEOPTS} -C ports/renesas-ra BOARD=ARDUINO_PORTENTA_C33 MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 ########################################################################################
@@ -424,8 +425,8 @@ function ci_samd_setup {
 function ci_samd_build {
     make ${MAKEOPTS} -C mpy-cross
     make ${MAKEOPTS} -C ports/samd submodules
-    make ${MAKEOPTS} -C ports/samd BOARD=ADAFRUIT_ITSYBITSY_M0_EXPRESS
-    make ${MAKEOPTS} -C ports/samd BOARD=ADAFRUIT_ITSYBITSY_M4_EXPRESS
+    make ${MAKEOPTS} -C ports/samd BOARD=ADAFRUIT_ITSYBITSY_M0_EXPRESS MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/samd BOARD=ADAFRUIT_ITSYBITSY_M4_EXPRESS MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 ########################################################################################
@@ -444,12 +445,12 @@ function ci_stm32_pyb_build {
     make ${MAKEOPTS} -C ports/stm32 BOARD=PYBD_SF2 submodules
     git submodule update --init lib/btstack
     git submodule update --init lib/mynewt-nimble
-    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBV11 MICROPY_PY_NETWORK_WIZNET5K=5200 USER_C_MODULES=../../examples/usercmodule
-    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBD_SF2
-    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBD_SF6 COPT=-O2 NANBOX=1 MICROPY_BLUETOOTH_NIMBLE=0 MICROPY_BLUETOOTH_BTSTACK=1
-    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=PYBV10 CFLAGS_EXTRA='-DMBOOT_FSLOAD=1 -DMBOOT_VFS_LFS2=1'
-    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=PYBD_SF6
-    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=STM32F769DISC CFLAGS_EXTRA='-DMBOOT_ADDRESS_SPACE_64BIT=1 -DMBOOT_SDCARD_ADDR=0x100000000ULL -DMBOOT_SDCARD_BYTE_SIZE=0x400000000ULL -DMBOOT_FSLOAD=1 -DMBOOT_VFS_FAT=1'
+    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBV11 MICROPY_PY_NETWORK_WIZNET5K=5200 USER_C_MODULES=../../examples/usercmodule MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBD_SF2 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=PYBD_SF6 COPT=-O2 NANBOX=1 MICROPY_BLUETOOTH_NIMBLE=0 MICROPY_BLUETOOTH_BTSTACK=1 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=PYBV10 CFLAGS_EXTRA='-DMBOOT_FSLOAD=1 -DMBOOT_VFS_LFS2=1' MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=PYBD_SF6 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=STM32F769DISC CFLAGS_EXTRA='-DMBOOT_ADDRESS_SPACE_64BIT=1 -DMBOOT_SDCARD_ADDR=0x100000000ULL -DMBOOT_SDCARD_BYTE_SIZE=0x400000000ULL -DMBOOT_FSLOAD=1 -DMBOOT_VFS_FAT=1' MICROPY_USE_COMPILER_PLUGIN=gcc
 
     # Test building native .mpy with armv7emsp architecture.
     git submodule update --init lib/berkeley-db-1.xx
@@ -462,15 +463,15 @@ function ci_stm32_nucleo_build {
     git submodule update --init lib/mynewt-nimble
 
     # Test building various MCU families, some with additional options.
-    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_F091RC
-    make ${MAKEOPTS} -C ports/stm32 BOARD=STM32H573I_DK
-    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_H743ZI COPT=-O2 CFLAGS_EXTRA='-DMICROPY_PY_THREAD=1'
-    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_L073RZ
-    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_L476RG DEBUG=1
+    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_F091RC MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=STM32H573I_DK MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_H743ZI COPT=-O2 CFLAGS_EXTRA='-DMICROPY_PY_THREAD=1' MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_L073RZ MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_L476RG DEBUG=1 MICROPY_USE_COMPILER_PLUGIN=gcc
 
     # Test building a board with mboot packing enabled (encryption, signing, compression).
-    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_WB55 USE_MBOOT=1 MBOOT_ENABLE_PACKING=1
-    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=NUCLEO_WB55 USE_MBOOT=1 MBOOT_ENABLE_PACKING=1
+    make ${MAKEOPTS} -C ports/stm32 BOARD=NUCLEO_WB55 USE_MBOOT=1 MBOOT_ENABLE_PACKING=1 MICROPY_USE_COMPILER_PLUGIN=gcc
+    make ${MAKEOPTS} -C ports/stm32/mboot BOARD=NUCLEO_WB55 USE_MBOOT=1 MBOOT_ENABLE_PACKING=1 MICROPY_USE_COMPILER_PLUGIN=gcc
     # Test mboot_pack_dfu.py created a valid file, and that its unpack-dfu command works.
     BOARD_WB55=ports/stm32/boards/NUCLEO_WB55
     BUILD_WB55=ports/stm32/build-NUCLEO_WB55
@@ -485,7 +486,7 @@ function ci_stm32_nucleo_build {
 function ci_stm32_misc_build {
     make ${MAKEOPTS} -C mpy-cross
     make ${MAKEOPTS} -C ports/stm32 BOARD=ARDUINO_GIGA submodules
-    make ${MAKEOPTS} -C ports/stm32 BOARD=ARDUINO_GIGA
+    make ${MAKEOPTS} -C ports/stm32 BOARD=ARDUINO_GIGA MICROPY_USE_COMPILER_PLUGIN=gcc
 }
 
 ########################################################################################
