@@ -362,4 +362,29 @@ mp_float_t mp_obj_int_as_float_impl(mp_obj_t self_in) {
 }
 #endif
 
+bool mp_mul_ll_overflow(long long int x, long long int y, long long int *res) {
+    bool overflow;
+
+    // Check for multiply overflow; see CERT INT32-C
+    if (x > 0) { // x is positive
+        if (y > 0) { // x and y are positive
+            overflow = (x > (LLONG_MAX / y));
+        } else { // x positive, y nonpositive
+            overflow = (y < (LLONG_MIN / x));
+        } // x positive, y nonpositive
+    } else { // x is nonpositive
+        if (y > 0) { // x is nonpositive, y is positive
+            overflow = (x < (LLONG_MIN / y));
+        } else { // x and y are nonpositive
+            overflow = (x != 0 && y < (LLONG_MAX / x));
+        } // End if x and y are nonpositive
+    } // End if x is nonpositive
+
+    if (!overflow) {
+        *res = x * y;
+    }
+
+    return overflow;
+}
+
 #endif
