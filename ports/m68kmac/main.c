@@ -57,6 +57,8 @@ void LMSetApplLimit_checked(Ptr val) {
 }
 
 int main(int argc, char **argv) {
+    mp_hal_stdin_init();
+
     // Enlarge stack to at least 32kB
     LMSetApplLimit_checked(LMGetCurStackBase() - 32768);
 

@@ -1,9 +1,7 @@
 #include <unistd.h>
 
 #include "py/mpconfig.h"
-extern "C" {
 #include "uart_core.h"
-}
 
 
 #include "retro/Console.h"
@@ -19,40 +17,50 @@ namespace retro
 }
 
 #define USE_CONSOLE (1)
+#define USE_VIRTUAL_UART (1) // virtual UART at 0xc0006a
 
-// Receive single character
-extern "C" 
-int mp_hal_stdin_rx_chr(void);
-int mp_hal_stdin_rx_chr(void) {
+void mp_hal_stdin_init() {
 #if USE_CONSOLE
-    if(!Console::currentInstance)
-        InitConsole();
-    if(Console::currentInstance == (Console*)-1)
-        return EOF;
-    int c = Console::currentInstance->WaitNextChar();
-#else
-    int c = *(char*)0xc0006a;
+    InitConsole();
 #endif
-    return c;
+}
+
+static int pending_char = EOF;
+// Receive single character
+int mp_hal_stdin_rx_chr(void) {
+    while (!mp_hal_stdin_available()) { // side-effect: sets pending_char to non-EOF if available
+    }        
+    int result = result = pending_char;
+    pending_char = EOF;
+    return result;
 }
 
 bool mp_hal_stdin_available(void) {
-    if(!Console::currentInstance)
-        InitConsole();
-    if(Console::currentInstance == (Console*)-1)
-        return false;
-    return Console::currentInstance->Available(1);
+#if USE_CONSOLE
+    if (pending_char == EOF) {
+        if(Console::currentInstance->Available(1)) {
+            pending_char = Console::currentInstance->WaitNextChar();
+        }
+    }
+#endif
+#if USE_VIRTUAL_UART
+    if (pending_char == EOF) {
+        pending_char = *(volatile int16_t*)0xc0006a;
+    }
+#endif
+    return pending_char != EOF;
 }
 
-extern "C"
 mp_uint_t debug_uart_tx_strn(const char *str, mp_uint_t len);
 mp_uint_t debug_uart_tx_strn(const char *str, mp_uint_t len) {
+#if USE_VIRTUAL_UART
     mp_uint_t result = len;
     // debug hack, needs patched umac
     while(len--) {
         *(char*)0xc0006a = *str++;
     }
     return result;
+#endif
 }
 
 void debug_print_fn(void *data, const char *str, size_t len) {

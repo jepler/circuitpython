@@ -40,9 +40,40 @@ typecodes = {
 
 
 @dataclass(frozen=True)
+class Scalar:
+    name: str
+    typecode: str
+    is_const: bool = False
+
+    @property
+    def is_ptr(self):
+        return False
+
+    @property
+    def is_array(self):
+        return False
+
+    @property
+    def is_scalar(self):
+        return True
+
+
+@dataclass(frozen=True)
 class Ptr:
     pointee: Any
     is_const: bool = False
+
+    @property
+    def is_ptr(self):
+        return True
+
+    @property
+    def is_array(self):
+        return False
+
+    @property
+    def is_scalar(self):
+        return False
 
     def __str__(self):
         return f"{self.pointee}*"
@@ -53,6 +84,18 @@ class Array:
     pointee: Any
     bound: int
     is_const: bool = False
+
+    @property
+    def is_ptr(self):
+        return False
+
+    @property
+    def is_array(self):
+        return True
+
+    @property
+    def is_scalar(self):
+        return False
 
 
 @dataclass
@@ -69,14 +112,15 @@ def toplevel(cls):
     for f in dataclasses.fields(CommonFields):
         setattr(cls, f.name, f)
         cls.__annotations__[f.name] = CommonFields.__annotations__[f.name]
-    return dataclass(cls)
+    return dataclass(cls, frozen=True)
 
 
-@dataclass
+@dataclass(frozen=True)
 class StructMember:
     name: str
     type: str
     comment: str | None = None
+    fulltype: any = None
 
 
 @toplevel
@@ -85,12 +129,36 @@ class Union:
     members: list[StructMember] = dataclasses.field(default_factory=list)
     size: int | None = None
 
+    @property
+    def is_ptr(self):
+        return False
+
+    @property
+    def is_array(self):
+        return False
+
+    @property
+    def is_scalar(self):
+        return False
+
 
 @toplevel
 class Struct:
     name: str
     members: list[StructMember] = dataclasses.field(default_factory=list)
     size: int | None = None
+
+    @property
+    def is_ptr(self):
+        return False
+
+    @property
+    def is_array(self):
+        return False
+
+    @property
+    def is_scalar(self):
+        return False
 
 
 @dataclass
@@ -112,6 +180,7 @@ class Typedef:
     type: str
     size: int | None = None  # typedef AE_hdlr_t has this .. why?
     fulltype: any = None
+    is_const: bool = False
 
 
 @toplevel
@@ -381,7 +450,11 @@ class PtrConverter:
     deref: bool = False
     is_const: bool = False
 
+    def __post_init__(self):
+        assert self.type_c is not None, f"type_c must be a type description, not {self.type_c}"
+
     def emit_to_c(self, name_py, name_c):
+        print(f"emit_to_c {name_py} {self.type_c}")
         is_const = +self.is_const  # to get 0/1, not True/False
         resolved_type = self.emitter.parse_type(self.type_c)
         if (
@@ -394,6 +467,7 @@ class PtrConverter:
             return f"{self.type_c} {name_c} = to_struct_helper({name_py}, {self.type_obj}, {is_const}, MP_QSTR_{self.fieldname}); // 2\n"
 
     def emit_to_py(self, name_c):
+        print(f"emit_to_py {self.type_c}")
         resolved_type = self.emitter.parse_type(self.type_c)
         if resolved_type in self.emitter.types:
             resolved_type = self.emitter.parse_type(self.emitter.types[resolved_type])
@@ -412,63 +486,35 @@ class PtrConverter:
         return name_c
 
 
-def make_converter(emitter, fieldname, type_c):
-    print(f"make_converter {type_c=}")
+def make_converter(emitter, fieldname, typedesc_in):
+    typedesc = emitter.resolve_typedefs(typedesc_in)
+    print(f"make_converter {typedesc=}")
+    type_c = getattr(typedesc_in, 'name', None)
     if converter := converters.get(type_c):
         return converter(fieldname)
-    resolved_type = emitter.parse_type(type_c)
-    if resolved_type in signed_integer_types:
-        return ScalarConverter(resolved_type, "mp_obj_get_int", "mp_obj_new_int")
-    if resolved_type in emitter.types:
-        resolved_type = emitter.parse_type(emitter.types[resolved_type])
-    if resolved_type in emitter.funptrs:
+    if type_c in signed_integer_types:
+        return ScalarConverter(typedesc, "mp_obj_get_int", "mp_obj_new_int")
+    if isinstance(typedesc, FunPtr):
         return ScalarConverter(
-            resolved_type, f"({type_c})mp_obj_get_int_truncated", "mp_obj_new_int_from_ptr"
+            typedesc, f"({type_c})mp_obj_get_int_truncated", "mp_obj_new_int_from_ptr"
         )
-    if resolved_type in unsigned_integer_types:
-        return ScalarConverter(
-            resolved_type, "mp_obj_get_int_truncated", "mp_obj_new_int_from_uint"
-        )
+    if typedesc in unsigned_integer_types:
+        return ScalarConverter(typedesc, "mp_obj_get_int_truncated", "mp_obj_new_int_from_uint")
     if type_c == "void*":
-        return ScalarConverter(resolved_type, "void_ptr_from_py", "mp_obj_new_int_from_uint")
-    if isinstance(resolved_type, Ptr):
-        base_type = resolved_type.pointee
-        if base_type in all_scalar_types:
+        return ScalarConverter(typedesc, "void_ptr_from_py", "mp_obj_new_int_from_uint")
+    if typedesc.is_ptr:
+        base_type = emitter.resolve_typedefs(typedesc.pointee)
+        if base_type in emitter.types:
             return PtrConverter(
                 emitter,
                 fieldname,
                 type_c,
-                f"(const mp_obj_type_t*)&{base_type}_obj",
-                is_const=resolved_type.is_const,
+                f"(const mp_obj_type_t*)&{base_type.name}_obj",
+                is_const=typedesc.is_const,
             )
-        if type in emitter.structs or type_c in emitter.types:
-            return PtrConverter(
-                emitter,
-                fieldname,
-                type_c,
-                f"(const mp_obj_type_t*)&{type_c}_obj",
-                is_const=resolved_type.is_const,
-            )
-        if base_type in emitter.structs:
-            return PtrConverter(
-                emitter,
-                fieldname,
-                type_c,
-                f"(const mp_obj_type_t*)&{base_type}_obj",
-                is_const=resolved_type.is_const,
-            )
-        elif base_type in emitter.typedef_objs:
-            return PtrConverter(
-                emitter,
-                fieldname,
-                type_c,
-                f"(const mp_obj_type_t*)&{base_type}_obj",
-                is_const=resolved_type.is_const,
-            )
-            emitter.info.append(f"need to handle typedef obj {base_type}")
-        elif base_type != 'void':
-            emitter.info.append(f"confused about {base_type} from {resolved_type} from {type_c}")
-        return PtrConverter(emitter, fieldname, type_c, "NULL", is_const=resolved_type.is_const)
+        if base_type != 'void':
+            emitter.info.append(f"confused about {typedesc} from {typedesc_in}")
+        return PtrConverter(emitter, fieldname, typedesc_in, "NULL", is_const=typedesc.is_const)
     print(f"note: {emitter.funptrs=}")
     raise ValueError(f"no converter possible for {type_c} ({resolved_type=})")
 
@@ -482,7 +528,7 @@ class Processor:
         self.definitions = {}
         self.info = []
         self.unknowns = set()
-        self.types = {}
+        self.types = {k: Scalar(k, v) for k, v in typecodes.items()}
         self.typedef_objs = set()
         self.structs = {}
         self.funptrs = set(("ProcPtr",))
@@ -500,53 +546,36 @@ class Processor:
             self.decls_dedent(f"static {c_type} common_{i} = {c_value};")
         return f"common_{self.definitions[k]}"
 
-    def is_array(self, typename):
-        if isinstance(typename, Array):
-            return True
-        if isinstance(typename, Ptr):
-            return False
-        if typename.count(']') + ("*" in typename) > 1:
+    def typestr_is_array(self, typestr):
+        if typestr.count(']') + ("*" in typestr) > 1:
             raise ValueError(
-                f"array-of-array or pointer-to-array or array-of-pointers NYI {typename}"
+                f"array-of-array or pointer-to-array or array-of-pointers NYI {typestr}"
             )
-        return typename.endswith("]")
+        return typestr.endswith("]")
 
-    def remove_array(self, typename):
-        if isinstance(typename, Array):
-            return typename.pointee
-        return typename.partition("[")[0]
+    def typestr_remove_array(self, typestr):
+        return typestr.partition("[")[0]
 
-    def remove_ptr(self, typename):
-        if isinstance(typename, Ptr):
-            return typename.pointee
-        return typename.removesuffix("*")
+    def typestr_remove_ptr(self, typestr):
+        return typestr.removesuffix("*")
 
-    def remove_const(self, typename):
-        if hasattr(typename, 'is_const'):
-            return dataclasses.replace(typename, is_const=False)
-        return typename.removeprefix("const ")
+    def typestr_is_const(self, typestr):
+        return typestr.startswith("const ")
 
-    def array_size(self, typename):
-        if isinstance(typename, Array):
-            return typename.bound
-        return int(typename.partition("[")[2].removesuffix("]"))
+    def typestr_remove_const(self, typestr):
+        return typestr.removeprefix("const ")
 
-    def is_ptr(self, typename):
-        if isinstance(typename, Ptr):
-            return True
-        if isinstance(typename, Array):
-            return False
-        return typename.endswith("*")
+    def typestr_array_size(self, typestr):
+        return int(typestr.partition("[")[2].removesuffix("]"))
 
-    def is_scalar(self, typename):
-        if hasattr(typename, 'pointee'):
-            typename = typename.pointee
-        return typename in all_scalar_types
+    def typestr_is_ptr(self, typestr):
+        return typestr.endswith("*")
 
-    def is_const(self, typename):
-        if hasattr(typename, 'is_const'):
-            return typename.is_const
-        return typename.startswith("const ")
+    def typestr_is_scalar(self, typestr):
+        return typestr in all_scalar_types
+
+    def typestr_is_array(self, typestr):
+        return "[" in typestr
 
     def decls_dedent(self, text):
         self.decls.append(textwrap.dedent(text.rstrip()))
@@ -554,51 +583,72 @@ class Processor:
     def body_dedent(self, text):
         self.body.append(textwrap.dedent(text.rstrip()))
 
-    def parse_type(self, typestr):
-        if scalar_type := self.types.get(typestr, None):
-            typestr = scalar_type
-        is_const = self.is_const(typestr)
-        base_type = self.remove_const(typestr)
-        if self.is_array(base_type):
-            bound = self.array_size(base_type)
-            base_type = self.parse_type(self.remove_array(base_type))
-            return Array(base_type, bound, is_const=is_const)
-        elif self.is_ptr(base_type):
-            base_type = self.remove_ptr(base_type)
-            return Ptr(base_type, is_const=is_const)
-        else:
-            if is_const:
-                base_type = self.parse_type(self.remove_const(base_type))
-                return dataclasses.replace(base_type, is_const=True)
-            return typestr
+    def typestr_parse(self, typestr):
+        is_const = self.typestr_is_const(typestr)
+        typestr = self.typestr_remove_const(typestr)
+        if self.typestr_is_array(typestr):
+            bound = self.typestr_array_size(typestr)
+            pointee = self.types[self.typestr_remove_array(typestr)]
+            return Array(pointee, bound, is_const=is_const)
+        elif self.typestr_is_ptr(typestr):
+            pointee = self.types[self.typestr_remove_ptr(typestr)]
+            return Ptr(pointee, is_const=is_const)
+        base_type = self.resolve_typedefs(typestr)
+        return dataclasses.replace(base_type, is_const=is_const)
+
+    def resolve_typedefs(self, typedesc):
+        typedesc_in = typedesc
+        if isinstance(typedesc, str):
+            typedesc = self.types[typedesc]
+        while isinstance(typedesc, Typedef):
+            typedesc = typedesc.fulltype
+        assert typedesc.is_scalar or not typedesc.is_scalar
+        return typedesc
 
     def typedefs(self, defs):
         for d in defs:
             if isinstance(d, Typedef):
-                d.fulltype = self.parse_type(d.type)
-                print(f"full type of {d.name} is {d.fulltype}")
-                self.types[d.name] = d.type
-                self.decls_dedent(
-                    f"MP_DECLARE_CTYPES_STRUCT({d.name}_obj); // typedef {d.fulltype} is_scalar? {self.is_scalar(d.fulltype)}"
-                )
+                d = dataclasses.replace(d, fulltype=self.typestr_parse(d.type))
+                print("typedef", d.name, self.typestr_parse(d.type))
+                assert d.fulltype is not None
+                self.types[d.name] = d
+                self.decls_dedent(f"MP_DECLARE_CTYPES_STRUCT({d.name}_obj); // typedef")
             if isinstance(d, Struct) and d.members:
+                d = dataclasses.replace(
+                    d,
+                    members=tuple(
+                        dataclasses.replace(m, fulltype=self.types[m.type]) for m in d.members
+                    ),
+                )
                 self.structs[d.name] = d
+                self.types[d.name] = d
                 self.decls_dedent(f"MP_DECLARE_CTYPES_STRUCT({d.name}_obj); // struct")
             if isinstance(d, Union) and d.members:
+                d = dataclasses.replace(
+                    d,
+                    members=tuple(
+                        dataclasses.replace(m, fulltype=self.types[m.type]) for m in d.members
+                    ),
+                )
                 self.structs[d.name] = d
+                self.types[d.name] = d
                 self.decls_dedent(f"MP_DECLARE_CTYPES_STRUCT({d.name}_obj); // union")
             if isinstance(d, PyVerbatim) and d.typedef_content:
                 self.decls_dedent(d.typedef_content)
             if isinstance(d, FunPtr):
                 self.funptrs.add(d.name)
+                slf.types[d.name] = d
+        print(self.types)
 
     def emit(self, defs):
         for d in defs:
             print("emit", id(d), d)
+            d = self.types.get(getattr(d, 'name', None), d)
             try:
                 self.emit_node(d)
             except Exception as e:
-                raise RuntimeError(f"failed to convert {d}") from e
+                e.add_note(f"While converting {d}")
+                raise
 
     @singledispatchmethod
     def emit_node(self, node):
@@ -616,9 +666,11 @@ class Processor:
         print("emit_typedef", typedef)
         self.body_dedent(f"// typedef {typedef}")
         name = typedef.name
-        type = typedef.type
-        if type.endswith("*") or type.endswith("]"):
-            make_descr = self.type_details(typedef.fulltype)
+        fulltype = self.resolve_typedefs(typedef.fulltype)
+        if fulltype is None:
+            raise RuntimeError(typedef)
+        if fulltype.is_ptr or fulltype.is_array:
+            make_descr = self.descr_maker(typedef.fulltype)
             self.body_dedent(f"// {type} {make_descr=}")
             if make_descr is None:
                 self.body_dedent(f"// {typedef}: no make_descr")
@@ -631,29 +683,25 @@ class Processor:
             self.add_local(name)
             offset = 0
         else:
-            self.body_dedent(f"// no need for {typedef} !?")
+            self.add_local_alias(name, typedef.name)
+            self.body_dedent(f"// Just an alias: {typedef}")
 
-    def type_details(self, typename):
-        if typename in self.funptrs:
+    def descr_maker(self, typedesc):
+        typedesc = self.resolve_typedefs(typedesc)
+        if isinstance(typedesc, FunPtr):
             return None
-        if isinstance(typename, Ptr):
-            is_ptr = True
-            is_array = False
-            basetypename = typename.pointee
-            print(f"{typename=} -- {basetypename=} {basetypename in self.types}")
-        elif isinstance(typename, Array):
-            is_ptr = False
-            is_array = True
-            fulltype = typename
-            basetypename = typename.pointee
-            print(f"{typename=} -- {basetypename=} {basetypename in self.types}")
+        print("descr_maker", typedesc)
+        is_ptr = typedesc.is_ptr
+        is_array = typedesc.is_array
+        if is_ptr or is_array:
+            basetype = typedesc.pointee
         else:
-            fulltype = self.parse_type(typename)
-            is_ptr = isinstance(fulltype, Ptr)
-            is_array = isinstance(fulltype, Array)
-            basetypename = fulltype if isinstance(fulltype, str) else fulltype.pointee
+            basetype = typedesc
 
-        if basetypename in all_scalar_types:
+        basetype = self.resolve_typedefs(basetype)
+
+        if basetype.is_scalar:
+            basetypename = basetype.name
             u = "U" if basetypename.startswith("u") else ""
             if basetypename == "bool":
                 type_str = "UINT8"
@@ -673,39 +721,26 @@ class Processor:
                 raise RuntimeError(f"teach me about {basetypename}")
 
             if is_ptr:
-                descr = descr_maker_ptr_scalar(type_str)
-            elif is_array:
-                descr = descr_maker_arr_scalar(type_str, fulltype.bound)
-            else:
-                descr = descr_maker_scalar(type_str)
-        else:
-            if is_ptr:
-                if typename in self.types:
-                    deref_typename = self.parse_type(self.types[typename])
-                    if (
-                        isinstance(deref_typename, Ptr)
-                        and deref_typename.pointee in self.structs
-                        or deref_typename.pointee in self.types
-                    ):
-                        typename = deref_typename.pointee
-                    descr = descr_maker_ptr_struct(typename)
-                elif basetypename in self.structs:
-                    descr = descr_maker_ptr_struct(basetypename)
-                elif basetypename in self.types:
-                    descr = descr_maker_ptr_struct(basetypename)
-                else:
-                    descr = descr_maker_ptr_scalar("UINT8")
-            elif is_array:
-                descr = descr_maker_arr_struct(basetypename, fulltype.bound)
-            else:
-                descr = descr_maker_struct(basetypename)
+                return descr_maker_ptr_scalar(type_str)
+            if is_array:
+                return descr_maker_arr_scalar(type_str, typedesc.bound)
+            return descr_maker_scalar(type_str)
+        if is_ptr:
+            if basetype in self.types:
+                return descr_maker_ptr_struct(basetypename)
+            return descr_maker_ptr_scalar("UINT8")
+        if is_array:
+            basetypename = basetype.name
+            return descr_maker_arr_struct(basetypename, fulltype.bound)
+            basetypename = basetype.pointee.name
+        return descr_maker_struct(basetype.name)
 
         return descr
 
     def struct_make_table(self, struct):
         rows = []
         for member in struct.members:
-            make_descr = self.type_details(member.type)
+            make_descr = self.descr_maker(member.fulltype)
             if make_descr is None:
                 continue
             offset = f"offsetof({struct.name}, {member.name})"
@@ -715,7 +750,7 @@ class Processor:
     def union_make_table(self, union):
         rows = []
         for member in union.members:
-            make_descr = self.type_details(member.type)
+            make_descr = self.descr_maker(member.fulltype)
             if make_descr is None:
                 continue
             rows.append(f"{{ MP_ROM_QSTR(MP_QSTR_{member.name}), {make_descr(self, 0)} }},")
@@ -782,9 +817,13 @@ class Processor:
             value = f"MP_ROM_PTR((void*)&{name}_obj)"
         self.locals.append(f"{{ MP_ROM_QSTR(MP_QSTR_{name}), {value} }},")
 
+    def add_local_alias(self, name, alias):
+        value = f"MP_ROM_PTR((void*)&{alias}_obj)"
+        return self.add_local(name, value)
+
     @emit_node.register
     def emit_verbatim(self, v: Verbatim):
-        pass  # Ignore verbatim blocks
+        pass  # Ignore C verbatim blocks
 
     @emit_node.register
     def emit_pyverbatim(self, v: PyVerbatim):
@@ -826,11 +865,11 @@ class Processor:
         ]
         return "\n".join(f"    {line}" for line in body)
 
-    def make_converter(self, fieldname, typename):
-        return make_converter(self, fieldname, typename)
+    def make_converter(self, fieldname, typedesc):
+        return make_converter(self, fieldname, typedesc)
 
     def fun_convert_arg(self, idx, arg):
-        return self.make_converter(arg.name, arg.type).emit_to_c(
+        return self.make_converter(arg.name, self.types[arg.type]).emit_to_c(
             f"args[{idx}].u_obj", arg.name or f"arg{idx}"
         )
 
@@ -852,7 +891,7 @@ class Processor:
     def fun_convert_return(self, fun):
         return_type = fun.return_
         if return_type:
-            converter = self.make_converter(0, return_type)
+            converter = self.make_converter(0, self.types[return_type])
             return f"    return {converter.emit_to_py('retval')};\n"
         else:
             return "    return mp_const_none;\n"

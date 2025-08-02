@@ -6,6 +6,7 @@ extern "C" {
 
 #include "py/mpprint.h"
 
+void mp_hal_stdin_init();
 bool mp_hal_stdin_available(void);
 int mp_hal_stdin_rx_chr(void);
 extern mp_print_t debug_print;

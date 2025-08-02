@@ -40,6 +40,14 @@ typedef struct _mp_obj_ctypes_struct_type_t {
     uint32_t struct_flags;
 } mp_obj_ctypes_struct_type_t;
 
+typedef struct _mp_obj_uctypes_struct_t {
+    mp_obj_base_t base;
+    mp_obj_t desc;
+    byte *ptrbase;
+    uint32_t flags : CTYPES_FLAGS_SIZE_BITS;
+    uint32_t offset : CTYPES_OFFSET_SIZE_BITS;
+} mp_obj_uctypes_struct_t;
+
 void uctypes_struct_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind);
 void uctypes_struct_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest);
 mp_obj_t uctypes_struct_subscr(mp_obj_t self_in, mp_obj_t index_in, mp_obj_t value);
