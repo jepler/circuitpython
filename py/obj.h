@@ -413,6 +413,35 @@ typedef struct _mp_rom_obj_t { mp_const_obj_t o; } mp_rom_obj_t;
 // These macros are used to define constant map/dict objects
 // You can put "static" in front of the definition to make it local
 
+#if MICROPY_MAP_SPLIT
+#define MP_TABLE_SIZE(table_name) MP_ARRAY_SIZE(table_name##_keys)
+#define MP_DEFINE_CONST_MAP(map_name, table_name) \
+    const mp_map_t map_name = { \
+        .all_keys_are_qstrs = 1, \
+        .is_fixed = 1, \
+        .is_ordered = 1, \
+        .used = MP_TABLE_SIZE(table_name), \
+        .alloc = MP_TABLE_SIZE(table_name), \
+        .keys.u = (qstr_short_t *)(table_name##_keys), \
+        .values = (mp_obj_t *)(table_name##_values), \
+    }
+
+#define MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(dict_name, table_name, o, n) \
+    const mp_obj_dict_t dict_name = { \
+        .base = {&mp_type_dict}, \
+        .map = { \
+            .all_keys_are_qstrs = 1, \
+            .is_fixed = 1, \
+            .is_ordered = 1, \
+            .used = n, \
+            .alloc = n, \
+            .table = MP_MAP_TABLE_CAST(table_name), \
+            .keys.u = (qstr_short_t *)(table_name##_keys), \
+            .values = (mp_obj_t *)(table_name##_values), \
+        }, \
+    }
+#else
+#define MP_TABLE_SIZE(table_name) MP_ARRAY_SIZE(table_name)
 #define MP_DEFINE_CONST_MAP(map_name, table_name) \
     const mp_map_t map_name = { \
         .all_keys_are_qstrs = 1, \
@@ -423,7 +452,7 @@ typedef struct _mp_rom_obj_t { mp_const_obj_t o; } mp_rom_obj_t;
         .table = (mp_map_elem_t *)(mp_rom_map_elem_t *)table_name, \
     }
 
-#define MP_DEFINE_CONST_DICT_WITH_SIZE(dict_name, table_name, n) \
+#define MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(dict_name, table_name, o, n) \
     const mp_obj_dict_t dict_name = { \
         .base = {&mp_type_dict}, \
         .map = { \
@@ -432,11 +461,16 @@ typedef struct _mp_rom_obj_t { mp_const_obj_t o; } mp_rom_obj_t;
             .is_ordered = 1, \
             .used = n, \
             .alloc = n, \
-            .table = (mp_map_elem_t *)(mp_rom_map_elem_t *)table_name, \
+            .table = (mp_map_elem_t *)(mp_rom_map_elem_t *)(table_name + o), \
         }, \
     }
 
-#define MP_DEFINE_CONST_DICT(dict_name, table_name) MP_DEFINE_CONST_DICT_WITH_SIZE(dict_name, table_name, MP_ARRAY_SIZE(table_name))
+#endif
+
+#define MP_DEFINE_CONST_DICT_WITH_SIZE(dict_name, table_name, n) \
+    MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(dict_name, table_name, 0, n)
+
+#define MP_DEFINE_CONST_DICT(dict_name, table_name) MP_DEFINE_CONST_DICT_WITH_SIZE(dict_name, table_name, MP_TABLE_SIZE(table_name))
 
 // These macros are used to declare and define constant staticmethod and classmethod objects
 // You can put "static" in front of the definitions to make them local
@@ -479,13 +513,29 @@ typedef struct _mp_rom_map_elem_t {
     mp_rom_obj_t value;
 } mp_rom_map_elem_t;
 
+#if MICROPY_MAP_SPLIT
+typedef union _mp_map_key_u {
+    qstr_short_t *q;
+    mp_obj_t *o;
+} mp_map_key_u;
+#endif
+
 typedef struct _mp_map_t {
     size_t all_keys_are_qstrs : 1;
-    size_t is_fixed : 1;    // if set, table is fixed/read-only and can't be modified
     size_t is_ordered : 1;  // if set, table is an ordered array, not a hash map
-    size_t used : (8 * sizeof(size_t) - 3);
+    size_t is_fixed : 1;    // if set, table is fixed/read-only and can't be modified
+    #if MICROPY_MAP_SPLIT
+    size_t values_mutable : 1; // if set, table's values are mutable even if the map is_fixed
+    #else
+    #endif
+    size_t used : (8 * sizeof(size_t) - 3 - MICROPY_MAP_SPLIT);
     size_t alloc;
+    #if MICROPY_MAP_SPLIT
+    mp_map_key_u keys;
+    mp_obj_t *values;
+    #else
     mp_map_elem_t *table;
+    #endif
 } mp_map_t;
 
 // mp_set_lookup requires these constants to have the values they do
@@ -496,9 +546,30 @@ typedef enum _mp_map_lookup_kind_t {
     MP_MAP_LOOKUP_ADD_IF_NOT_FOUND_OR_REMOVE_IF_FOUND = 3, // only valid for mp_set_lookup
 } mp_map_lookup_kind_t;
 
-static inline bool mp_map_slot_is_filled(const mp_map_t *map, size_t pos) {
+static inline mp_obj_t mp_map_slot_key(const mp_map_t *map, size_t pos) {
     assert(pos < map->alloc);
-    return (map)->table[pos].key != MP_OBJ_NULL && (map)->table[pos].key != MP_OBJ_SENTINEL;
+    #if MICROPY_MAP_SPLIT
+    if ((map)->all_keys_are_qstrs) {
+        return MP_OBJ_NEW_QSTR(map->keys.q[pos]);
+    } else {
+        return map->keys.o[pos];
+    }
+    #else
+    return map->values[pos].key;
+    #endif
+}
+
+static inline mp_obj_t mp_map_slot_value(const mp_map_t *map, size_t pos) {
+    assert(pos < map->alloc);
+    #if MICROPY_MAP_SPLIT
+    return map->keys.o[pos];
+    #else
+    return map->values[pos].value;
+    #endif
+}
+static inline bool mp_map_slot_is_filled(const mp_map_t *map, size_t pos) {
+    mp_obj_t key = mp_map_slot_key(map, pos);
+    return key != MP_OBJ_NULL && key != MP_OBJ_SENTINEL;
 }
 
 void mp_map_init(mp_map_t *map, size_t n);

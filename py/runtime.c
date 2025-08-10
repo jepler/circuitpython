@@ -889,12 +889,12 @@ void mp_call_prepare_args_n_kw_var(bool have_self, size_t n_args_n_kw, const mp_
                 for (size_t j = 0; j < map->alloc; j++) {
                     if (mp_map_slot_is_filled(map, j)) {
                         // the key must be a qstr, so intern it if it's a string
-                        mp_obj_t key = map->table[j].key;
+                        mp_obj_t key = mp_map_slot_key(map, j);
                         if (!mp_obj_is_qstr(key)) {
                             key = mp_obj_str_intern_checked(key);
                         }
                         args2[args2_len++] = key;
-                        args2[args2_len++] = map->table[j].value;
+                        args2[args2_len++] = mp_map_slot_key(map->table, j);
                     }
                 }
             } else {
@@ -1634,9 +1634,9 @@ void mp_import_all(mp_obj_t module) {
             // Entry in module global scope may be generated programmatically
             // (and thus be not a qstr for longer names). Avoid turning it in
             // qstr if it has '_' and was used exactly to save memory.
-            const char *name = mp_obj_str_get_str(map->table[i].key);
+            const char *name = mp_obj_str_get_str(mp_map_slot_key(map->table, i));
             if (*name != '_') {
-                qstr qname = mp_obj_str_get_qstr(map->table[i].key);
+                qstr qname = mp_obj_str_get_qstr(mp_map_slot_key(map->table, i));
                 mp_store_name(qname, map->table[i].value);
             }
         }

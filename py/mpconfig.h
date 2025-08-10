@@ -515,6 +515,12 @@
 #define MICROPY_COMP_RETURN_IF_EXPR (MICROPY_CONFIG_ROM_LEVEL_AT_LEAST_EXTRA_FEATURES)
 #endif
 
+// Whether to use the "split map" format for maps.
+// This adds code in the map lookup paths but reduces the size of the maps themselves.
+#ifndef MICROPY_MAP_SPLIT
+#define MICROPY_MAP_SPLIT (0)
+#endif
+
 /*****************************************************************************/
 /* Internal debugging stuff                                                  */
 

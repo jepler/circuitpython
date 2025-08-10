@@ -89,17 +89,31 @@ static size_t get_hash_alloc_greater_or_equal_to(size_t x) {
 void mp_map_init(mp_map_t *map, size_t n) {
     if (n == 0) {
         map->alloc = 0;
+        #if MICROPY_MAP_SPLIT
+        map->keys.o = NULL;
+        map->values = NULL;
+        #else
         map->table = NULL;
+        #endif
     } else {
         map->alloc = n;
+        #if MICROPY_MAP_SPLIT
+        map->keys.q = m_new0(qstr_short_t, map->alloc);
+        map->values = m_new0(mp_obj_t, map->alloc);
+        #else
         map->table = m_new0(mp_map_elem_t, map->alloc);
+        #endif
     }
     map->used = 0;
     map->all_keys_are_qstrs = 1;
     map->is_fixed = 0;
+    #if MICROPY_MAP_SPLIT
+    map->values_mutable = 1;
+    #endif
     map->is_ordered = 0;
 }
 
+#if !MICROPY_MAP_SPLIT
 void mp_map_init_fixed_table(mp_map_t *map, size_t n, const mp_obj_t *table) {
     map->alloc = n;
     map->used = n;
@@ -108,30 +122,71 @@ void mp_map_init_fixed_table(mp_map_t *map, size_t n, const mp_obj_t *table) {
     map->is_ordered = 1;
     map->table = (mp_map_elem_t *)table;
 }
+#endif
 
-// Differentiate from mp_map_clear() - semantics is different
-void mp_map_deinit(mp_map_t *map) {
+static void mp_map_release_storage(mp_map_t *map) {
     if (!map->is_fixed) {
+        #if MICROPY_MAP_SPLIT
+        if (map->all_keys_are_qstrs) {
+            m_del(short_qstr_t, map->keys.q, map->alloc);
+        } else {
+            m_del(mp_obj_t, map->keys.o, map->alloc);
+        }
+        map->keys.q = NULL;
+        m_del(mp_obj_t, map->values, map->alloc);
+        map->values = NULL;
+        #else
         m_del(mp_map_elem_t, map->table, map->alloc);
+        map->table = NULL;
+        #endif
     }
     map->used = map->alloc = 0;
+    map->all_keys_are_qstrs = 1;
+    map->is_fixed = 0;
+}
+// Differentiate from mp_map_clear() - semantics is different
+void mp_map_deinit(mp_map_t *map) {
+    mp_map_release_storage(map);
 }
 
 void mp_map_clear(mp_map_t *map) {
-    if (!map->is_fixed) {
-        m_del(mp_map_elem_t, map->table, map->alloc);
-    }
-    map->alloc = 0;
-    map->used = 0;
-    map->all_keys_are_qstrs = 1;
-    map->is_fixed = 0;
-    map->table = NULL;
+    mp_map_release_storage(map);
 }
 
 static void mp_map_rehash(mp_map_t *map) {
     size_t old_alloc = map->alloc;
     size_t new_alloc = get_hash_alloc_greater_or_equal_to(map->alloc + 1);
     DEBUG_printf("mp_map_rehash(%p): " UINT_FMT " -> " UINT_FMT "\n", map, old_alloc, new_alloc);
+    #if MICROPY_MAP_SPLIT
+    bool all_keys_are_qstrs = map->all_keys_are_qstrs
+        mp_map_key_u old_keys = map->keys;
+    mp_map_key_u new_keys;
+    if (all_keys_are_qstrs) {
+        new_keys.q = m_new0(short_qstr_t, new_alloc)
+    } else {
+        new_keys.o = m_new0(mp_obj_t, new_alloc);
+    }
+    mp_obj_t *old_values = map->values;
+    mp_obj_t *new_values = m_new0(mp_map_elem_t, new_alloc);
+    // If we reach this point, table resizing succeeded, now we can edit the old map.
+    map->alloc = new_alloc;
+    map->used = 0;
+    map->keys = new_keys;
+    map->values = new_values;
+    for (size_t i = 0; i < old_alloc; i++) {
+        if (old_table[i].key != MP_OBJ_NULL && old_table[i].key != MP_OBJ_SENTINEL) {
+            mp_obj_t key;
+            if (all_keys_are_qstrs) {
+                key = MP_OBJ_NEW_QSTR(old_table.q[i]);
+            } else {
+                key = old_table.o[i];
+            }
+            mp_map_lookup(map, key, MP_MAP_LOOKUP_ADD_IF_NOT_FOUND)->value = old_values[i];
+        }
+    }
+    m_del(mp_map_elem_t, old_keys, old_alloc);
+    m_del(mp_map_elem_t, old_values, old_alloc);
+    #else
     mp_map_elem_t *old_table = map->table;
     mp_map_elem_t *new_table = m_new0(mp_map_elem_t, new_alloc);
     // If we reach this point, table resizing succeeded, now we can edit the old map.
@@ -145,6 +200,7 @@ static void mp_map_rehash(mp_map_t *map) {
         }
     }
     m_del(mp_map_elem_t, old_table, old_alloc);
+    #endif
 }
 
 // MP_MAP_LOOKUP behaviour:

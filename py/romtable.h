@@ -38,19 +38,23 @@
 #define MP_ROM_TABLE_MERGED(storage, name, contents) const storage mp_rom_map_elem_t name[] = { \
         BOOST_PP_SEQ_FOR_EACH(MP_TABLE_ENTRY, _, contents) \
 }
-#define MP_ROM_TABLE MP_ROM_TABLE_MERGED
 
 // A hypothetical future format for ROM tables
 #define MP_TABLE_KEY(r, x, element) BOOST_PP_TUPLE_ELEM(0, element),
 #define MP_TABLE_VALUE(r, x, element) \
     BOOST_PP_EXPAND(BOOST_PP_TUPLE_ELEM(1, element) (BOOST_PP_TUPLE_ELEM(2, element))),
-#define MP_ROM_TABLE_SEPARATE(storage, name, contents) \
-    const storage struct { \
-        qstr_short_t keys[BOOST_PP_SEQ_SIZE(contents)]; \
-        mp_rom_obj_t values[BOOST_PP_SEQ_SIZE(contents)]; \
-    } name = { \
-        { BOOST_PP_SEQ_FOR_EACH(MP_TABLE_KEY, _, contents) }, \
+#define MP_ROM_TABLE_SPLIT(storage, name, contents) \
+    const storage qstr_short_t name##keys[] = { \
+        BOOST_PP_SEQ_FOR_EACH(MP_TABLE_KEY, _, contents) \
+    }, \
+    const storage mp_rom_obj_t name##values[] = { \
         { BOOST_PP_SEQ_FOR_EACH(MP_TABLE_VALUE, _, contents) }, \
     }
+
+#if MICROPY_MAP_SPLIT
+#define MP_ROM_TABLE MP_ROM_TABLE_SPLIT
+#else
+#define MP_ROM_TABLE MP_ROM_TABLE_MERGED
+#endif
 
 #endif

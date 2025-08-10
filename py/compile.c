@@ -243,8 +243,8 @@ static void mp_emit_common_populate_module_context(mp_emit_common_t *emit, qstr 
     mp_module_context_alloc_tables(context, qstr_map_used, emit->const_obj_list.len);
     for (size_t i = 0; i < emit->qstr_map.alloc; ++i) {
         if (mp_map_slot_is_filled(&emit->qstr_map, i)) {
-            size_t idx = MP_OBJ_SMALL_INT_VALUE(emit->qstr_map.table[i].value);
-            qstr qst = MP_OBJ_QSTR_VALUE(emit->qstr_map.table[i].key);
+            size_t idx = MP_OBJ_SMALL_INT_VALUE(mp_map_slot_value(&emit->qstr_map, i));
+            qstr qst = MP_OBJ_QSTR_VALUE(mp_map_slot_key(&emit->qstr_map, i));
             context->constants.qstr_table[idx] = qst;
         }
     }

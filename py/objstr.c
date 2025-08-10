@@ -2149,33 +2149,38 @@ static const mp_rom_map_elem_t array_bytearray_str_bytes_locals_table[] = {
 #define TABLE_ENTRIES_ARRAY 0
 #endif
 
-MP_DEFINE_CONST_DICT_WITH_SIZE(mp_obj_str_locals_dict,
-    array_bytearray_str_bytes_locals_table + TABLE_ENTRIES_ARRAY + TABLE_ENTRIES_HEX + TABLE_ENTRIES_COMPAT,
-    MP_ARRAY_SIZE(array_bytearray_str_bytes_locals_table) - (TABLE_ENTRIES_ARRAY + TABLE_ENTRIES_HEX + TABLE_ENTRIES_COMPAT));
+MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(mp_obj_str_locals_dict,
+    array_bytearray_str_bytes_locals_table,
+    0,
+    TABLE_ENTRIES_ARRAY + TABLE_ENTRIES_HEX + TABLE_ENTRIES_COMPAT);
 
 #if TABLE_ENTRIES_COMPAT == 0
 #define mp_obj_bytes_locals_dict mp_obj_str_locals_dict
 #else
 MP_DEFINE_CONST_DICT_WITH_SIZE(mp_obj_bytes_locals_dict,
-    array_bytearray_str_bytes_locals_table + TABLE_ENTRIES_ARRAY,
-    MP_ARRAY_SIZE(array_bytearray_str_bytes_locals_table) - (TABLE_ENTRIES_ARRAY + TABLE_ENTRIES_COMPAT));
+    array_bytearray_str_bytes_locals_table,
+    TABLE_ENTRIES_ARRAY,
+    MP_TABLE_SIZE(array_bytearray_str_bytes_locals_table) - (TABLE_ENTRIES_ARRAY + TABLE_ENTRIES_COMPAT));
 #endif
 
 #if MICROPY_PY_BUILTINS_BYTEARRAY
-MP_DEFINE_CONST_DICT_WITH_SIZE(mp_obj_bytearray_locals_dict,
+MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(mp_obj_bytearray_locals_dict,
     array_bytearray_str_bytes_locals_table,
-    MP_ARRAY_SIZE(array_bytearray_str_bytes_locals_table) - TABLE_ENTRIES_COMPAT);
+    0,
+    MP_TABLE_SIZE(array_bytearray_str_bytes_locals_table) - TABLE_ENTRIES_COMPAT);
 #endif
 
 #if MICROPY_PY_ARRAY
-MP_DEFINE_CONST_DICT_WITH_SIZE(mp_obj_array_locals_dict,
+MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(mp_obj_array_locals_dict,
     array_bytearray_str_bytes_locals_table,
+    0,
     TABLE_ENTRIES_ARRAY);
 #endif
 
 #if MICROPY_PY_BUILTINS_MEMORYVIEW && MICROPY_PY_BUILTINS_BYTES_HEX
-MP_DEFINE_CONST_DICT_WITH_SIZE(mp_obj_memoryview_locals_dict,
-    array_bytearray_str_bytes_locals_table + TABLE_ENTRIES_ARRAY,
+MP_DEFINE_CONST_DICT_WITH_SIZE_AND_OFFSET(mp_obj_memoryview_locals_dict,
+    array_bytearray_str_bytes_locals_table,
+    TABLE_ENTRIES_ARRAY,
     1); // Just the "hex" entry.
 #endif
 
