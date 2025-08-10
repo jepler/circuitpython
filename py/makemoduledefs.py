@@ -79,7 +79,7 @@ def generate_module_table_header(modules):
             (
                 "extern const struct _mp_obj_module_t {obj_module};\n"
                 "#undef {mod_def}\n"
-                "#define {mod_def} {{ MP_ROM_QSTR(MP_QSTR_{module_name}), MP_ROM_PTR(&{obj_module}) }},\n"
+                "#define {mod_def} (( MP_QSTR_{module_name}, MP_ROM_PTR, &{obj_module} ))\n"
             ).format(
                 module_name=module_name,
                 obj_module=obj_module,

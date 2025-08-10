@@ -146,16 +146,16 @@ mp_obj_t mp_obj_new_module(qstr module_name) {
 /******************************************************************************/
 // Global module table and related functions
 
-static const mp_rom_map_elem_t mp_builtin_module_table[] = {
-    // built-in modules declared with MP_REGISTER_MODULE()
+#include "py/romtable.h"
+MP_ROM_TABLE(static, mp_builtin_module_table,
     MICROPY_REGISTERED_MODULES
-};
+    );
 MP_DEFINE_CONST_MAP(mp_builtin_module_map, mp_builtin_module_table);
 
-static const mp_rom_map_elem_t mp_builtin_extensible_module_table[] = {
+MP_ROM_TABLE(static, mp_builtin_extensible_module_table,
     // built-in modules declared with MP_REGISTER_EXTENSIBLE_MODULE()
     MICROPY_REGISTERED_EXTENSIBLE_MODULES
-};
+    );
 MP_DEFINE_CONST_MAP(mp_builtin_extensible_module_map, mp_builtin_extensible_module_table);
 
 #if MICROPY_MODULE_ATTR_DELEGATION && defined(MICROPY_MODULE_DELEGATIONS)

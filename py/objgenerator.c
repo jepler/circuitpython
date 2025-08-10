@@ -343,14 +343,14 @@ static mp_obj_t gen_instance_pend_throw(mp_obj_t self_in, mp_obj_t exc_in) {
 static MP_DEFINE_CONST_FUN_OBJ_2(gen_instance_pend_throw_obj, gen_instance_pend_throw);
 #endif
 
-static const mp_rom_map_elem_t gen_instance_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&gen_instance_close_obj) },
-    { MP_ROM_QSTR(MP_QSTR_send), MP_ROM_PTR(&gen_instance_send_obj) },
-    { MP_ROM_QSTR(MP_QSTR_throw), MP_ROM_PTR(&gen_instance_throw_obj) },
+MP_ROM_TABLE(static, gen_instance_locals_dict_table,
+    ((MP_QSTR_close, MP_ROM_PTR, &gen_instance_close_obj))
+    ((MP_QSTR_send, MP_ROM_PTR, &gen_instance_send_obj))
+    ((MP_QSTR_throw, MP_ROM_PTR, &gen_instance_throw_obj))
     #if MICROPY_PY_GENERATOR_PEND_THROW
-    { MP_ROM_QSTR(MP_QSTR_pend_throw), MP_ROM_PTR(&gen_instance_pend_throw_obj) },
+    ((MP_QSTR_pend_throw, MP_ROM_PTR, &gen_instance_pend_throw_obj))
     #endif
-};
+    );
 
 static MP_DEFINE_CONST_DICT(gen_instance_locals_dict, gen_instance_locals_dict_table);
 

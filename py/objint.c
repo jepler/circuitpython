@@ -471,10 +471,10 @@ static mp_obj_t int_to_bytes(size_t n_args, const mp_obj_t *args) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(int_to_bytes_obj, 1, 4, int_to_bytes);
 
-static const mp_rom_map_elem_t int_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_from_bytes), MP_ROM_PTR(&int_from_bytes_obj) },
-    { MP_ROM_QSTR(MP_QSTR_to_bytes), MP_ROM_PTR(&int_to_bytes_obj) },
-};
+MP_ROM_TABLE(static, int_locals_dict_table,
+    ((MP_QSTR_from_bytes, MP_ROM_PTR, &int_from_bytes_obj))
+    ((MP_QSTR_to_bytes, MP_ROM_PTR, &int_to_bytes_obj))
+    );
 
 static MP_DEFINE_CONST_DICT(int_locals_dict, int_locals_dict_table);
 

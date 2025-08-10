@@ -214,10 +214,10 @@ static mp_obj_t tuple_index(size_t n_args, const mp_obj_t *args) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(tuple_index_obj, 2, 4, tuple_index);
 
-static const mp_rom_map_elem_t tuple_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_count), MP_ROM_PTR(&tuple_count_obj) },
-    { MP_ROM_QSTR(MP_QSTR_index), MP_ROM_PTR(&tuple_index_obj) },
-};
+MP_ROM_TABLE(static, tuple_locals_dict_table,
+    ((MP_QSTR_count, MP_ROM_PTR, &tuple_count_obj))
+    ((MP_QSTR_index, MP_ROM_PTR, &tuple_index_obj))
+    );
 
 static MP_DEFINE_CONST_DICT(tuple_locals_dict, tuple_locals_dict_table);
 

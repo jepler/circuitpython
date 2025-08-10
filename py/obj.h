@@ -32,6 +32,7 @@
 #include "py/misc.h"
 #include "py/qstr.h"
 #include "py/mpprint.h"
+#include "py/romtable.h"
 #include "py/runtime0.h"
 
 // This is the definition of the opaque MicroPython object type.

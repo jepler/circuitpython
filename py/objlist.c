@@ -423,19 +423,19 @@ static MP_DEFINE_CONST_FUN_OBJ_2(list_remove_obj, mp_obj_list_remove);
 static MP_DEFINE_CONST_FUN_OBJ_1(list_reverse_obj, list_reverse);
 static MP_DEFINE_CONST_FUN_OBJ_KW(list_sort_obj, 1, mp_obj_list_sort);
 
-static const mp_rom_map_elem_t list_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_append), MP_ROM_PTR(&list_append_obj) },
-    { MP_ROM_QSTR(MP_QSTR_clear), MP_ROM_PTR(&list_clear_obj) },
-    { MP_ROM_QSTR(MP_QSTR_copy), MP_ROM_PTR(&list_copy_obj) },
-    { MP_ROM_QSTR(MP_QSTR_count), MP_ROM_PTR(&list_count_obj) },
-    { MP_ROM_QSTR(MP_QSTR_extend), MP_ROM_PTR(&list_extend_obj) },
-    { MP_ROM_QSTR(MP_QSTR_index), MP_ROM_PTR(&list_index_obj) },
-    { MP_ROM_QSTR(MP_QSTR_insert), MP_ROM_PTR(&list_insert_obj) },
-    { MP_ROM_QSTR(MP_QSTR_pop), MP_ROM_PTR(&list_pop_obj) },
-    { MP_ROM_QSTR(MP_QSTR_remove), MP_ROM_PTR(&list_remove_obj) },
-    { MP_ROM_QSTR(MP_QSTR_reverse), MP_ROM_PTR(&list_reverse_obj) },
-    { MP_ROM_QSTR(MP_QSTR_sort), MP_ROM_PTR(&list_sort_obj) },
-};
+MP_ROM_TABLE(static, list_locals_dict_table,
+    ((MP_QSTR_append, MP_ROM_PTR, &list_append_obj))
+    ((MP_QSTR_clear, MP_ROM_PTR, &list_clear_obj))
+    ((MP_QSTR_copy, MP_ROM_PTR, &list_copy_obj))
+    ((MP_QSTR_count, MP_ROM_PTR, &list_count_obj))
+    ((MP_QSTR_extend, MP_ROM_PTR, &list_extend_obj))
+    ((MP_QSTR_index, MP_ROM_PTR, &list_index_obj))
+    ((MP_QSTR_insert, MP_ROM_PTR, &list_insert_obj))
+    ((MP_QSTR_pop, MP_ROM_PTR, &list_pop_obj))
+    ((MP_QSTR_remove, MP_ROM_PTR, &list_remove_obj))
+    ((MP_QSTR_reverse, MP_ROM_PTR, &list_reverse_obj))
+    ((MP_QSTR_sort, MP_ROM_PTR, &list_sort_obj))
+    );
 
 static MP_DEFINE_CONST_DICT(list_locals_dict, list_locals_dict_table);
 

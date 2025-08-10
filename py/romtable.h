@@ -44,10 +44,10 @@
 #define MP_TABLE_KEY(r, x, element) BOOST_PP_TUPLE_ELEM(0, element),
 #define MP_TABLE_VALUE(r, x, element) \
     BOOST_PP_EXPAND(BOOST_PP_TUPLE_ELEM(1, element) (BOOST_PP_TUPLE_ELEM(2, element))),
-#define ROM_TABLE_SEPARATE(storage, name, contents) \
+#define MP_ROM_TABLE_SEPARATE(storage, name, contents) \
     const storage struct { \
-        qstr_short_t keys[BOOST_PP_SEQ_SIZE(contents)], \
-        mp_rom_obj_t values[BOOST_PP_SEQ_SIZE(contents)], \
+        qstr_short_t keys[BOOST_PP_SEQ_SIZE(contents)]; \
+        mp_rom_obj_t values[BOOST_PP_SEQ_SIZE(contents)]; \
     } name = { \
         { BOOST_PP_SEQ_FOR_EACH(MP_TABLE_KEY, _, contents) }, \
         { BOOST_PP_SEQ_FOR_EACH(MP_TABLE_VALUE, _, contents) }, \

@@ -590,24 +590,25 @@ static mp_obj_t dict_getiter(mp_obj_t self_in, mp_obj_iter_buf_t *iter_buf) {
 /******************************************************************************/
 /* dict constructors & public C API                                           */
 
-static const mp_rom_map_elem_t dict_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_clear), MP_ROM_PTR(&dict_clear_obj) },
-    { MP_ROM_QSTR(MP_QSTR_copy), MP_ROM_PTR(&dict_copy_obj) },
+#include "py/romtable.h"
+MP_ROM_TABLE(static, dict_locals_dict_table,
+    ((MP_QSTR_clear, MP_ROM_PTR, &dict_clear_obj))
+    ((MP_QSTR_copy, MP_ROM_PTR, &dict_copy_obj))
     #if MICROPY_PY_BUILTINS_DICT_FROMKEYS
-    { MP_ROM_QSTR(MP_QSTR_fromkeys), MP_ROM_PTR(&dict_fromkeys_obj) },
+    ((MP_QSTR_fromkeys, MP_ROM_PTR, &dict_fromkeys_obj))
     #endif
-    { MP_ROM_QSTR(MP_QSTR_get), MP_ROM_PTR(&dict_get_obj) },
-    { MP_ROM_QSTR(MP_QSTR_items), MP_ROM_PTR(&dict_items_obj) },
-    { MP_ROM_QSTR(MP_QSTR_keys), MP_ROM_PTR(&dict_keys_obj) },
-    { MP_ROM_QSTR(MP_QSTR_pop), MP_ROM_PTR(&dict_pop_obj) },
-    { MP_ROM_QSTR(MP_QSTR_popitem), MP_ROM_PTR(&dict_popitem_obj) },
-    { MP_ROM_QSTR(MP_QSTR_setdefault), MP_ROM_PTR(&dict_setdefault_obj) },
-    { MP_ROM_QSTR(MP_QSTR_update), MP_ROM_PTR(&dict_update_obj) },
-    { MP_ROM_QSTR(MP_QSTR_values), MP_ROM_PTR(&dict_values_obj) },
-    { MP_ROM_QSTR(MP_QSTR___getitem__), MP_ROM_PTR(&mp_op_getitem_obj) },
-    { MP_ROM_QSTR(MP_QSTR___setitem__), MP_ROM_PTR(&mp_op_setitem_obj) },
-    { MP_ROM_QSTR(MP_QSTR___delitem__), MP_ROM_PTR(&mp_op_delitem_obj) },
-};
+    ((MP_QSTR_get, MP_ROM_PTR, &dict_get_obj))
+    ((MP_QSTR_items, MP_ROM_PTR, &dict_items_obj))
+    ((MP_QSTR_keys, MP_ROM_PTR, &dict_keys_obj))
+    ((MP_QSTR_pop, MP_ROM_PTR, &dict_pop_obj))
+    ((MP_QSTR_popitem, MP_ROM_PTR, &dict_popitem_obj))
+    ((MP_QSTR_setdefault, MP_ROM_PTR, &dict_setdefault_obj))
+    ((MP_QSTR_update, MP_ROM_PTR, &dict_update_obj))
+    ((MP_QSTR_values, MP_ROM_PTR, &dict_values_obj))
+    ((MP_QSTR___getitem__, MP_ROM_PTR, &mp_op_getitem_obj))
+    ((MP_QSTR___setitem__, MP_ROM_PTR, &mp_op_setitem_obj))
+    ((MP_QSTR___delitem__, MP_ROM_PTR, &mp_op_delitem_obj))
+    );
 
 static MP_DEFINE_CONST_DICT(dict_locals_dict, dict_locals_dict_table);
 
