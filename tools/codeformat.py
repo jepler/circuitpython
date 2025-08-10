@@ -120,6 +120,11 @@ def fixup_c(filename):
                     if directive == "endif":
                         dedent_stack.pop()
 
+            # MP_ROM_TABLE entries all should be indented 4 spaces
+            m = re.match(r" +\(\(MP_QSTR_", l)
+            if m:
+                l = "    " + l.lstrip()
+
             # Write out line.
             f.write(l)
 

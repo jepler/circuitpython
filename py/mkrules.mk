@@ -11,6 +11,8 @@ ifeq ($(MICROPY_PREVIEW_VERSION_2),1)
 CFLAGS += -DMICROPY_PREVIEW_VERSION_2=1
 endif
 
+CFLAGS += -isystem $(TOP)/lib/preprocessor/include
+
 HELP_BUILD_ERROR ?= "See \033[1;31mhttps://github.com/micropython/micropython/wiki/Build-Troubleshooting\033[0m"
 HELP_MPY_LIB_SUBMODULE ?= "\033[1;31mError: micropython-lib submodule is not initialized.\033[0m Run 'make submodules'"
 

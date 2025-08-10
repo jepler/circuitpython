@@ -268,9 +268,9 @@ To add a custom module like ``myport``, first add the module definition in a fil
    }
    static MP_DEFINE_CONST_FUN_OBJ_0(myport_info_obj, myport_info);
 
-   static const mp_rom_map_elem_t myport_module_globals_table[] = {
-       { MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_myport) },
-       { MP_ROM_QSTR(MP_QSTR_info), MP_ROM_PTR(&myport_info_obj) },
+   MP_ROM_TABLE(static, myport_module_globals_table,
+       (( MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR, MP_QSTR_myport ))
+       (( M_QSTR(MP_QSTR_info, MP_ROM_PTR, &myport_info_obj ))
    };
    static MP_DEFINE_CONST_DICT(myport_module_globals, myport_module_globals_table);
 

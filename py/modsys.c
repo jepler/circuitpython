@@ -297,22 +297,23 @@ void mp_module_sys_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
 }
 #endif
 
-static const mp_rom_map_elem_t mp_module_sys_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_sys) },
+#include "py/romtable.h"
+static const MP_ROM_TABLE(mp_module_sys_globals_table,
+    ((MP_QSTR___name__, MP_ROM_QSTR, MP_QSTR_sys))
 
     #if MICROPY_PY_SYS_ARGV
-    { MP_ROM_QSTR(MP_QSTR_argv), MP_ROM_PTR(&MP_STATE_VM(mp_sys_argv_obj)) },
+    ((MP_QSTR_argv, MP_ROM_PTR, &MP_STATE_VM(mp_sys_argv_obj)))
     #endif
-    { MP_ROM_QSTR(MP_QSTR_version), MP_ROM_PTR(&mp_sys_version_obj) },
-    { MP_ROM_QSTR(MP_QSTR_version_info), MP_ROM_PTR(&mp_sys_version_info_obj) },
-    { MP_ROM_QSTR(MP_QSTR_implementation), MP_ROM_PTR(&mp_sys_implementation_obj) },
+    ((MP_QSTR_version, MP_ROM_PTR, &mp_sys_version_obj))
+    ((MP_QSTR_version_info, MP_ROM_PTR, &mp_sys_version_info_obj))
+    ((MP_QSTR_implementation, MP_ROM_PTR, &mp_sys_implementation_obj))
     #ifdef MICROPY_PY_SYS_PLATFORM
-    { MP_ROM_QSTR(MP_QSTR_platform), MP_ROM_PTR(&mp_sys_platform_obj) },
+    ((MP_QSTR_platform, MP_ROM_PTR, &mp_sys_platform_obj))
     #endif
     #if MP_ENDIANNESS_LITTLE
-    { MP_ROM_QSTR(MP_QSTR_byteorder), MP_ROM_QSTR(MP_QSTR_little) },
+    ((MP_QSTR_byteorder, MP_ROM_QSTR, MP_QSTR_little))
     #else
-    { MP_ROM_QSTR(MP_QSTR_byteorder), MP_ROM_QSTR(MP_QSTR_big) },
+    ((MP_QSTR_byteorder, MP_ROM_QSTR, MP_QSTR_big))
     #endif
 
     #if MICROPY_PY_SYS_MAXSIZE
@@ -322,53 +323,53 @@ static const mp_rom_map_elem_t mp_module_sys_globals_table[] = {
     // to not try to compare sys.maxsize to some literal number (as this
     // number might not fit in available int size), but instead count number
     // of "one" bits in sys.maxsize.
-    { MP_ROM_QSTR(MP_QSTR_maxsize), MP_ROM_INT(MP_SMALL_INT_MAX) },
+    ((MP_QSTR_maxsize, MP_ROM_INT, MP_SMALL_INT_MAX))
     #else
-    { MP_ROM_QSTR(MP_QSTR_maxsize), MP_ROM_PTR(&mp_sys_maxsize_obj) },
+    ((MP_QSTR_maxsize, MP_ROM_PTR, &mp_sys_maxsize_obj))
     #endif
     #endif
 
     #if MICROPY_PY_SYS_INTERN
-    { MP_ROM_QSTR(MP_QSTR_intern), MP_ROM_PTR(&mp_sys_intern_obj) },
+    ((MP_QSTR_intern, MP_ROM_PTR, &mp_sys_intern_obj))
     #endif
 
     #if MICROPY_PY_SYS_EXIT
-    { MP_ROM_QSTR(MP_QSTR_exit), MP_ROM_PTR(&mp_sys_exit_obj) },
+    ((MP_QSTR_exit, MP_ROM_PTR, &mp_sys_exit_obj))
     #endif
 
     #if MICROPY_PY_SYS_SETTRACE
-    { MP_ROM_QSTR(MP_QSTR_settrace), MP_ROM_PTR(&mp_sys_settrace_obj) },
+    ((MP_QSTR_settrace, MP_ROM_PTR, &mp_sys_settrace_obj))
     #endif
 
     #if MICROPY_PY_SYS_STDFILES
-    { MP_ROM_QSTR(MP_QSTR_stdin), MP_ROM_PTR(&mp_sys_stdin_obj) },
-    { MP_ROM_QSTR(MP_QSTR_stdout), MP_ROM_PTR(&mp_sys_stdout_obj) },
-    { MP_ROM_QSTR(MP_QSTR_stderr), MP_ROM_PTR(&mp_sys_stderr_obj) },
+    ((MP_QSTR_stdin, MP_ROM_PTR, &mp_sys_stdin_obj))
+    ((MP_QSTR_stdout, MP_ROM_PTR, &mp_sys_stdout_obj))
+    ((MP_QSTR_stderr, MP_ROM_PTR, &mp_sys_stderr_obj))
     #endif
 
     #if MICROPY_PY_SYS_MODULES
-    { MP_ROM_QSTR(MP_QSTR_modules), MP_ROM_PTR(&MP_STATE_VM(mp_loaded_modules_dict)) },
+    ((MP_QSTR_modules, MP_ROM_PTR, &MP_STATE_VM(mp_loaded_modules_dict)))
     #endif
     #if MICROPY_PY_SYS_EXC_INFO
-    { MP_ROM_QSTR(MP_QSTR_exc_info), MP_ROM_PTR(&mp_sys_exc_info_obj) },
+    ((MP_QSTR_exc_info, MP_ROM_PTR, &mp_sys_exc_info_obj))
     #endif
     #if MICROPY_PY_SYS_GETSIZEOF
-    { MP_ROM_QSTR(MP_QSTR_getsizeof), MP_ROM_PTR(&mp_sys_getsizeof_obj) },
+    ((MP_QSTR_getsizeof, MP_ROM_PTR, &mp_sys_getsizeof_obj))
     #endif
 
     #if MICROPY_PY_SYS_EXECUTABLE
-    { MP_ROM_QSTR(MP_QSTR_executable), MP_ROM_PTR(&mp_sys_executable_obj) },
+    ((MP_QSTR_executable, MP_ROM_PTR, &mp_sys_executable_obj))
     #endif
 
     /*
      * Extensions to CPython
      */
 
-    { MP_ROM_QSTR(MP_QSTR_print_exception), MP_ROM_PTR(&mp_sys_print_exception_obj) },
+    ((MP_QSTR_print_exception, MP_ROM_PTR, &mp_sys_print_exception_obj))
     #if MICROPY_PY_SYS_ATEXIT
-    { MP_ROM_QSTR(MP_QSTR_atexit), MP_ROM_PTR(&mp_sys_atexit_obj) },
+    ((MP_QSTR_atexit, MP_ROM_PTR, &mp_sys_atexit_obj))
     #endif
-};
+    );
 
 static MP_DEFINE_CONST_DICT(mp_module_sys_globals, mp_module_sys_globals_table);
 
