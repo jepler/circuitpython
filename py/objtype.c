@@ -1212,6 +1212,7 @@ static mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals
         base_protocol = MP_OBJ_TYPE_GET_SLOT_OR_NULL(((mp_obj_type_t *)MP_OBJ_TO_PTR(bases_items[0])), protocol);
     }
 
+    // TODO: Update this comment given that slot index storage was shrunk
     // Allocate a variable-sized mp_obj_type_t with as many slots as we need
     // (currently 10, plus 1 for base, plus 1 for base-protocol).
     // Note: mp_obj_type_t is (2 + 3 + #slots) words, so going from 11 to 12 slots
@@ -1220,6 +1221,7 @@ static mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals
     o->base.type = &mp_type_type;
     o->flags = base_flags;
     o->name = name;
+    // These must be in slot order!
     MP_OBJ_TYPE_SET_SLOT(o, make_new, mp_obj_instance_make_new, 0);
     MP_OBJ_TYPE_SET_SLOT(o, print, instance_print, 1);
     MP_OBJ_TYPE_SET_SLOT(o, call, mp_obj_instance_call, 2);
@@ -1230,10 +1232,15 @@ static mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals
     MP_OBJ_TYPE_SET_SLOT(o, iter, mp_obj_instance_getiter, 7);
     MP_OBJ_TYPE_SET_SLOT(o, buffer, instance_get_buffer, 8);
 
-    mp_obj_dict_t *locals_ptr = MP_OBJ_TO_PTR(locals_dict);
-    MP_OBJ_TYPE_SET_SLOT(o, locals_dict, locals_ptr, 9);
-
     if (bases_len > 0) {
+        // Inherit protocol from a base class. This allows to define an
+        // abstract base class which would translate C-level protocol to
+        // Python method calls, and any subclass inheriting from it will
+        // support this feature.
+        if (base_protocol) {
+            MP_OBJ_TYPE_SET_SLOT(o, protocol, base_protocol, 11);
+        }
+
         if (bases_len >= 2) {
             #if MICROPY_MULTIPLE_INHERITANCE
             MP_OBJ_TYPE_SET_SLOT(o, parent, MP_OBJ_TO_PTR(bases_tuple), 10);
@@ -1243,15 +1250,10 @@ static mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals
         } else {
             MP_OBJ_TYPE_SET_SLOT(o, parent, MP_OBJ_TO_PTR(bases_items[0]), 10);
         }
-
-        // Inherit protocol from a base class. This allows to define an
-        // abstract base class which would translate C-level protocol to
-        // Python method calls, and any subclass inheriting from it will
-        // support this feature.
-        if (base_protocol) {
-            MP_OBJ_TYPE_SET_SLOT(o, protocol, base_protocol, 11);
-        }
     }
+
+    mp_obj_dict_t *locals_ptr = MP_OBJ_TO_PTR(locals_dict);
+    MP_OBJ_TYPE_SET_SLOT(o, locals_dict, locals_ptr, 9);
 
     #if MICROPY_PY_DESCRIPTORS
     // To avoid any dynamic allocations when no __set_name__ exists,

@@ -630,38 +630,20 @@ static inline void mp_get_buffer_raise(mp_obj_t obj, mp_buffer_info_t *bufinfo, 
     mp_get_buffer(obj, bufinfo, flags | MP_BUFFER_RAISE_IF_UNSUPPORTED);
 }
 
-// This struct will be updated to become a variable sized struct. In order to
-// use this as a member, or allocate dynamically, use the mp_obj_empty_type_t
-// or mp_obj_full_type_t structs below (which must be kept in sync).
-struct _mp_obj_type_t {
-    // A type is an object so must start with this entry, which points to mp_type_type.
-    mp_obj_base_t base;
-
-    // Flags associated with this type.
-    uint16_t flags;
-
-    // The name of this type, a qstr.
-    uint16_t name;
-
-    // Slots: For the rest of the fields, the slot index points to the
-    // relevant function in the variable-length "slots" field. Ideally these
-    // would be only 4 bits, but the extra overhead of accessing them adds
-    // more code, and we also need to be able to take the address of them for
-    // mp_obj_class_lookup.
-
+typedef enum _mp_slot_index_t {
     // Corresponds to __new__ and __init__ special methods, to make an instance of the type.
-    uint8_t slot_index_make_new;
+    slot_index_make_new,
 
     // Corresponds to __repr__ and __str__ special methods.
-    uint8_t slot_index_print;
+    slot_index_print,
 
     // Corresponds to __call__ special method, ie T(...).
-    uint8_t slot_index_call;
+    slot_index_call,
 
     // Implements unary and binary operations.
     // Can return MP_OBJ_NULL if the operation is not supported.
-    uint8_t slot_index_unary_op;
-    uint8_t slot_index_binary_op;
+    slot_index_unary_op,
+    slot_index_binary_op,
 
     // Implements load, store and delete attribute.
     //
@@ -675,14 +657,14 @@ struct _mp_obj_type_t {
     // dest[0,1] = {MP_OBJ_SENTINEL, object} means store
     //  return: for fail, do nothing
     //          for success set dest[0] = MP_OBJ_NULL
-    uint8_t slot_index_attr;
+    slot_index_attr,
 
     // Implements load, store and delete subscripting:
     //  - value = MP_OBJ_SENTINEL means load
     //  - value = MP_OBJ_NULL means delete
     //  - all other values mean store the value
     // Can return MP_OBJ_NULL if operation not supported.
-    uint8_t slot_index_subscr;
+    slot_index_subscr,
 
     // This slot's behaviour depends on the MP_TYPE_FLAG_ITER_IS_* flags above.
     // - If MP_TYPE_FLAG_ITER_IS_GETITER flag is set, then this corresponds to the __iter__
@@ -694,22 +676,60 @@ struct _mp_obj_type_t {
     // - If MP_TYPE_FLAG_ITER_IS_CUSTOM is set, then this slot must point to an
     //   mp_getiter_iternext_custom_t instance with both the getiter and iternext fields set.
     // - If MP_TYPE_FLAG_ITER_IS_STREAM is set, this this slot should be unset.
-    uint8_t slot_index_iter;
+    slot_index_iter,
 
     // Implements the buffer protocol if supported by this type.
-    uint8_t slot_index_buffer;
+    slot_index_buffer,
 
     // One of disjoint protocols (interfaces), like mp_stream_p_t, etc.
-    uint8_t slot_index_protocol;
+    slot_index_protocol,
 
     // A pointer to the parents of this type:
     //  - 0 parents: pointer is NULL (object is implicitly the single parent)
     //  - 1 parent: a pointer to the type of that parent
     //  - 2 or more parents: pointer to a tuple object containing the parent types
-    uint8_t slot_index_parent;
+    slot_index_parent,
 
     // A dict mapping qstrs to objects local methods/constants/etc.
-    uint8_t slot_index_locals_dict;
+    slot_index_locals_dict,
+
+    // The maximum number of slots
+    slot_index_max,
+} mp_slot_index_t;
+
+typedef enum _mp_slot_weight_t {
+    slot_weight_make_new = (1 << slot_index_make_new),
+    slot_weight_print = (1 << slot_index_print),
+    slot_weight_call = (1 << slot_index_call),
+    slot_weight_unary_op = (1 << slot_index_unary_op),
+    slot_weight_binary_op = (1 << slot_index_binary_op),
+    slot_weight_attr = (1 << slot_index_attr),
+    slot_weight_subscr = (1 << slot_index_subscr),
+    slot_weight_iter = (1 << slot_index_iter),
+    slot_weight_buffer = (1 << slot_index_buffer),
+    slot_weight_protocol = (1 << slot_index_protocol),
+    slot_weight_parent = (1 << slot_index_parent),
+    slot_weight_locals_dict = (1 << slot_index_locals_dict),
+} mp_slot_weight_t;
+
+// This struct is a variable sized struct. In order to use this as a
+// member, or allocate dynamically, use the mp_obj_empty_type_t or
+// mp_obj_full_type_t structs below (which must be kept in sync).
+struct _mp_obj_type_t {
+    // A type is an object so must start with this entry, which points to mp_type_type.
+    mp_obj_base_t base;
+
+    // Flags associated with this type.
+    uint16_t flags;
+
+    // The name of this type, a qstr.
+    uint16_t name;
+
+    // Slots: If a slot is populated, the corresponding bit in `filled_slots` is set.
+    // The index in `slots[]` is simply the number of set bits "below" that one,
+    // which can be determined with __builtin_popcnt().
+    uint16_t filled_slots;
+    // (16 spare bits here on most ports!)
 
     const void *slots[];
 };
@@ -723,18 +743,7 @@ typedef struct _mp_obj_empty_type_t {
     uint16_t flags;
     uint16_t name;
 
-    uint8_t slot_index_make_new;
-    uint8_t slot_index_print;
-    uint8_t slot_index_call;
-    uint8_t slot_index_unary_op;
-    uint8_t slot_index_binary_op;
-    uint8_t slot_index_attr;
-    uint8_t slot_index_subscr;
-    uint8_t slot_index_iter;
-    uint8_t slot_index_buffer;
-    uint8_t slot_index_protocol;
-    uint8_t slot_index_parent;
-    uint8_t slot_index_locals_dict;
+    uint16_t filled_slots;
 
     // No slots member.
 } mp_obj_empty_type_t;
@@ -744,21 +753,10 @@ typedef struct _mp_obj_full_type_t {
     uint16_t flags;
     uint16_t name;
 
-    uint8_t slot_index_make_new;
-    uint8_t slot_index_print;
-    uint8_t slot_index_call;
-    uint8_t slot_index_unary_op;
-    uint8_t slot_index_binary_op;
-    uint8_t slot_index_attr;
-    uint8_t slot_index_subscr;
-    uint8_t slot_index_iter;
-    uint8_t slot_index_buffer;
-    uint8_t slot_index_protocol;
-    uint8_t slot_index_parent;
-    uint8_t slot_index_locals_dict;
+    uint16_t filled_slots;
 
-    // Explicitly add 12 slots.
-    const void *slots[11];
+    // Explicitly add all possible slots.
+    const void *slots[slot_index_max];
 } mp_obj_full_type_t;
 
 #define _MP_OBJ_TYPE_SLOT_TYPE_make_new (mp_make_new_fun_t)
@@ -776,35 +774,34 @@ typedef struct _mp_obj_full_type_t {
 
 // Implementation of MP_DEFINE_CONST_OBJ_TYPE for each number of arguments.
 // Do not use these directly, instead use MP_DEFINE_CONST_OBJ_TYPE.
-// Generated with:
-// for i in range(13):
-//     print(f"#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_{i}(_struct_type, _typename, _name, _flags{''.join(f', f{j+1}, v{j+1}' for j in range(i))}) const _struct_type _typename = {{ .base = {{ &mp_type_type }}, .flags = _flags, .name = _name{''.join(f', .slot_index_##f{j+1} = {j+1}' for j in range(i))}{', .slots = { ' + ''.join(f'v{j+1}, ' for j in range(i)) + '}' if i else '' } }}")
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_0(_struct_type, _typename, _name, _flags) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_1(_struct_type, _typename, _name, _flags, f1, v1) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slots = { v1, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_2(_struct_type, _typename, _name, _flags, f1, v1, f2, v2) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slots = { v1, v2, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_3(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slots = { v1, v2, v3, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_4(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slots = { v1, v2, v3, v4, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_5(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slots = { v1, v2, v3, v4, v5, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_6(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slots = { v1, v2, v3, v4, v5, v6, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_7(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slots = { v1, v2, v3, v4, v5, v6, v7, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_8(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7, f8, v8) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slot_index_##f8 = 8, .slots = { v1, v2, v3, v4, v5, v6, v7, v8, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_9(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7, f8, v8, f9, v9) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slot_index_##f8 = 8, .slot_index_##f9 = 9, .slots = { v1, v2, v3, v4, v5, v6, v7, v8, v9, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_10(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7, f8, v8, f9, v9, f10, v10) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slot_index_##f8 = 8, .slot_index_##f9 = 9, .slot_index_##f10 = 10, .slots = { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_11(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7, f8, v8, f9, v9, f10, v10, f11, v11) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slot_index_##f8 = 8, .slot_index_##f9 = 9, .slot_index_##f10 = 10, .slot_index_##f11 = 11, .slots = { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, } }
-#define MP_DEFINE_CONST_OBJ_TYPE_NARGS_12(_struct_type, _typename, _name, _flags, f1, v1, f2, v2, f3, v3, f4, v4, f5, v5, f6, v6, f7, v7, f8, v8, f9, v9, f10, v10, f11, v11, f12, v12) const _struct_type _typename = { .base = { &mp_type_type }, .flags = _flags, .name = _name, .slot_index_##f1 = 1, .slot_index_##f2 = 2, .slot_index_##f3 = 3, .slot_index_##f4 = 4, .slot_index_##f5 = 5, .slot_index_##f6 = 6, .slot_index_##f7 = 7, .slot_index_##f8 = 8, .slot_index_##f9 = 9, .slot_index_##f10 = 10, .slot_index_##f11 = 11, .slot_index_##f12 = 12, .slots = { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, } }
+#ifndef NO_QSTR
+#include "genhdr/define_obj.h"
+#endif
 
-// Because the mp_obj_type_t instances are in (zero-initialised) ROM, we take
-// slot_index_foo=0 to mean that the slot is unset. This also simplifies checking
-// if the slot is set. That means that we need to store index+1 in slot_index_foo
-// though and then access it as slots[slot_index_foo - 1]. This is an implementation
-// detail, the user of these macros doesn't need to be aware of it, and when using
-// MP_OBJ_TYPE_OFFSETOF_SLOT you should use zero-based indexing.
-#define MP_OBJ_TYPE_HAS_SLOT(t, f) ((t)->slot_index_##f)
-#define MP_OBJ_TYPE_GET_SLOT(t, f) (_MP_OBJ_TYPE_SLOT_TYPE_##f(t)->slots[(t)->slot_index_##f - 1])
-#define MP_OBJ_TYPE_GET_SLOT_OR_NULL(t, f) (_MP_OBJ_TYPE_SLOT_TYPE_##f(MP_OBJ_TYPE_HAS_SLOT(t, f) ? MP_OBJ_TYPE_GET_SLOT(t, f) : NULL))
-#define MP_OBJ_TYPE_SET_SLOT(t, f, v, n) ((t)->slot_index_##f = (n) + 1, (t)->slots[(n)] = (void *)v)
-#define MP_OBJ_TYPE_OFFSETOF_SLOT(f) (offsetof(mp_obj_type_t, slot_index_##f))
-#define MP_OBJ_TYPE_HAS_SLOT_BY_OFFSET(t, offset) (*(uint8_t *)((char *)(t) + (offset)) != 0)
+#define MP_CONST_POPCNT8(x) ( \
+    !!((x) & 1) + \
+    !!((x) & 2) + \
+    !!((x) & 4) + \
+    !!((x) & 8) + \
+    !!((x) & 16) + \
+    !!((x) & 32) + \
+    !!((x) & 64) + \
+    !!((x) & 128))
+#define MP_CONST_POPCNT16(x) (MP_CONST_POPCNT8((x) & 0xff) + MP_CONST_POPCNT8((x) >> 8))
+
+#define MP_OBJ_FIND_SLOT_STATIC(f, filled) MP_CONST_POPCNT16((filled) & (slot_weight_##f - 1))
+#define MP_OBJ_TYPE_HAS_SLOT(t, f) ((t)->filled_slots & slot_weight_##f)
+#define MP_OBJ_SLOT_IDX(t, f) (mp_popcount((t)->filled_slots & (slot_weight_##f - 1)))
+#define MP_OBJ_TYPE_GET_SLOT(t, f) (_MP_OBJ_TYPE_SLOT_TYPE_##f(t)->slots[MP_OBJ_SLOT_IDX(t, f)])
+#define MP_OBJ_TYPE_GET_SLOT_OR_NULL(t, f) (MP_OBJ_TYPE_HAS_SLOT(t, f) ? MP_OBJ_TYPE_GET_SLOT(t, f) : NULL)
+// Slots must be set in ascending slot order.
+#define MP_OBJ_TYPE_SET_SLOT(t, f, v, _) do { \
+        assert(!(t->filled_slots & ~(slot_weight_##f - 1))); \
+        t->slots[mp_popcount(t->filled_slots)] = (void *)v; \
+        t->filled_slots |= slot_weight_##f; \
+} while (0)
+#define MP_OBJ_TYPE_OFFSETOF_SLOT(f) (slot_weight_##f)
+#define MP_OBJ_TYPE_HAS_SLOT_BY_OFFSET(t, offset) (t->filled_slots & offset)
 
 // Workaround for https://docs.microsoft.com/en-us/cpp/preprocessor/preprocessor-experimental-overview?view=msvc-160#macro-arguments-are-unpacked
 #define MP_DEFINE_CONST_OBJ_TYPE_EXPAND(x) x

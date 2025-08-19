@@ -121,7 +121,7 @@ $(BUILD)/%.o: $(BUILD)/%.c
 # the right .o's to get recompiled if the generated.h file changes. Adding
 # an order-only dependency to all of the .o's will cause the generated .h
 # to get built before we try to compile any of them.
-$(OBJ): | $(HEADER_BUILD)/qstrdefs.generated.h $(HEADER_BUILD)/mpversion.h $(OBJ_EXTRA_ORDER_DEPS)
+$(OBJ): | $(HEADER_BUILD)/qstrdefs.generated.h $(HEADER_BUILD)/mpversion.h $(OBJ_EXTRA_ORDER_DEPS) $(HEADER_BUILD)/define_obj.h
 
 # The logic for qstr regeneration (applied by makeqstrdefs.py) is:
 # - if anything in QSTR_GLOBAL_DEPENDENCIES is newer, then process all source files ($^)
@@ -170,6 +170,10 @@ $(HEADER_BUILD)/compressed.split: $(HEADER_BUILD)/qstr.i.last
 $(HEADER_BUILD)/compressed.collected: $(HEADER_BUILD)/compressed.split
 	$(ECHO) "GEN $@"
 	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdefs.py cat compress _ $(HEADER_BUILD)/compress $@
+
+$(HEADER_BUILD)/define_obj.h:
+	$(ECHO) "GEN $@"
+	$(Q)$(PYTHON) $(PY_SRC)/makeobjdefiner.py > $@
 
 # $(sort $(var)) removes duplicates
 #
