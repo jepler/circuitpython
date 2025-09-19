@@ -40,18 +40,15 @@
 #include "py/formatfloat.h"
 #endif
 
-static const char pad_spaces[16] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
-static const char pad_common[23] = {'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '_', '0', '0', '0', ',', '0', '0'};
+static const char pad_common[23] = {'0', '0', '0', '0', '_', '0', '0', '0', ',', '0', '0'};
 // The contents of pad_common is arranged to provide the following padding
 // strings with minimal flash size:
-//     0000000000000000 <- pad_zeroes
-//                 0000_000 <- pad_zeroes_underscore (offset: 12, size 5)
-//                      000,00 <- pad_zeroes_comma (offset: 17, size 4)
-#define pad_zeroes       (pad_common + 0)
-#define pad_zeroes_size  (16)
-#define pad_zeroes_underscore (pad_common + 12)
+//     0000 <- pad_zeroes
+//     0000_000 <- pad_zeroes_underscore (offset: 12, size 5)
+//          000,00 <- pad_zeroes_comma (offset: 17, size 4)
+#define pad_zeroes_underscore (pad_common + 0)
 #define pad_zeroes_underscore_size  (5)
-#define pad_zeroes_comma (pad_common + 17)
+#define pad_zeroes_comma (pad_common + 5)
 #define pad_zeroes_comma_size  (4)
 
 static void plat_print_strn(void *env, const char *str, size_t len) {
@@ -77,14 +74,12 @@ int mp_print_strn(const mp_print_t *print, const char *str, size_t len, unsigned
     int total_chars_printed = 0;
     const char *pad_chars;
     char grouping = flags >> PF_FLAG_SEP_POS;
+    uint32_t fill4;
 
-    if (!fill || fill == ' ') {
-        pad_chars = pad_spaces;
-        pad_size = sizeof(pad_spaces);
-    } else if (fill == '0' && !grouping) {
-        pad_chars = pad_zeroes;
-        pad_size = pad_zeroes_size;
-    } else if (fill == '0') {
+    if (!fill) {
+        fill = ' ';
+    }
+    if (fill == '0' && grouping) {
         if (grouping == '_') {
             pad_chars = pad_zeroes_underscore;
             pad_size = pad_zeroes_underscore_size;
@@ -103,8 +98,9 @@ int mp_print_strn(const mp_print_t *print, const char *str, size_t len, unsigned
     } else {
         // Other pad characters are fairly unusual, so we'll take the hit
         // and output them 1 at a time.
-        pad_chars = &fill;
-        pad_size = 1;
+        fill4 = UINT32_C(0x1010101) * (unsigned char)fill;
+        pad_chars = (char *)&fill4;
+        pad_size = 4;
     }
 
     if (flags & PF_FLAG_CENTER_ADJUST) {
