@@ -566,7 +566,7 @@ static mp_parse_node_t make_node_const_object(parser_t *parser, size_t src_line,
     pn->nodes[1] = (uint64_t)obj >> 32;
     #else
     pn->kind_num_nodes = RULE_const_object | (1 << 8);
-    pn->nodes[0] = (uintptr_t)obj;
+    pn->nodes[0] = (mp_parse_node_t)obj;
     #endif
     return (mp_parse_node_t)pn;
 }

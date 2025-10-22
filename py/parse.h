@@ -47,7 +47,7 @@ struct _mp_lexer_t;
 #define MP_PARSE_NODE_STRING    (0x06)
 #define MP_PARSE_NODE_TOKEN     (0x0a)
 
-typedef uintptr_t mp_parse_node_t; // must be pointer size
+typedef  void *mp_parse_node_t; // must be pointer size
 
 typedef struct _mp_parse_node_struct_t {
     uint32_t source_line;       // line number in source file
@@ -58,19 +58,21 @@ typedef struct _mp_parse_node_struct_t {
 // macros for mp_parse_node_t usage
 // some of these evaluate their argument more than once
 
-#define MP_PARSE_NODE_IS_NULL(pn) ((pn) == MP_PARSE_NODE_NULL)
-#define MP_PARSE_NODE_IS_LEAF(pn) ((pn) & 3)
-#define MP_PARSE_NODE_IS_STRUCT(pn) ((pn) != MP_PARSE_NODE_NULL && ((pn) & 3) == 0)
-#define MP_PARSE_NODE_IS_STRUCT_KIND(pn, k) ((pn) != MP_PARSE_NODE_NULL && ((pn) & 3) == 0 && MP_PARSE_NODE_STRUCT_KIND((mp_parse_node_struct_t *)(pn)) == (k))
+#define MP_PARSE_NODE_VAL(pn) ((uintptr_t)(pn))
+#define MP_PARSE_NODE_PTR(pn) ((mp_parse_node_struct_t *)(pn))
+#define MP_PARSE_NODE_IS_NULL(pn) (MP_PARSE_NODE_VAL(pn) == MP_PARSE_NODE_NULL)
+#define MP_PARSE_NODE_IS_LEAF(pn) (MP_PARSE_NODE_VAL(pn) & 3)
+#define MP_PARSE_NODE_IS_STRUCT(pn) (MP_PARSE_NODE_VAL(pn) != MP_PARSE_NODE_NULL && (MP_PARSE_NODE_VAL(pn) & 3) == 0)
+#define MP_PARSE_NODE_IS_STRUCT_KIND(pn, k) (MP_PARSE_NODE_VAL(pn) != MP_PARSE_NODE_NULL && (MP_PARSE_NODE_VAL(pn) & 3) == 0 && MP_PARSE_NODE_STRUCT_KIND(MP_PARSE_NODE_PTR(pn)) == (k))
 
-#define MP_PARSE_NODE_IS_SMALL_INT(pn) (((pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
-#define MP_PARSE_NODE_IS_ID(pn) (((pn) & 0x0f) == MP_PARSE_NODE_ID)
-#define MP_PARSE_NODE_IS_TOKEN(pn) (((pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
-#define MP_PARSE_NODE_IS_TOKEN_KIND(pn, k) ((pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
+#define MP_PARSE_NODE_IS_SMALL_INT(pn) ((MP_PARSE_NODE_VAL(pn) & 0x1) == MP_PARSE_NODE_SMALL_INT)
+#define MP_PARSE_NODE_IS_ID(pn) ((MP_PARSE_NODE_VAL(pn) & 0x0f) == MP_PARSE_NODE_ID)
+#define MP_PARSE_NODE_IS_TOKEN(pn) ((MP_PARSE_NODE_VAL(pn) & 0x0f) == MP_PARSE_NODE_TOKEN)
+#define MP_PARSE_NODE_IS_TOKEN_KIND(pn, k) (MP_PARSE_NODE_VAL(pn) == (MP_PARSE_NODE_TOKEN | ((k) << 4)))
 
-#define MP_PARSE_NODE_LEAF_KIND(pn) ((pn) & 0x0f)
-#define MP_PARSE_NODE_LEAF_ARG(pn) (((uintptr_t)(pn)) >> 4)
-#define MP_PARSE_NODE_LEAF_SMALL_INT(pn) (((mp_int_t)(intptr_t)(pn)) >> 1)
+#define MP_PARSE_NODE_LEAF_KIND(pn) (MP_PARSE_NODE_VAL(pn) & 0x0f)
+#define MP_PARSE_NODE_LEAF_ARG(pn) ((MP_PARSE_NODE_VAL(pn)) >> 4)
+#define MP_PARSE_NODE_LEAF_SMALL_INT(pn) (((mp_int_t)(intptr_t)MP_PARSE_NODE_VAL(pn)) >> 1)
 #define MP_PARSE_NODE_STRUCT_KIND(pns) ((pns)->kind_num_nodes & 0xff)
 #define MP_PARSE_NODE_STRUCT_NUM_NODES(pns) ((pns)->kind_num_nodes >> 8)
 
