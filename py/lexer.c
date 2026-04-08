@@ -710,9 +710,15 @@ static bool skip_whitespace(mp_lexer_t *lex, bool stop_at_newline) {
             }
             // will return true on next loop
         } else if (is_char_and(lex, '\\', '\n')) {
-            // line-continuation, so don't return true
             next_char(lex);
             next_char(lex);
+            if (is_char(lex, MP_LEXER_EOF)) {
+                lex->chr0 = MP_LEXER_INVALID_BYTE;
+                break;
+            }
+        } else if (is_char_and(lex, '\\', MP_LEXER_EOF)) {
+            lex->chr0 = MP_LEXER_INVALID_BYTE;
+            break;
         } else {
             break;
         }
