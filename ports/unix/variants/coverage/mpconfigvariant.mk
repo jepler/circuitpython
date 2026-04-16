@@ -3,6 +3,7 @@ DEBUG ?= 1
 
 CFLAGS += \
 	-fprofile-arcs -ftest-coverage \
+	-funreachable-traps \
 	-Wformat -Wmissing-declarations -Wmissing-prototypes \
 	-Wold-style-definition -Wpointer-arith -Wshadow -Wuninitialized -Wunused-parameter \
 	-DMICROPY_UNIX_COVERAGE
