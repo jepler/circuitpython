@@ -1044,9 +1044,13 @@ static void push_result_rule(parser_t *parser, size_t src_line, uint8_t rule_id,
     push_result_node(parser, (mp_parse_node_t)pn);
 }
 
+static void mp_lexer_free_shim(void *lex) {
+    mp_lexer_free(lex);
+}
+
 mp_parse_tree_t mp_parse(mp_lexer_t *lex, mp_parse_input_kind_t input_kind) {
     // Set exception handler to free the lexer if an exception is raised.
-    MP_DEFINE_NLR_JUMP_CALLBACK_FUNCTION_1(ctx, mp_lexer_free, lex);
+    MP_DEFINE_NLR_JUMP_CALLBACK_FUNCTION_1(ctx, mp_lexer_free_shim, lex);
     nlr_push_jump_callback(&ctx.callback, mp_call_function_1_from_nlr_jump_callback);
 
     // initialise parser and allocate memory for its stacks
