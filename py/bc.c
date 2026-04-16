@@ -147,7 +147,11 @@ static void mp_setup_code_state_helper(mp_code_state_t *code_state, size_t n_arg
     // zero out the local stack to begin with
     memset(code_state_state, 0, n_state * sizeof(*code_state->state));
 
-    const mp_obj_t *kwargs = args + n_args;
+    const mp_obj_t *kwargs =
+        #if MP_UBSAN
+        !args ? NULL :
+        #endif
+        args + n_args;
 
     // var_pos_kw_args points to the stack where the var-args tuple, and var-kw dict, should go (if they are needed)
     mp_obj_t *var_pos_kw_args = &code_state_state[n_state - 1 - n_pos_args - n_kwonly_args];
