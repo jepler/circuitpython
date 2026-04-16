@@ -80,7 +80,7 @@ mp_int_t mp_float_hash(mp_float_t src) {
     const int adj_exp = (int)u.p.exp - MP_FLOAT_EXP_BIAS;
     if (adj_exp < 0) {
         // value < 1; must be sure to handle 0.0 correctly (ie return 0)
-        val = u.i;
+        val = 0;
     } else {
         // if adj_exp is max then: u.p.frc==0 indicates inf, else NaN
         // else: 1 <= value
