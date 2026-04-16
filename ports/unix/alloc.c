@@ -34,6 +34,14 @@
 
 #if MICROPY_ENABLE_NATIVE_CODE
 
+// Clang UBSAN requires that 8 bytes before a function entry be addressable
+// for more info, see https://github.com/llvm/llvm-project/issues/65253
+#if MP_UBSAN && __clang__
+#define OFFSET 8
+#else
+#define OFFSET 0
+#endif
+
 #if defined(__OpenBSD__) || defined(__MACH__)
 #define MAP_ANONYMOUS MAP_ANON
 #endif
@@ -50,11 +58,17 @@ typedef struct _mmap_region_t {
 
 void mp_unix_alloc_exec(size_t min_size, void **ptr, size_t *size) {
     // size needs to be a multiple of the page size
-    *size = (min_size + 0xfff) & (~0xfff);
+    *size = (OFFSET + min_size + 0xfff) & (~0xfff);
     *ptr = mmap(NULL, *size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (*ptr == MAP_FAILED) {
         *ptr = NULL;
     }
+
+    #if OFFSET
+    if (ptr != NULL) {
+        *ptr = ((char *)*ptr) + OFFSET;
+    }
+    #endif
 
     // add new link to the list of mmap'd regions
     mmap_region_t *rg = m_new_obj(mmap_region_t);
@@ -65,6 +79,12 @@ void mp_unix_alloc_exec(size_t min_size, void **ptr, size_t *size) {
 }
 
 void mp_unix_free_exec(void *ptr, size_t size) {
+    #if OFFSET
+    if (ptr != NULL) {
+        ptr = ((char *)ptr) + OFFSET;
+    }
+    #endif
+
     munmap(ptr, size);
 
     // unlink the mmap'd region from the list
