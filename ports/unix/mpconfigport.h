@@ -173,8 +173,10 @@ extern const struct _mp_print_t mp_stderr_print;
 
 // For the native emitter configure how to mark a region as executable.
 void mp_unix_alloc_exec(size_t min_size, void **ptr, size_t *size);
+void mp_unix_commit_exec(void *ptr, size_t len, void *reloc);
 void mp_unix_free_exec(void *ptr, size_t size);
 #define MP_PLAT_ALLOC_EXEC(min_size, ptr, size) mp_unix_alloc_exec(min_size, ptr, size)
+#define MP_PLAT_COMMIT_EXEC(ptr, len, reloc) (mp_unix_commit_exec(ptr, len, reloc), ptr)
 #define MP_PLAT_FREE_EXEC(ptr, size) mp_unix_free_exec(ptr, size)
 
 // If enabled, configure how to seed random on init.
