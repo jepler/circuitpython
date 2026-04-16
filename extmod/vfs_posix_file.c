@@ -126,7 +126,7 @@ static mp_uint_t vfs_posix_file_read(mp_obj_t o_in, void *buf, mp_uint_t size, i
     return (mp_uint_t)r;
 }
 
-static mp_uint_t vfs_posix_file_write(mp_obj_t o_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t vfs_posix_file_write(mp_obj_t o_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mp_obj_vfs_posix_file_t *o = MP_OBJ_TO_PTR(o_in);
     check_fd_is_open(o);
     #if MICROPY_PY_OS_DUPTERM

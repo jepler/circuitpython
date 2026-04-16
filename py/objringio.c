@@ -63,7 +63,7 @@ static mp_uint_t micropython_ringio_read(mp_obj_t self_in, void *buf_in, mp_uint
     return size;
 }
 
-static mp_uint_t micropython_ringio_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {
+static mp_uint_t micropython_ringio_write(mp_obj_t self_in, MP_SANITIZER_CONST void *buf_in, mp_uint_t size, int *errcode) {
     micropython_ringio_obj_t *self = MP_OBJ_TO_PTR(self_in);
     size = MIN(size, ringbuf_free(&self->ringbuffer));
     ringbuf_memcpy_put_internal(&(self->ringbuffer), buf_in, size);

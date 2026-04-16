@@ -80,7 +80,7 @@ static mp_uint_t file_obj_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
     return sz_out;
 }
 
-static mp_uint_t file_obj_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t file_obj_write(mp_obj_t self_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     pyb_file_obj_t *self = MP_OBJ_TO_PTR(self_in);
     UINT sz_out;
     FRESULT res = f_write(&self->fp, buf, size, &sz_out);

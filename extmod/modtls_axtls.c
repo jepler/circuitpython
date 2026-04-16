@@ -347,7 +347,7 @@ static mp_uint_t ssl_socket_read(mp_obj_t o_in, void *buf, mp_uint_t size, int *
     return size;
 }
 
-static mp_uint_t ssl_socket_write(mp_obj_t o_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t ssl_socket_write(mp_obj_t o_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mp_obj_ssl_socket_t *o = MP_OBJ_TO_PTR(o_in);
 
     if (o->ssl_sock == NULL) {

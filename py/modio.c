@@ -77,7 +77,7 @@ static mp_uint_t iobase_read(mp_obj_t obj, void *buf, mp_uint_t size, int *errco
     return iobase_read_write(obj, buf, size, errcode, MP_QSTR_readinto);
 }
 
-static mp_uint_t iobase_write(mp_obj_t obj, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t iobase_write(mp_obj_t obj, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     return iobase_read_write(obj, (void *)buf, size, errcode, MP_QSTR_write);
 }
 

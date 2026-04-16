@@ -133,7 +133,7 @@ static mp_uint_t MP_VFS_LFSx(file_read)(mp_obj_t self_in, void *buf, mp_uint_t s
     return sz;
 }
 
-static mp_uint_t MP_VFS_LFSx(file_write)(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t MP_VFS_LFSx(file_write)(mp_obj_t self_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     MP_OBJ_VFS_LFSx_FILE *self = MP_OBJ_TO_PTR(self_in);
     MP_VFS_LFSx(check_open)(self);
     #if LFS_BUILD_VERSION == 2

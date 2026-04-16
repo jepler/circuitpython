@@ -551,7 +551,7 @@ static int _mbedtls_ssl_send(void *ctx, const byte *buf, size_t len) {
     const mp_stream_p_t *sock_stream = mp_get_stream(sock);
     int err;
 
-    mp_uint_t out_sz = sock_stream->write(sock, buf, len, &err);
+    mp_uint_t out_sz = sock_stream->write(sock, (MP_SANITIZER_CONST byte *)buf, len, &err);
     if (out_sz == MP_STREAM_ERROR) {
         if (mp_is_nonblocking_error(err)) {
             return MBEDTLS_ERR_SSL_WANT_WRITE;
@@ -787,7 +787,7 @@ static mp_uint_t socket_read(mp_obj_t o_in, void *buf, mp_uint_t size, int *errc
     return MP_STREAM_ERROR;
 }
 
-static mp_uint_t socket_write(mp_obj_t o_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t socket_write(mp_obj_t o_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mp_obj_ssl_socket_t *o = MP_OBJ_TO_PTR(o_in);
     o->poll_mask = 0;
 

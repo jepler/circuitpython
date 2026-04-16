@@ -79,7 +79,7 @@ typedef struct _mp_stream_p_t {
     // containing the errcode, so it may raise a more detailed error. If that
     // ioctl returns without raising, an OSError with the errcode will raised.
     mp_uint_t (*read)(mp_obj_t obj, void *buf, mp_uint_t size, int *errcode);
-    mp_uint_t (*write)(mp_obj_t obj, const void *buf, mp_uint_t size, int *errcode);
+    mp_uint_t (*write)(mp_obj_t obj, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode);
     mp_uint_t (*ioctl)(mp_obj_t obj, mp_uint_t request, uintptr_t arg, int *errcode);
     mp_uint_t is_text : 1; // default is bytes, set this for text stream
 } mp_stream_p_t;
