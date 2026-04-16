@@ -189,7 +189,11 @@ mp_map_elem_t *MICROPY_WRAP_MP_MAP_LOOKUP(mp_map_lookup)(mp_map_t * map, mp_obj_
     }
 
     // if the map is an ordered array then we must do a brute force linear search
-    if (map->is_ordered) {
+    if (map->is_ordered
+        ) {
+        #if MP_UBSAN
+        if (map->used)
+        #endif
         for (mp_map_elem_t *elem = &map->table[0], *top = &map->table[map->used]; elem < top; elem++) {
             if (elem->key == index || (!compare_only_ptrs && mp_obj_equal(elem->key, index))) {
                 #if MICROPY_PY_COLLECTIONS_ORDEREDDICT
