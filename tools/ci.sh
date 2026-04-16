@@ -627,7 +627,7 @@ CI_UNIX_OPTS_SANITIZE_UNDEFINED=(
 CI_UNIX_OPTS_SANITIZE_UNDEFINED_CLANG=(
     # Macro MP_UBSAN allows detecting UBSan on gcc<=13
     CC=clang
-    CFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute -DMP_UBSAN=1 -DMICROPY_FLOAT_HIGH_QUALITY_HASH=1 -fwrapv"
+    CFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute -DMP_UBSAN=1 -DMICROPY_FLOAT_HIGH_QUALITY_HASH=1 -DMICROPY_EMIT_X86=0 -DMICROPY_EMIT_X64=0 -fwrapv"
     LDFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute"
     STRIP=:
 )
