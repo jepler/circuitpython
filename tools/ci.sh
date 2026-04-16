@@ -626,8 +626,8 @@ CI_UNIX_OPTS_SANITIZE_UNDEFINED=(
 
 CI_UNIX_OPTS_SANITIZE_UNDEFINED_CLANG=(
     # Macro MP_UBSAN allows detecting UBSan on gcc<=13
-    CC=clang
-    CFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute -DMP_UBSAN=1 -DMICROPY_FLOAT_HIGH_QUALITY_HASH=1 -DMICROPY_EMIT_X86=0 -DMICROPY_EMIT_X64=0 -fwrapv"
+    CC="clang"
+    CFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute -DMP_UBSAN=1 -DMICROPY_FLOAT_HIGH_QUALITY_HASH=1 -fwrapv"
     LDFLAGS_EXTRA="-fsanitize=undefined -fno-sanitize=nonnull-attribute"
     STRIP=:
 )
@@ -819,6 +819,11 @@ function ci_unix_longlong_clang_build {
     ci_unix_build_helper VARIANT=longlong \
         "${CI_UNIX_OPTS_SANITIZE_UNDEFINED_CLANG[@]}"
 }
+
+function ci_unix_longlong_clang_run_tests {
+    UBSAN_OPTIONS=print_stacktrace=1,halt_on_error=1 ci_unix_run_tests_full_no_native_helper longlong
+}
+
 
 function ci_unix_float_build {
     ci_unix_build_helper VARIANT=standard CFLAGS_EXTRA="-DMICROPY_FLOAT_IMPL=MICROPY_FLOAT_IMPL_FLOAT"
