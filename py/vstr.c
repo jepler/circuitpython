@@ -37,6 +37,8 @@
 // returned value is always at least 1 greater than argument
 #define ROUND_ALLOC(a) (((a) & ((~0U) - 7)) + 8)
 
+static void vstr_add_strn_shim(void *vstr, const char *str, size_t len);
+
 // Init the vstr so it allocs exactly given number of bytes.  Set length to zero.
 void vstr_init(vstr_t *vstr, size_t alloc) {
     if (alloc < 1) {
@@ -65,7 +67,7 @@ void vstr_init_fixed_buf(vstr_t *vstr, size_t alloc, char *buf) {
 void vstr_init_print(vstr_t *vstr, size_t alloc, mp_print_t *print) {
     vstr_init(vstr, alloc);
     print->data = vstr;
-    print->print_strn = (mp_print_strn_t)vstr_add_strn;
+    print->print_strn = vstr_add_strn_shim;
 }
 
 void vstr_clear(vstr_t *vstr) {
@@ -183,6 +185,10 @@ void vstr_add_strn(vstr_t *vstr, const char *str, size_t len) {
     vstr->len += len;
 }
 
+static void vstr_add_strn_shim(void *vstr, const char *str, size_t len) {
+    vstr_add_strn(vstr, str, len);
+}
+
 char *vstr_ins_blank_bytes(vstr_t *vstr, size_t byte_pos, size_t byte_len) {
     size_t l = vstr->len;
     if (byte_pos > l) {
@@ -229,6 +235,6 @@ void vstr_printf(vstr_t *vstr, const char *fmt, ...) {
 }
 
 void vstr_vprintf(vstr_t *vstr, const char *fmt, va_list ap) {
-    mp_print_t print = {vstr, (mp_print_strn_t)vstr_add_strn};
+    mp_print_t print = {vstr, (mp_print_strn_t)vstr_add_strn_shim};
     mp_vprintf(&print, fmt, ap);
 }
