@@ -427,6 +427,13 @@ static void sys_set_excecutable(char *argv0) {
 }
 #endif
 
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+const char *__asan_default_options(void);
+const char *__asan_default_options(void) {
+    return "detect_leaks=0";
+}
+#endif
+
 #ifdef _WIN32
 #define PATHLIST_SEP_CHAR ';'
 #else
