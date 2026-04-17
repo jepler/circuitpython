@@ -740,7 +740,7 @@ static void gc_sweep_free_blocks(void) {
 // Address sanitizer needs to know that the access to ptrs[i] must always be
 // considered OK, even if it's a load from an address that would normally be
 // prohibited (due to being undefined, in a red zone, etc).
-#if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
+#if MP_ASAN
 __attribute__((no_sanitize_address))
 #endif
 static void *gc_get_ptr(void **ptrs, int i) {
