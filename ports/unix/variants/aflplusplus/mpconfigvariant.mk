@@ -13,3 +13,6 @@ MICROPY_PY_SSL = 0
 MICROPY_PY_FFI = 0
 
 MPY_TOOL_FLAGS = -mlongint-impl longlong
+
+# https://github.com/micropython/micropython/issues/17718
+MICROPY_PY_BTREE=0
