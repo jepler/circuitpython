@@ -13,6 +13,13 @@ CFLAGS += \
 MICROPY_PY_SSL = 0
 MICROPY_PY_FFI = 0
 
+export AFL_UBSAN_VERBOSE
+export AFL_USE_UBSAN
+export AFL_QUIET
+AFL_USE_UBSAN=1
+AFL_QUIET=1
+AFL_UBSAN_VERBOSE=1
+
 MPY_TOOL_FLAGS = -mlongint-impl longlong
 
 # https://github.com/micropython/micropython/issues/17718

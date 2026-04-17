@@ -57,6 +57,8 @@
 #define MICROPY_EMIT_NATIVE_DEBUG (0)
 #define MICROPY_EMIT_NATIVE_DEBUG_PRINTER (&mp_stderr_print)
 
+// Seems to be incompatible with afl asan
+#define MICROPY_STACK_CHECK (0)
 
 // Enable extra Unix features.
 #include "../mpconfigvariant_common.h"

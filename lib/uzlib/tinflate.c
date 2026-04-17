@@ -425,6 +425,7 @@ static int tinf_inflate_block_data(uzlib_uncomp_t *d, TINF_TREE *lt, TINF_TREE *
         }
 
         /* possibly get more bits from distance code */
+        assert((size_t)dist < MP_ARRAY_SIZE(lookup_table));
         offs = tinf_read_bits(d, lookup_table[dist].dist_bits, lookup_table[dist].dist_base);
 
         /* calculate and validate actual LZ offset to use */
