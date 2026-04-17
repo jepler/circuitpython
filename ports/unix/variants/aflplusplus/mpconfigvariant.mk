@@ -7,6 +7,7 @@ CC=afl-cc
 
 CFLAGS += \
 	-Wformat -Wmissing-declarations -Wmissing-prototypes \
+	-fwrapv \
 	-Wold-style-definition -Wpointer-arith -Wshadow -Wuninitialized -Wunused-parameter \
 
 MICROPY_PY_SSL = 0
