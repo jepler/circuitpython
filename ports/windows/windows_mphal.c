@@ -29,6 +29,20 @@
 #include "py/mphal.h"
 #include "py/mpthread.h"
 
+
+#ifdef _MSC_VER
+#include "py/nlr.h"
+#if MICROPY_NLR_X86
+#error "MICROPY_NLR_X86"
+#endif
+
+#if MICROPY_NLR_SETJMP
+#error "MICROPY_NLR_SETJMP"
+#endif
+#else
+#error "!MSC_VER"
+#endif
+
 #include <sys/time.h>
 #include <windows.h>
 #include <unistd.h>
