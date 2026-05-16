@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import argparse
+import shlex
 from glob import glob
 
 from test_utils import (
@@ -28,7 +29,9 @@ else:
     CPYTHON3 = os.getenv("MICROPY_CPYTHON3", "python3")
     MICROPYTHON = os.getenv("MICROPY_MICROPYTHON", "../ports/unix/build-standard/micropython")
 
+MICROPYTHON = shlex.split(MICROPYTHON)
 PYTHON_TRUTH = CPYTHON3
+print(f"{MICROPYTHON=!r}")
 
 BENCH_SCRIPT_DIR = "perf_bench/"
 
@@ -304,7 +307,7 @@ def main():
     target = get_test_instance(args.test_instance, args.baudrate, args.user, args.password)
     if target is None:
         # Use the unix port of MicroPython.
-        target = [MICROPYTHON, "-X", "emit=" + args.emit]
+        target = [*MICROPYTHON, "-X", "emit=" + args.emit]
         if args.heapsize is not None:
             target.extend(["-X", "heapsize=" + args.heapsize])
     else:

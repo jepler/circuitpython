@@ -1,0 +1,57 @@
+$schema: https://raw.githubusercontent.com/CodSpeedHQ/codspeed/refs/heads/main/schemas/codspeed.schema.json
+
+# Global options applied to all benchmarks
+options:
+  max-time: 1s
+
+benchmarks:
+  - name: perf_bench/benchrun.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/benchrun.py
+  - name: perf_bench/bm_chaos.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_chaos.py
+  - name: perf_bench/bm_fannkuch.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_fannkuch.py
+  - name: perf_bench/bm_fft.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_fft.py
+  - name: perf_bench/bm_float.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_float.py
+  - name: perf_bench/bm_hexiom.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_hexiom.py
+  - name: perf_bench/bm_nqueens.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_nqueens.py
+  - name: perf_bench/bm_pidigits.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_pidigits.py
+  - name: perf_bench/bm_wordcount.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/bm_wordcount.py
+  - name: perf_bench/core_import_mpy_multi.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_import_mpy_multi.py
+  - name: perf_bench/core_import_mpy_single.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_import_mpy_single.py
+  - name: perf_bench/core_locals.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_locals.py
+  - name: perf_bench/core_qstr.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_qstr.py
+  - name: perf_bench/core_str.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_str.py
+  - name: perf_bench/core_yield_from.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/core_yield_from.py
+  - name: perf_bench/misc_aes.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/misc_aes.py
+  - name: perf_bench/misc_mandel.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/misc_mandel.py
+  - name: perf_bench/misc_pystone.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/misc_pystone.py
+  - name: perf_bench/misc_raytrace.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/misc_raytrace.py
+  - name: perf_bench/viper_call0.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call0.py
+  - name: perf_bench/viper_call1a.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call1a.py
+  - name: perf_bench/viper_call1b.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call1b.py
+  - name: perf_bench/viper_call1c.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call1c.py
+  - name: perf_bench/viper_call2a.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call2a.py
+  - name: perf_bench/viper_call2b.py
+    exec: ports/unix/build-standard/micropython tests/perf_bench/viper_call2b.py
