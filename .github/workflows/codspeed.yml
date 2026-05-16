@@ -15,4 +15,4 @@ jobs:
       uses: CodSpeedHQ/action@v4
       with:
         mode: simulation
-        run: cd tests && ./run-perfbench.py --average 1 1000 1000
+        run: cd tests && ./run-perfbench.py --average 10 1000 1000
