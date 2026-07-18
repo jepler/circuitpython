@@ -551,8 +551,6 @@ SRC_COMMON_HAL_ALL = \
 	max3421e/Max3421E.c \
 	mcp4822/__init__.c \
 	mcp4822/MCP4822.c \
-	memorymap/__init__.c \
-	memorymap/AddressRange.c \
 	microcontroller/__init__.c \
 	microcontroller/Pin.c \
 	microcontroller/Processor.c \
@@ -793,6 +791,8 @@ SRC_SHARED_MODULE_ALL = \
 	keypad/Keys.c \
 	max3421e/__init__.c \
 	max3421e/Max3421E.c \
+	memorymap/__init__.c \
+	memorymap/AddressRange.c \
 	memorymonitor/__init__.c \
 	memorymonitor/AllocationAlarm.c \
 	memorymonitor/AllocationSize.c \

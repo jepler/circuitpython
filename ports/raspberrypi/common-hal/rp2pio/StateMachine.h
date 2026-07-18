@@ -9,7 +9,7 @@
 #include "py/obj.h"
 
 #include "common-hal/microcontroller/Pin.h"
-#include "common-hal/memorymap/AddressRange.h"
+#include "shared-module/memorymap/AddressRange.h"
 #include "hardware/pio.h"
 
 // Shared PIO allocator declarations (rp2pio_statemachine_find_pio,

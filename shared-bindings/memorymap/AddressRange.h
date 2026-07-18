@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "common-hal/memorymap/AddressRange.h"
+#include "shared-module/memorymap/AddressRange.h"
 
 extern const mp_obj_type_t memorymap_addressrange_type;
 
@@ -21,3 +21,5 @@ void common_hal_memorymap_addressrange_set_bytes(const memorymap_addressrange_ob
 // also leverage the compiler to validate uses are expected.
 void common_hal_memorymap_addressrange_get_bytes(const memorymap_addressrange_obj_t *self,
     size_t start_index, size_t len, uint8_t *values);
+
+mp_int_t shared_bindings_memorymap_get_buffer(const memorymap_addressrange_obj_t *self, mp_buffer_info_t *bufinfo, mp_uint_t flags);

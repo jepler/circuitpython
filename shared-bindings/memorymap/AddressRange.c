@@ -216,6 +216,12 @@ static mp_obj_t memorymap_addressrange_subscr(mp_obj_t self_in, mp_obj_t index_i
     }
 }
 
+
+static mp_int_t memorymap_get_buffer(mp_obj_t self_in, mp_buffer_info_t *bufinfo, mp_uint_t flags) {
+    memorymap_addressrange_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    return shared_bindings_memorymap_get_buffer(self, bufinfo, flags);
+}
+
 MP_DEFINE_CONST_OBJ_TYPE(
     memorymap_addressrange_type,
     MP_QSTR_AddressRange,
@@ -223,5 +229,6 @@ MP_DEFINE_CONST_OBJ_TYPE(
     make_new, memorymap_addressrange_make_new,
     locals_dict, (mp_obj_t)&memorymap_addressrange_locals_dict,
     subscr, memorymap_addressrange_subscr,
-    unary_op, memorymap_addressrange_unary_op
+    unary_op, memorymap_addressrange_unary_op,
+    buffer, memorymap_get_buffer
     );
