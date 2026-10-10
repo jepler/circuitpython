@@ -537,7 +537,7 @@ MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_stream_ioctl_obj, 2, 3, stream_ioctl);
 ssize_t mp_stream_posix_write(void *stream, const void *buf, size_t len) {
     mp_obj_base_t *o = stream;
     const mp_stream_p_t *stream_p = MP_OBJ_TYPE_GET_SLOT(o->type, protocol);
-    mp_uint_t out_sz = stream_p->write(MP_OBJ_FROM_PTR(stream), buf, len, &errno);
+    mp_uint_t out_sz = stream_p->write(MP_OBJ_FROM_PTR(stream), (MP_SANITIZER_CONST void *)buf, len, &errno);
     if (out_sz == MP_STREAM_ERROR) {
         return -1;
     } else {

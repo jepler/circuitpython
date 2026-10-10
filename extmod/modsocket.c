@@ -482,7 +482,7 @@ static mp_uint_t socket_read(mp_obj_t self_in, void *buf, mp_uint_t size, int *e
     return ret;
 }
 
-static mp_uint_t socket_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t socket_write(mp_obj_t self_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mod_network_socket_obj_t *self = MP_OBJ_TO_PTR(self_in);
     if (self->nic == MP_OBJ_NULL) {
         return MP_STREAM_ERROR;

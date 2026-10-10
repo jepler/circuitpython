@@ -112,7 +112,7 @@ static mp_uint_t socket_read(mp_obj_t o_in, void *buf, mp_uint_t size, int *errc
     return (mp_uint_t)r;
 }
 
-static mp_uint_t socket_write(mp_obj_t o_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t socket_write(mp_obj_t o_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mp_obj_socket_t *o = MP_OBJ_TO_PTR(o_in);
     ssize_t r;
     MP_HAL_RETRY_SYSCALL(r, write(o->fd, buf, size), {

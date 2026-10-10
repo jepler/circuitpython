@@ -555,6 +555,19 @@ static inline bool mp_sub_ll_overflow(long long int lhs, long long int rhs, long
 #define MP_SANITIZER_BUILD (MP_UBSAN || MP_ASAN)
 #endif
 
+// The clang undefined sanitizer "correctly" diagnoses calls through an incompatible function pointer,
+// including where a parameter's constness varies. In various places, such as mp_stream_rw, MicroPython
+// does in fact call via such mismatched parameter combinations.
+//
+// Use MP_SANITIZER_CONST in these locations, so that the const annotation can be *stripped* for sanitizer
+// builds so that the function prototypes match, but *included* in regular builds so that lack of modification of
+// the buffer is verified at build time.
+#if MP_SANITIZER_BUILD
+#define MP_SANITIZER_CONST /* nothing */
+#else
+#define MP_SANITIZER_CONST const
+#endif
+
 // halfword/word/longword swapping macros
 
 #if __has_builtin(__builtin_bswap16)

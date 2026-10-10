@@ -75,7 +75,7 @@ static void stringio_copy_on_write(mp_obj_stringio_t *o) {
     memcpy(o->vstr->buf, buf, o->vstr->len);
 }
 
-static mp_uint_t stringio_write(mp_obj_t o_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t stringio_write(mp_obj_t o_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     (void)errcode;
     mp_obj_stringio_t *o = MP_OBJ_TO_PTR(o_in);
     check_stringio_is_open(o);

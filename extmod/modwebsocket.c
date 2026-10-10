@@ -55,7 +55,7 @@ typedef struct _mp_obj_websocket_t {
     byte last_flags;
 } mp_obj_websocket_t;
 
-static mp_uint_t websocket_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode);
+static mp_uint_t websocket_write(mp_obj_t self_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode);
 static mp_uint_t websocket_write_raw(mp_obj_t self_in, const byte *header, int hdr_sz, const void *buf, mp_uint_t size, int *errcode);
 
 static mp_obj_t websocket_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
@@ -217,7 +217,7 @@ static mp_uint_t websocket_read(mp_obj_t self_in, void *buf, mp_uint_t size, int
     }
 }
 
-static mp_uint_t websocket_write(mp_obj_t self_in, const void *buf, mp_uint_t size, int *errcode) {
+static mp_uint_t websocket_write(mp_obj_t self_in, MP_SANITIZER_CONST void *buf, mp_uint_t size, int *errcode) {
     mp_obj_websocket_t *self = MP_OBJ_TO_PTR(self_in);
     if (size >= 0x10000) {
         *errcode = MP_ENOBUFS;
