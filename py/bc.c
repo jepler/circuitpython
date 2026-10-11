@@ -244,10 +244,12 @@ static void mp_setup_code_state_helper(mp_code_state_t *code_state, size_t n_arg
 
         // fill in defaults for positional args
         mp_obj_t *d = &code_state_state[n_state - n_pos_args];
-        mp_obj_t *s = &self->extra_args[n_def_pos_args - 1];
-        for (size_t i = n_def_pos_args; i > 0; i--, d++, s--) {
-            if (*d == MP_OBJ_NULL) {
-                *d = *s;
+        if (n_def_pos_args) {
+            mp_obj_t *s = &self->extra_args[n_def_pos_args - 1];
+            for (size_t i = n_def_pos_args; i > 0; i--, d++, s--) {
+                if (*d == MP_OBJ_NULL) {
+                    *d = *s;
+                }
             }
         }
 

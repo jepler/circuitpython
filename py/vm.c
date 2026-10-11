@@ -75,7 +75,7 @@
     } while (0)
 
 #define DECODE_SLABEL \
-    size_t slab; \
+    ssize_t slab; \
     do { \
         if (ip[0] & 0x80) { \
             slab = ((ip[0] & 0x7f) | (ip[1] << 7)) - 0x4000; \
@@ -375,7 +375,7 @@ dispatch_loop:
 
                 ENTRY(MP_BC_LOAD_FAST_N): {
                     DECODE_UINT;
-                    obj_shared = fastn[-unum];
+                    obj_shared = fastn[-(int)unum];
                     load_check:
                     if (obj_shared == MP_OBJ_NULL) {
                         local_name_error: {
@@ -390,7 +390,7 @@ dispatch_loop:
 
                 ENTRY(MP_BC_LOAD_DEREF): {
                     DECODE_UINT;
-                    obj_shared = mp_obj_cell_get(fastn[-unum]);
+                    obj_shared = mp_obj_cell_get(fastn[-(int)unum]);
                     goto load_check;
                 }
 
@@ -465,13 +465,13 @@ dispatch_loop:
 
                 ENTRY(MP_BC_STORE_FAST_N): {
                     DECODE_UINT;
-                    fastn[-unum] = POP();
+                    fastn[-(int)unum] = POP();
                     DISPATCH();
                 }
 
                 ENTRY(MP_BC_STORE_DEREF): {
                     DECODE_UINT;
-                    mp_obj_cell_set(fastn[-unum], POP());
+                    mp_obj_cell_set(fastn[-(int)unum], POP());
                     DISPATCH();
                 }
 
@@ -507,20 +507,20 @@ dispatch_loop:
                 ENTRY(MP_BC_DELETE_FAST): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    if (fastn[-unum] == MP_OBJ_NULL) {
+                    if (fastn[-(int)unum] == MP_OBJ_NULL) {
                         goto local_name_error;
                     }
-                    fastn[-unum] = MP_OBJ_NULL;
+                    fastn[-(int)unum] = MP_OBJ_NULL;
                     DISPATCH();
                 }
 
                 ENTRY(MP_BC_DELETE_DEREF): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    if (mp_obj_cell_get(fastn[-unum]) == MP_OBJ_NULL) {
+                    if (mp_obj_cell_get(fastn[-(int)unum]) == MP_OBJ_NULL) {
                         goto local_name_error;
                     }
-                    mp_obj_cell_set(fastn[-unum], MP_OBJ_NULL);
+                    mp_obj_cell_set(fastn[-(int)unum], MP_OBJ_NULL);
                     DISPATCH();
                 }
 
@@ -571,14 +571,14 @@ dispatch_loop:
 
                 ENTRY(MP_BC_JUMP): {
                     DECODE_SLABEL;
-                    ip += slab;
+                    ip += (intptr_t)slab;
                     DISPATCH_WITH_PEND_EXC_CHECK();
                 }
 
                 ENTRY(MP_BC_POP_JUMP_IF_TRUE): {
                     DECODE_SLABEL;
                     if (mp_obj_is_true(POP())) {
-                        ip += slab;
+                        ip += (intptr_t)slab;
                     }
                     DISPATCH_WITH_PEND_EXC_CHECK();
                 }
@@ -586,7 +586,7 @@ dispatch_loop:
                 ENTRY(MP_BC_POP_JUMP_IF_FALSE): {
                     DECODE_SLABEL;
                     if (!mp_obj_is_true(POP())) {
-                        ip += slab;
+                        ip += (intptr_t)slab;
                     }
                     DISPATCH_WITH_PEND_EXC_CHECK();
                 }
@@ -792,7 +792,7 @@ unwind_jump:;
                     if (*(sp - MP_OBJ_ITER_BUF_NSLOTS + 1) == MP_OBJ_NULL) {
                         obj = *(sp - MP_OBJ_ITER_BUF_NSLOTS + 2);
                     } else {
-                        obj = MP_OBJ_FROM_PTR(&sp[-MP_OBJ_ITER_BUF_NSLOTS + 1]);
+                        obj = MP_OBJ_FROM_PTR(&sp[-(int)MP_OBJ_ITER_BUF_NSLOTS + 1]);
                     }
                     mp_obj_t value = mp_iternext_allow_raise(obj);
                     if (value == MP_OBJ_STOP_ITERATION) {
@@ -821,7 +821,7 @@ unwind_jump:;
                 ENTRY(MP_BC_BUILD_TUPLE): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    sp -= unum - 1;
+                    sp -= (int)(unum - 1);
                     SET_TOP(mp_obj_new_tuple(unum, sp));
                     DISPATCH();
                 }
@@ -829,7 +829,7 @@ unwind_jump:;
                 ENTRY(MP_BC_BUILD_LIST): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    sp -= unum - 1;
+                    sp -= (int)(unum - 1);
                     SET_TOP(mp_obj_new_list(unum, sp));
                     DISPATCH();
                 }
@@ -851,7 +851,7 @@ unwind_jump:;
                 ENTRY(MP_BC_BUILD_SET): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    sp -= unum - 1;
+                    sp -= (int)(unum - 1);
                     SET_TOP(mp_obj_new_set(unum, sp));
                     DISPATCH();
                 }
@@ -886,7 +886,7 @@ unwind_jump:;
                 ENTRY(MP_BC_STORE_COMP): {
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
-                    mp_obj_t obj = sp[-(unum >> 2)];
+                    mp_obj_t obj = sp[-(int)(unum >> 2)];
                     if ((unum & 3) == 0) {
                         mp_obj_list_append(obj, sp[0]);
                         sp--;
@@ -906,7 +906,7 @@ unwind_jump:;
                     MARK_EXC_IP_SELECTIVE();
                     DECODE_UINT;
                     mp_unpack_sequence(sp[0], unum, sp);
-                    sp += unum - 1;
+                    sp += (int)(unum - 1);
                     DISPATCH();
                 }
 

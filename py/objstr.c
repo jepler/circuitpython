@@ -840,7 +840,7 @@ static mp_obj_t str_startendswith(size_t n_args, const mp_obj_t *args, bool ends
     size_t prefix_len;
     for (size_t i = 0; i < n_prefixes; i++) {
         const char *prefix = mp_obj_str_get_data(prefixes[i], &prefix_len);
-        const byte *s = str + (ends_with ? str_len - prefix_len : 0);
+        const byte *s = str + (ends_with ? (intptr_t)(str_len - prefix_len) : 0);
         if (prefix_len <= str_len && memcmp(s, prefix, prefix_len) == 0) {
             return mp_const_true;
         }

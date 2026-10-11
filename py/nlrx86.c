@@ -39,24 +39,26 @@ unsigned int nlr_push_tail(nlr_buf_t *nlr) asm ("nlr_push_tail");
 __attribute__((used)) unsigned int nlr_push_tail(nlr_buf_t *nlr);
 #endif
 
-#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 8
-// Since gcc 8.0 the naked attribute is supported
-#define USE_NAKED (1)
-#define UNDO_PRELUDE (0)
-#elif defined(__ZEPHYR__) || defined(__ANDROID__)
-// Zephyr and Android use a different calling convention by default
-#define USE_NAKED (0)
-#define UNDO_PRELUDE (0)
+#if !MICROPY_NLR_OS_WINDOWS
+#if defined(__clang__) || (defined(__GNUC__) && __GNUC__ >= 8)
+#define USE_NAKED 1
 #else
-#define USE_NAKED (0)
-#define UNDO_PRELUDE (1)
+// On older gcc the equivalent here is to force omit-frame-pointer
+__attribute__((optimize("omit-frame-pointer")))
+#endif
+#endif
+
+#if !defined(USE_NAKED)
+#define USE_NAKED 0
 #endif
 
 #if USE_NAKED
 __attribute__((naked))
 #endif
 unsigned int nlr_push(nlr_buf_t *nlr) {
+    #if !USE_NAKED
     (void)nlr;
+    #endif
 
     __asm volatile (
         #if UNDO_PRELUDE

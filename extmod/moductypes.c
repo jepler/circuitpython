@@ -492,7 +492,7 @@ static mp_obj_t uctypes_struct_attr_op(mp_obj_t self_in, qstr attr, mp_obj_t set
         case STRUCT: {
             mp_obj_uctypes_struct_t *o = mp_obj_malloc(mp_obj_uctypes_struct_t, &uctypes_struct_type);
             o->desc = sub->items[1];
-            o->addr = self->addr + offset;
+            o->addr = self->addr ? self->addr + offset : NULL;
             o->flags = self->flags;
             return MP_OBJ_FROM_PTR(o);
         }
