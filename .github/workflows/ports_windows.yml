@@ -100,7 +100,7 @@ jobs:
             plugin:  ""
           - sys: mingw64
             env: x86_64
-            plugin: "mingw-w64-x86_64-plugin"
+            plugin: "mingw-w64-x86_64-gcc-plugin"
     runs-on: windows-latest
     env:
       CHERE_INVOKING: enabled_from_arguments

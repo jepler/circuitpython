@@ -12,7 +12,7 @@ else
 CHECKS_EXTENSION = .dll
 endif
 
-CHECKS_PLUGIN :=  $(BUILD)/micropython_checks.$(CHECKS_EXTENSION)
+CHECKS_PLUGIN :=  $(BUILD)/micropython_checks$(CHECKS_EXTENSION)
 CFLAGS += -fplugin=$(CHECKS_PLUGIN)
 
 .PHONY: plugin
