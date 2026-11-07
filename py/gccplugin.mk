@@ -21,7 +21,7 @@ plugin: $(CHECKS_PLUGIN)
 $(CHECKS_PLUGIN): $(TOP)/tools/micropython_checks.cc | $(BUILD)/
 	$(ECHO) "PLUGIN $@"
 	$(Q)$(HOSTCXX)  -o $@ -shared $^ \
-		-std=gnu++11 -fPIC -Wall -O -fno-rtti \
+		-std=gnu++14 -fPIC -Wall -O -fno-rtti \
 		-I$(PLUGINDIR) $(CHECKS_LIB)
 
 # All objects depend on the checks plugin
