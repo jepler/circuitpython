@@ -118,6 +118,7 @@ jobs:
         install: >-
           make
           mingw-w64-${{ matrix.env }}-gcc
+          mingw-w64-${{ matrix.env }}-gcc-plugin
           pkg-config
           git
           diffutils
