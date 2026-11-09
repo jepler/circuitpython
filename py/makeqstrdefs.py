@@ -120,7 +120,9 @@ def process_file(f):
     if args.mode == _MODE_QSTR:
         re_match = re.compile(r"MP_QSTR_[_a-zA-Z0-9]+")
     elif args.mode == _MODE_COMPRESS:
-        re_match = re.compile(r'MP_COMPRESSED_ROM_TEXT\("([^"]*)"\)')
+        re_str = r'"(?:[^"]|\\.)*"'
+        re_strs = r"(?:" + re_str + r"|\s+)*"
+        re_match = re.compile(r"MP_COMPRESSED_ROM_TEXT\((" + re_strs + r")\)")
     elif args.mode == _MODE_MODULE:
         re_match = re.compile(
             r"(?:MP_REGISTER_MODULE|MP_REGISTER_EXTENSIBLE_MODULE|MP_REGISTER_MODULE_DELEGATION)\(.*?,\s*.*?\);"
@@ -146,6 +148,9 @@ def process_file(f):
             if args.mode == _MODE_QSTR:
                 name = match.replace("MP_QSTR_", "")
                 output.append("Q(" + name + ")")
+            if args.mode == _MODE_COMPRESS:
+                match = re.sub(r'"\s*"', "", match[1:-1])
+                output.append(match)
             elif args.mode in (_MODE_COMPRESS, _MODE_MODULE, _MODE_ROOT_POINTER):
                 output.append(match)
 
