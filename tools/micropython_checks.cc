@@ -122,7 +122,7 @@ struct micropython_checks : gimple_opt_pass {
                 return nullptr;
             return op->string.str;
         }
-        if (!strcmp(name, "mp_raise_msg_varg")) {
+        if (!strcmp(name, "mp_raise_msg_varg") || !strcmp(name, "mp_obj_new_exception_msg_varg")) {
             unsigned nargs = gimple_call_num_args(stmt);
             if (nargs < 2)
                 return nullptr;
