@@ -102,13 +102,13 @@ struct micropython_checks : gimple_opt_pass {
         return op->string.str;
     }
 
-    static const char *mpprint_format_arg(gimple *stmt) {
+    static const char *mpprint_format_arg(gimple *stmt, unsigned &argno) {
         tree fn = gimple_call_fn(stmt);
         auto name = fun_name(fn);
         if (!name) {
             return nullptr;
         }
-        if (!strcmp(name, "mp_printf")) {
+        if (!strcmp(name, "mp_printf") || !strcmp(name, "vstr_printf") || !strcmp(name, "mp_warning")) {
             unsigned nargs = gimple_call_num_args(stmt);
             if (nargs < 2)
                 return nullptr;
@@ -120,6 +120,22 @@ struct micropython_checks : gimple_opt_pass {
             tree op = arg->exp.operands[0];
             if (op->base.code != STRING_CST)
                 return nullptr;
+            argno = 2;
+            return op->string.str;
+        }
+        if (!strcmp(name, "DEBUG_printf")) {
+            unsigned nargs = gimple_call_num_args(stmt);
+            if (nargs < 1)
+                return nullptr;
+            tree arg = gimple_call_arg(stmt, 0);
+            if (!arg->base.constant_flag)
+                return nullptr;
+            if (arg->base.code != ADDR_EXPR)
+                return nullptr;
+            tree op = arg->exp.operands[0];
+            if (op->base.code != STRING_CST)
+                return nullptr;
+            argno = 1;
             return op->string.str;
         }
         if (!strcmp(name, "mp_raise_msg_varg") || !strcmp(name, "mp_obj_new_exception_msg_varg")) {
@@ -130,6 +146,7 @@ struct micropython_checks : gimple_opt_pass {
             if (TREE_CODE(arg) != SSA_NAME) {
                 return nullptr;
             }
+            argno = 2;
             return format_arg_from_stmt(SSA_NAME_CHECK(arg)->ssa_name.def_stmt);
         }
         return nullptr;
@@ -145,7 +162,8 @@ struct micropython_checks : gimple_opt_pass {
                 // location_t loc = gimple_location (stmt);
                 switch (gimple_code(stmt)) {
                 case GIMPLE_CALL: {
-                    const char *fmt = mpprint_format_arg(stmt),
+                    unsigned argno;
+                    const char *fmt = mpprint_format_arg(stmt, argno),
                                *fmt_start = nullptr;
 
                     if (!fmt) {
@@ -154,7 +172,6 @@ struct micropython_checks : gimple_opt_pass {
 
                     // printf("Checking arguments %s\n", fmt);
                     unsigned nargs = gimple_call_num_args(stmt);
-                    unsigned argno = 2;
 
                     auto require_arg = [&](unsigned argno) -> tree_node*{
                         if (argno < nargs) {
