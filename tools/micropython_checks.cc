@@ -41,14 +41,21 @@ const pass_data micropython_checks_data = {
 };
 
 static bool mpprint_support_ll = false;
+static bool mpprint_support_f = false;
 
 static void handle_supportll(struct cpp_reader *unused) {
     mpprint_support_ll = true;
 }
 
+static void handle_supportf(struct cpp_reader *unused) {
+    mpprint_support_f = true;
+}
+
+
 static void
 register_pragma (void *event_data, void *data) {
     c_register_pragma_with_expansion("MPCHECKS", "mpprint_support_ll", handle_supportll);
+    c_register_pragma_with_expansion("MPCHECKS", "mpprint_support_f", handle_supportf);
 }
 
 
@@ -173,7 +180,7 @@ struct micropython_checks : gimple_opt_pass {
                     // printf("Checking arguments %s\n", fmt);
                     unsigned nargs = gimple_call_num_args(stmt);
 
-                    auto require_arg = [&](unsigned argno) -> tree_node*{
+                    auto require_arg = [&](unsigned argno) -> tree_node* {
                         if (argno < nargs) {
                             return gimple_call_arg(stmt, argno);
                         }
@@ -185,23 +192,32 @@ struct micropython_checks : gimple_opt_pass {
                     };
 
                     auto require_double = [&](unsigned argno) {
-                        auto arg = require_arg(argno);
-                        if (!arg) {
-                            return;
-                        }
+                        if (mpprint_support_f) {
+                            auto arg = require_arg(argno);
+                            if (!arg) {
+                                return;
+                            }
 
-                        auto tp = arg ? arg->exp.typed.type : 0;
-                        if (tp)
-                            tp = TYPE_CANONICAL(tp);
-                        if (!tp
-                                || tp->base.code != REAL_TYPE
-                                || tp->type_common.precision != double_type_node->type_common.precision) {
+                            auto tp = arg ? arg->exp.typed.type : 0;
+                            if (tp)
+                                tp = TYPE_CANONICAL(tp);
+                            if (!tp
+                                    || tp->base.code != REAL_TYPE
+                                    || tp->type_common.precision != double_type_node->type_common.precision) {
+                                location_t loc = gimple_location(stmt);
+                                warning_at(loc, OPT_Wformat_,
+                                           "argument %d: Format %q.*s requires a "
+                                           "%<double%> argument, not %qE",
+                                           argno + 1, (int)(fmt - fmt_start + 1),
+                                           fmt_start, arg);
+                            }
+                        } else {
                             location_t loc = gimple_location(stmt);
-                            warning_at(loc, OPT_Wformat_,
-                                       "argument %d: Format %q.*s requires a "
-                                       "%<double%> argument, not %qE",
-                                       argno + 1, (int)(fmt - fmt_start + 1),
-                                       fmt_start, arg);
+                            warning_at(
+                                loc, OPT_Wformat_,
+                                "argument %d: Format %q.*s not supported in this configuration",
+                                argno + 1, (int)(fmt - fmt_start + 1),
+                                fmt_start);
                         }
                     };
 

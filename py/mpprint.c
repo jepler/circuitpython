@@ -588,7 +588,7 @@ int mp_vprintf(const mp_print_t *print, const char *fmt, va_list args) {
                 chrs += mp_print_int(print, val, fmt_chr == 'd', base, fmt_c, flags, fill, width);
                 break;
             }
-            #if MICROPY_PY_BUILTINS_FLOAT
+            #if MICOPY_PRINTF_F_FORMAT
             case 'e':
             case 'E':
             case 'f':
